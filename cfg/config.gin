@@ -1,0 +1,3 @@
+train.module = @classifier
+train.datamodule = @mnist
+train.arch = @mlp

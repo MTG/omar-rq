@@ -1,0 +1,18 @@
+[project]
+version = "0.0"
+name = "ssl-mtg"
+
+requires-python = ">= 3.8"
+
+dependencies = [
+  "lightning~=2.2",
+  "torch~=2.3",
+  "gin-config~=0.5",
+  "torchvision~=0.18",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+]
+
