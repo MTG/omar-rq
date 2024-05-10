@@ -1,3 +1,8 @@
+# modules to use
 train.module = @classifier
 train.datamodule = @mnist
 train.arch = @mlp
+
+# common architecture parameters
+Arch.input_shape = (784, 32)
+Arch.output_shape = (8, 10)

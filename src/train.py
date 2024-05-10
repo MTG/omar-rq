@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
+import traceback
 
 import gin.torch
 import pytorch_lightning as L
@@ -28,14 +29,20 @@ def train(
     datamodule: L.LightningDataModule,
     arch: nn.Module,
 ) -> None:
-    trainer = Trainer(accelerator="cpu", devices=1, max_epochs=1)
+    trainer = Trainer()
 
-    module = module(arch=arch())
+    arch = arch()
+    module = module(arch=arch)
     datamodule = datamodule()
-    trainer.fit(
-        model=module,
-        datamodule=datamodule,
-    )
+
+    try:
+        trainer.fit(
+            model=module,
+            datamodule=datamodule,
+        )
+    except Exception:
+        traceback.print_exc()
+        pass
 
     trainer.test()
 
