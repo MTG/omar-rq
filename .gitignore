@@ -2,4 +2,5 @@
 .pyc
 *egg-info*
 *__pycache__*
-*lightning_logs*
+wandb/
+checkpoints/

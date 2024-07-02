@@ -9,6 +9,7 @@ dependencies = [
   "torch~=2.3",
   "gin-config~=0.5",
   "torchvision~=0.18",
+  "wandb",
 ]
 
 [project.optional-dependencies]

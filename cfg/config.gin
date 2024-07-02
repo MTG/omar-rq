@@ -1,8 +1,20 @@
-# modules to use
-train.module = @classifier
-train.datamodule = @mnist
-train.arch = @mlp
 
-# common architecture parameters
-Arch.input_shape = (784, 32)
-Arch.output_shape = (8, 10)
+
+train.project_name = "dev0"
+train.save_dir = "checkpoints/"
+
+# modules to use
+train.module = @simclr
+train.datamodule = @mnist
+train.net = @mlp
+
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "cpu",
+    "devices": 1,
+    "max_epochs": 1,
+}
+
+# common network parameters
+Net.input_shape = (784, 32)
+Net.output_shape = (8, 10)

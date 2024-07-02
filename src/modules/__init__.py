@@ -1,7 +1,9 @@
 from .classifier import Classifier
+from .simclr import SimCLR
 
 MODULES = {
     "classifier": Classifier,
+    "simclr": SimCLR,
 }
 
 

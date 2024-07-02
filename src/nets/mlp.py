@@ -1,10 +1,10 @@
 from typing import Any, Tuple
 from torch import nn
 
-from .arch import Arch
+from .net import Net
 
 
-class MLP(Arch):
+class MLP(Net):
     def __init__(
         self,
         hidden_shape: Tuple[Tuple] = ((32, 16), (16, 8)),

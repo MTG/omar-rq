@@ -5,8 +5,8 @@ import gin.torch
 
 
 @gin.configurable
-class Arch(nn.Module):
-    """Auxilliary class to define common parameters for all architectures"""
+class Net(nn.Module):
+    """Auxilliary class to define common parameters and methods for all networks"""
 
     def __init__(
         self,
@@ -18,3 +18,7 @@ class Arch(nn.Module):
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.hidden_activation = hidden_activation
+
+    def get_parameter_count(self):
+        """Log the number of trainable parameters in the network"""
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
