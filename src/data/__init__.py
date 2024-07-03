@@ -1,7 +1,8 @@
 from .mnist import MNISTDataModule
-from .discotube import DiscotubeDataModule
+from .discotube import DiscotubeAudioDataModule, DiscotubeMultiViewAudioDataModule
 
 DATASETS = {
     "mnist": MNISTDataModule,
-    "discotube": DiscotubeDataModule,
+    "discotube": DiscotubeAudioDataModule,
+    "discotube_multiview": DiscotubeMultiViewAudioDataModule,
 }

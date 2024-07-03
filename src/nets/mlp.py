@@ -27,7 +27,6 @@ class MLP(Net):
         x = self.melspectrogram(x)
 
         x = x.reshape(x.size(0), -1)
-        print(x.shape)
 
         assert (
             x.shape[1] == self.input_shape[0]

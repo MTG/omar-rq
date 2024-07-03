@@ -72,20 +72,18 @@ class SimCLR(L.LightningModule):
         """Training step for SimCLR."""
 
         # get the views
-        # x_0 = batch["view_0"]
-        # x_1 = batch["view_1"]
-        x_0 = batch[0]
-        x_1 = batch[0]
+        x_0 = batch["view_0"]
+        x_1 = batch["view_1"]
 
-        # get the embeddings and create new axis for stacking them
+        # get the embeddings for the views
         z_0 = self.net(x_0)
         z_1 = self.net(x_1)
 
-        # get the logits and labels with the InfoNCE loss
+        # stack embeddings on the batch dimension
         z = torch.cat([z_0, z_1], dim=0)
 
+        # get logits and labels and compute the loss
         y_hat, y = self.info_nce_loss(z)
-
         loss = self.criterion(y_hat, y)
 
         self.log("train/loss", loss)

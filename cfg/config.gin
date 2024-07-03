@@ -4,7 +4,7 @@ train.save_dir = "checkpoints/"
 
 # modules to use
 train.module = @simclr
-train.datamodule = @discotube
+train.datamodule = @discotube_multiview
 train.net = @mlp
 
 # Lighting trainer parameters
@@ -20,11 +20,10 @@ Net.output_shape = (8, 10)
 
 
 #AudioDtaset
-AudioDataset.frame_offset = "random"
 AudioDataset.num_frames = 44100  # 1 seconds
 
 # Discogs datamodule parameters
-DiscotubeDataModule.batch_size = 32
-DiscotubeDataModule.data_dir = "/mnt/projects/discotube"
-DiscotubeDataModule.filelist_train = "data/discotube/train_v0.txt"
-DiscotubeDataModule.filelist_val = "data/discotube/val_v0.txt"
+DiscotubeMultiViewAudioDataModule.batch_size = 32
+DiscotubeMultiViewAudioDataModule.data_dir = "/mnt/projects/discotube"
+DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v0.txt"
+DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v0.txt"
