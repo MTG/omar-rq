@@ -9,14 +9,14 @@ from pytorch_lightning.loggers import WandbLogger
 
 from torch import nn
 
-from modules import MODULES
+from cosineannealingscheduler import CosineAnnealingCallback
 from data import DATASETS
+from modules import MODULES
 from nets import NETS
-
 from utils import gin_config_to_readable_dictionary
 
 
-# Register all modules, datasets and netitectures with gin
+# Register all modules, datasets and networs with gin
 for module_name, module in MODULES.items():
     gin.external_configurable(module, module_name)
 
@@ -34,7 +34,7 @@ def train(
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
     net: nn.Module,
-    params: dict = {},
+    params: dict,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
@@ -42,37 +42,36 @@ def train(
     module = module(net=net)
     datamodule = datamodule()
 
-    # get all parameters tracked by gin config
+    # get the lighting wandb wrapper and log the gin config
     gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
-
-    # get the lighting wandb wrapper to log training
     wandb_logger = WandbLogger(project=project_name, save_dir=save_dir)
     wandb_logger.log_hyperparams(gin_config_dict)
 
     # log the number of parameters in the network
     wandb_logger.experiment.config["param_count"] = net.get_parameter_count()
 
-    trainer = Trainer(logger=wandb_logger, **params)
+    # create callbacks
+    cosine_annealing_callback = CosineAnnealingCallback(total_steps=params["max_steps"])
+    callbacks = [cosine_annealing_callback]
 
-    try:
-        trainer.fit(
-            model=module,
-            datamodule=datamodule,
-        )
-    except Exception:
-        traceback.print_exc()
-        pass
+    trainer = Trainer(logger=wandb_logger, callbacks=callbacks, **params)
 
-    # trainer.test()
+    trainer.fit(
+        model=module,
+        datamodule=datamodule,
+    )
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
+    parser = ArgumentParser("Train SSL models using gin config")
     parser.add_argument("--config-file", type=Path, default="cfg/config.gin")
 
     args = parser.parse_args()
 
-    gin.parse_config_file(args.config_file)
-    gin.finalize()
+    try:
+        gin.parse_config_file(args.config_file)
+        gin.finalize()
 
-    train()
+        train()
+    except Exception:
+        traceback.print_exc()

@@ -1,6 +1,6 @@
 # general training parameters
 train.project_name = "dev0"
-train.save_dir = "checkpoints/"
+train.save_dir = "./"
 
 # modules to use
 train.module = @simclr
@@ -11,13 +11,13 @@ train.net = @mlp
 train.params = {
     "accelerator": "cpu",
     "devices": 1,
-    "max_epochs": 1,
+    "max_steps": 100,
+    "log_every_n_steps": 2,
 }
 
 # common network parameters
 Net.input_shape = (6048, 32)
 Net.output_shape = (8, 10)
-
 
 #AudioDtaset
 AudioDataset.num_frames = 44100  # 1 seconds
@@ -27,3 +27,19 @@ DiscotubeMultiViewAudioDataModule.batch_size = 32
 DiscotubeMultiViewAudioDataModule.data_dir = "/mnt/projects/discotube"
 DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v0.txt"
 DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v0.txt"
+
+# CosineAnnealing schedeler
+ CosineAnnealingCallback.warmup_steps = 10
+ CosineAnnealingCallback.eta_min = 1e-7
+
+# SimCLR parameters
+SimCLR.temperature = 0.1
+SimCLR.lr = 1e-4
+
+# MelSpectrogram parameters
+MelSpectrogram.n_fft = 512
+MelSpectrogram.n_mel = 96
+MelSpectrogram.stretch_factorat = 0.8
+MelSpectrogram.sr = 16000
+MelSpectrogram.freq_mask_param = 80
+MelSpectrogram.time_mask_param = 80

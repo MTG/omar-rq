@@ -7,12 +7,18 @@ import torch.nn.functional as F
 
 @gin.configurable
 class SimCLR(L.LightningModule):
-    def __init__(self, net: nn.Module, temperature: float = 0.1):
+    def __init__(
+        self,
+        net: nn.Module,
+        temperature: float,
+        lr: float,
+    ):
         super().__init__()
 
         self.net = net
         self.criterion = nn.CrossEntropyLoss().to(self.device)
         self.temperature = temperature
+        self.lr = lr
 
     def info_nce_loss(self, features):
         """InfoNCE loss function.
@@ -91,5 +97,5 @@ class SimCLR(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
