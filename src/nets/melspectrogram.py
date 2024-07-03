@@ -1,3 +1,4 @@
+import gin.torch
 import torch
 from torchaudio.transforms import (
     Spectrogram,
@@ -7,23 +8,33 @@ from torchaudio.transforms import (
     TimeMasking,
 )
 
-# According to Pytoch, mel-spectrogram is implemented as a module:Jk w
+# According to Pytoch, mel-spectrogram should be implemented as a module:
 # https://pytorch.org/audio/stable/transforms.html
 
 
+@gin.configurable
 class MelSpectrogram(torch.nn.Module):
     def __init__(
         self,
-        n_fft: int = 512,
-        n_mel: int = 96,
-        stretch_factor: float = 0.8,
-        sr: int = 16000,
-        freq_mask_param: int = 80,
-        time_mask_param: int = 80,
+        sr: int,
+        win_len: int,
+        hop_len: int,
+        power: int,
+        n_mel: int,
+        stretch_factor: float,
+        freq_mask_param: int,
+        time_mask_param: int,
+        norm: str,
+        mel_scale: str,
     ):
         super().__init__()
 
-        self.spec = Spectrogram(n_fft=n_fft, power=2)
+        self.spec = Spectrogram(
+            n_fft=win_len,
+            win_length=win_len,
+            hop_length=hop_len,
+            power=power,
+        )
 
         self.spec_aug = torch.nn.Sequential(
             TimeStretch(stretch_factor, fixed_rate=True),
@@ -31,7 +42,13 @@ class MelSpectrogram(torch.nn.Module):
             TimeMasking(time_mask_param=time_mask_param),
         )
 
-        self.mel_scale = MelScale(n_mels=n_mel, sample_rate=sr, n_stft=n_fft // 2 + 1)
+        self.mel_scale = MelScale(
+            n_mels=n_mel,
+            sample_rate=sr,
+            n_stft=win_len // 2 + 1,
+            norm=norm,
+            mel_scale=mel_scale,
+        )
 
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
         # Resample the input
@@ -46,4 +63,7 @@ class MelSpectrogram(torch.nn.Module):
         # Convert to mel-scale
         mel = self.mel_scale(spec)
 
-        return mel
+        # Apply logC compression
+        logmel = torch.log10(1 + mel * 10000)
+
+        return logmel

@@ -37,9 +37,15 @@ SimCLR.temperature = 0.1
 SimCLR.lr = 1e-4
 
 # MelSpectrogram parameters
-MelSpectrogram.n_fft = 512
-MelSpectrogram.n_mel = 96
-MelSpectrogram.stretch_factorat = 0.8
 MelSpectrogram.sr = 16000
+MelSpectrogram.win_len = 512
+MelSpectrogram.hop_len = 256
+MelSpectrogram.power = 2
+MelSpectrogram.n_mel = 96
+MelSpectrogram.norm = "slaney"
+MelSpectrogram.mel_scale = "slaney"
+
+# data augmentation
+MelSpectrogram.stretch_factor = 0.8
 MelSpectrogram.freq_mask_param = 80
 MelSpectrogram.time_mask_param = 80
