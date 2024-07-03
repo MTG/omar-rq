@@ -24,8 +24,6 @@ class MLP(Net):
         self.l3 = nn.Linear(*self.output_shape)
 
     def forward(self, x):
-        x = self.melspectrogram(x)
-
         x = x.reshape(x.size(0), -1)
 
         assert (

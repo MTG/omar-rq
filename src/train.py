@@ -34,12 +34,14 @@ def train(
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
     net: nn.Module,
+    representation: nn.Module,
     params: dict,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
     net = net()
-    module = module(net=net)
+    representation = representation()
+    module = module(net=net, representation=representation)
     datamodule = datamodule()
 
     # get the lightning wandb logger wrapper and log the config

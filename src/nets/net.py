@@ -3,8 +3,6 @@ from typing import Any
 import torch.nn as nn
 import gin.torch
 
-from .melspectrogram import MelSpectrogram
-
 
 @gin.configurable
 class Net(nn.Module):
@@ -20,10 +18,6 @@ class Net(nn.Module):
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.hidden_activation = hidden_activation
-
-        # define the mel spectrogram layer
-        self.melspectrogram = MelSpectrogram()
-        # self.melspectrogram.to(self.device)
 
     def get_parameter_count(self):
         """Log the number of trainable parameters in the network"""

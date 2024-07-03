@@ -5,11 +5,12 @@ train.save_dir = "./"
 # modules to use
 train.module = @simclr
 train.datamodule = @discotube_multiview
-train.net = @mlp
+train.net = @transformer
+train.representation = @melspectrogram
 
 # Lighting trainer parameters
 train.params = {
-    "accelerator": "cpu",
+    "accelerator": "gpu",
     "devices": 1,
     "max_steps": 100,
     "log_every_n_steps": 2,
@@ -46,6 +47,17 @@ MelSpectrogram.norm = "slaney"
 MelSpectrogram.mel_scale = "slaney"
 
 # data augmentation
-MelSpectrogram.stretch_factor = 0.8
-MelSpectrogram.freq_mask_param = 80
-MelSpectrogram.time_mask_param = 80
+MelSpectrogram.stretch_factor = 1
+MelSpectrogram.freq_mask_param = 0
+MelSpectrogram.time_mask_param = 0
+
+# Transformer parameters
+Transformer.patch_size = (16, 16)
+Transformer.context_length = 63
+Transformer.in_chans = 1
+Transformer.embed_dim = 768
+Transformer.head_dims = 768
+Transformer.depth = 2
+Transformer.num_heads = 12
+Transformer.mlp_ratio=4.0
+Transformer.dropout=0.1

@@ -4,18 +4,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+first_run = True
+
 
 @gin.configurable
 class SimCLR(L.LightningModule):
     def __init__(
         self,
         net: nn.Module,
+        representation: nn.Module,
         temperature: float,
         lr: float,
     ):
         super().__init__()
 
         self.net = net
+        self.representation = representation
+
         self.criterion = nn.CrossEntropyLoss().to(self.device)
         self.temperature = temperature
         self.lr = lr
@@ -40,7 +45,9 @@ class SimCLR(L.LightningModule):
         batch_size = features.shape[0] // n_views
 
         # create two stacked diagonal matrices
-        labels = torch.cat([torch.arange(batch_size) for _ in range(n_views)], dim=0)
+        labels = torch.cat(
+            [torch.arange(batch_size) for _ in range(n_views)], dim=0
+        ).to(self.device)
 
         # create a matrix of shape (2 * batch_size, 2 * batch_size) with a diagonal and two sub-diagonals
         labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
@@ -77,13 +84,30 @@ class SimCLR(L.LightningModule):
     def training_step(self, batch):
         """Training step for SimCLR."""
 
+        global first_run
+
         # get the views
         x_0 = batch["view_0"]
         x_1 = batch["view_1"]
 
+        if first_run:
+            print(f"x_0 shape: {x_0.shape}")
+
+        x_0 = self.representation(x_0)
+        x_1 = self.representation(x_1)
+
+        if first_run:
+            print(f"x_0 (mels) shape: {x_0.shape}")
+
         # get the embeddings for the views
         z_0 = self.net(x_0)
         z_1 = self.net(x_1)
+
+        if first_run:
+            print(f"z_0 shape: {z_0.shape}")
+
+        if first_run:
+            self.logger.log_image(key="representation", images=[x_0[0], x_1[0]])
 
         # stack embeddings on the batch dimension
         z = torch.cat([z_0, z_1], dim=0)
@@ -93,6 +117,8 @@ class SimCLR(L.LightningModule):
         loss = self.criterion(y_hat, y)
 
         self.log("train/loss", loss)
+
+        first_run = False
 
         return loss
 
