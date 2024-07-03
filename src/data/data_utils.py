@@ -107,6 +107,7 @@ class AudioDataModule(L.LightningDataModule):
         data_dir: Path,
         filelist_train: Path,
         filelist_val: Path,
+        num_workers: int = 16,
     ):
         super().__init__()
 
@@ -115,6 +116,8 @@ class AudioDataModule(L.LightningDataModule):
         self.data_dir = Path(data_dir)
         self.filelist_train = Path(filelist_train)
         self.filelist_val = Path(filelist_val)
+
+        self.num_workers = num_workers
 
     def setup(self, stage: str):
         self.dataset_train = AudioDataset(
@@ -127,10 +130,14 @@ class AudioDataModule(L.LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(self.dataset_train, batch_size=self.batch_size)
+        return DataLoader(
+            self.dataset_train, batch_size=self.batch_size, num_workers=self.num_workers
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.dataset_val, batch_size=self.batch_size)
+        return DataLoader(
+            self.dataset_val, batch_size=self.batch_size, num_workers=self.num_workers
+        )
 
 
 class MultiViewAudioDataset(AudioDataset):
@@ -143,55 +150,61 @@ class MultiViewAudioDataset(AudioDataset):
     def __getitem__(self, idx):
         file_path = self.data_dir / self.filelist[idx]
 
-        # get the number of samples in the audio
-        n_samples = self.get_audio_duration(file_path)
+        try:
+            # get the number of samples in the audio
+            n_samples = self.get_audio_duration(file_path)
 
-        # compute the offsets for the two views
-        offsets = self.get_views_offset(n_samples)
+            # compute the offsets for the two views
+            offsets = self.get_views_offset(n_samples)
 
-        views = dict()
-        for i, offset in enumerate(offsets):
-            audio, sr = self.load_audio(file_path, frame_offset=offset)
+            views = dict()
+            for i, offset in enumerate(offsets):
+                audio, sr = self.load_audio(file_path, frame_offset=offset)
 
-            # downmix to mono if necessary
-            if audio.shape[0] > 1 and self.mono:
-                audio = torch.mean(audio, dim=0, keepdim=False)
+                # downmix to mono if necessary
+                if audio.shape[0] > 1 and self.mono:
+                    audio = torch.mean(audio, dim=0, keepdim=False)
 
-            # resample if necessary
-            if sr != self.new_freq:
-                audio = self.resample_audio(audio, sr)
+                # resample if necessary
+                if sr != self.new_freq:
+                    audio = self.resample_audio(audio, sr)
 
-            # TODO aumentations
+                # TODO aumentations
 
-            views[f"view_{i}"] = audio.squeeze(0)
+                views[f"view_{i}"] = audio.squeeze(0)
 
-        return views
+            return views
+
+        except Exception as e:
+            # TODO add this to the lightning logger
+            print(f"Error loading {file_path}")
+            return self.__getitem__(idx + 1)
 
     def get_views_offset(self, length: int, prob_floor: float = 0.1):
-        """Get two non-overlapping views (offsets) of the audio.
+        """Get indices (offsets) for two non-overlapping vews of the audio.
 
         Other works consider sampling the views within a fixed time window
         (e.g., 5 seconds, https://arxiv.org/pdf/2210.03799)
 
-        In our appraoch, we sample the offset of the second offset from a
+        In our appraoch, we sample the offset for the second view from a
         triangle-shaped distribution center around the first view, while not
-        allowing overlap between views.
-        The distribution foloows this shape (/|_|\\) where `_` has prob=0
+        allowing for overlap between views.
+        The distribution follows this shape (/|_|\\) where `_` has prob=0
         as this is the region around the first view.
         """
 
         # sample the first offset from a uniform distribution
         offset_0 = torch.randint(0, length - self.num_frames, (1,)).item()
 
-        # to compute the second offset, we downsample the audio by a factor of 1000
-        # to make the computation efficient.
+        # we downsample the audio by a factor of 1000 to make the computation
+        # of the second offset efficient.
         scale_factor = 1000
         offset_0_ds = offset_0 // scale_factor
         length_ds = length // scale_factor
         num_frames_ds = self.num_frames // scale_factor
 
         # compute probs for the full song using a simple triangle distribution.
-        # This favours offsets to be close without allowing overlap
+        # This favours offsets to be close while not allowing for overlap.
         ramp_up = torch.arange(0, offset_0_ds + 1) / offset_0_ds
         n_steps_down = length_ds - num_frames_ds - offset_0_ds
         ramp_down = torch.arange(n_steps_down, 0, -1) / n_steps_down
@@ -201,9 +214,9 @@ class MultiViewAudioDataset(AudioDataset):
         # add a floor value and normalize
         probs = (probs + prob_floor) / torch.sum(probs + prob_floor)
 
-        # zero out indices that overlap with the first view
+        # zero out indices that would overlap with the first view
         bound_l = max(0, offset_0_ds - num_frames_ds)
-        bound_r = min(length_ds, offset_0_ds + num_frames_ds)
+        bound_r = min(len(probs), offset_0_ds + num_frames_ds)
 
         probs[bound_l:bound_r] = torch.zeros(bound_r - bound_l)
 
