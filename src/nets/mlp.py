@@ -24,6 +24,15 @@ class MLP(Net):
         self.l3 = nn.Linear(*self.output_shape)
 
     def forward(self, x):
+        x = self.melspectrogram(x)
+
+        x = x.reshape(x.size(0), -1)
+        print(x.shape)
+
+        assert (
+            x.shape[1] == self.input_shape[0]
+        ), f"Expected shape {self.input_shape}, got {x.shape}"
+
         x = self.l1(x)
         if self.hidden_shape:
             x = self.l2(x)

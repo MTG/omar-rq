@@ -15,13 +15,13 @@ train.params = {
 }
 
 # common network parameters
-Net.input_shape = (784, 32)
+Net.input_shape = (6048, 32)
 Net.output_shape = (8, 10)
 
 
 #AudioDtaset
 AudioDataset.frame_offset = "random"
-AudioDataset.num_frames = 1232000  # 30 seconds
+AudioDataset.num_frames = 44100  # 1 seconds
 
 # Discogs datamodule parameters
 DiscotubeDataModule.batch_size = 32

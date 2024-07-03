@@ -77,9 +77,6 @@ class SimCLR(L.LightningModule):
         x_0 = batch[0]
         x_1 = batch[0]
 
-        x_0 = x_0.view(x_0.size(0), -1)
-        x_1 = x_1.view(x_1.size(0), -1)
-
         # get the embeddings and create new axis for stacking them
         z_0 = self.net(x_0)
         z_1 = self.net(x_1)

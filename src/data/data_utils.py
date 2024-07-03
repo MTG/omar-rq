@@ -42,13 +42,15 @@ class AudioDataset(Dataset):
 
         # downmix to mono if necessary
         if audio.shape[0] > 1 and self.mono:
-            audio = torch.mean(audio, dim=0, keepdim=True)
+            audio = torch.mean(audio, dim=0, keepdim=False)
 
         # resample if necessary
         if sr != self.new_freq:
             audio = self.resample_audio(audio, sr)
 
-        return audio
+        audio = audio.squeeze(0)
+
+        return [audio]
 
     def load_audio(self, file_path: Path):
         # TODO fix random
