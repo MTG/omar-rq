@@ -3,7 +3,6 @@ import pytorch_lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.functional import one_hot
 
 
 @gin.configurable

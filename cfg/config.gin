@@ -1,11 +1,10 @@
-
-
+# general training parameters
 train.project_name = "dev0"
 train.save_dir = "checkpoints/"
 
 # modules to use
 train.module = @simclr
-train.datamodule = @mnist
+train.datamodule = @discotube
 train.net = @mlp
 
 # Lighting trainer parameters
@@ -18,3 +17,14 @@ train.params = {
 # common network parameters
 Net.input_shape = (784, 32)
 Net.output_shape = (8, 10)
+
+
+#AudioDtaset
+AudioDataset.frame_offset = "random"
+AudioDataset.num_frames = 1232000  # 30 seconds
+
+# Discogs datamodule parameters
+DiscotubeDataModule.batch_size = 32
+DiscotubeDataModule.data_dir = "/mnt/projects/discotube"
+DiscotubeDataModule.filelist_train = "data/discotube/train_v0.txt"
+DiscotubeDataModule.filelist_val = "data/discotube/val_v0.txt"

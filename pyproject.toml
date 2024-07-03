@@ -10,6 +10,7 @@ dependencies = [
   "gin-config~=0.5",
   "torchvision~=0.18",
   "wandb",
+  "torchaudio",
 ]
 
 [project.optional-dependencies]

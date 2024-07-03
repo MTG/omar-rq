@@ -6,7 +6,7 @@ from torchvision import transforms
 
 
 class MNISTDataModule(L.LightningDataModule):
-    """Simpe minst data module for development purposes."""
+    """Simple minst data module for development purposes."""
 
     def __init__(self, data_dir: str = "data/", batch_size: int = 32):
         super().__init__()
