@@ -1,4 +1,5 @@
 import gin.torch
+import numpy as np
 import pytorch_lightning as L
 import torch
 import torch.nn as nn
@@ -15,6 +16,7 @@ class SimCLR(L.LightningModule):
         representation: nn.Module,
         temperature: float,
         lr: float,
+        mixup_alpha: float,
     ):
         super().__init__()
 
@@ -24,11 +26,12 @@ class SimCLR(L.LightningModule):
         self.criterion = nn.CrossEntropyLoss().to(self.device)
         self.temperature = temperature
         self.lr = lr
+        self.mixup_alpha = mixup_alpha
 
     def info_nce_loss(self, features):
         """InfoNCE loss function.
 
-        Expect features of shape: (2 * batch_size, feat_dim):
+        This function expect features of shape: (2 * batch_size, feat_dim):
 
         features = [
             F0_1,
@@ -90,6 +93,11 @@ class SimCLR(L.LightningModule):
         x_0 = batch["view_0"]
         x_1 = batch["view_1"]
 
+        # apply mixup augmentation
+        if self.mixup_alpha > 0:
+            x_0 = self.mixup(x_0)
+            x_1 = self.mixup(x_1)
+
         if first_run:
             print(f"x_0 shape: {x_0.shape}")
 
@@ -125,3 +133,19 @@ class SimCLR(L.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
+
+    def mixup(self, x):
+        """Mixup data augmentation in the waveform domain (1D)."""
+
+        batch_size = x.size(0)
+        rn_indices = torch.randperm(batch_size)
+
+        lambd = np.random.beta(self.mixup_alpha, self.mixup_alpha, batch_size).astype(np.float32)
+        lambd = np.concatenate([lambd[:, None], 1 - lambd[:, None]], 1).max(1)
+
+        lam = torch.FloatTensor(lambd).to(x.device)
+
+        x = x * lam.reshape(batch_size, 1) + \
+        x[rn_indices] * (1. - lam.reshape(batch_size, 1))
+
+        return x

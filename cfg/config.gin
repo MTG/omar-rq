@@ -11,17 +11,18 @@ train.representation = @melspectrogram
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 1,
+    "devices": 2,
     "max_steps": 100,
-    "log_every_n_steps": 2,
+    "log_every_n_steps": 10,
+    "precision": "bf16-mixed",
+    "strategy": "ddp_find_unused_parameters_true",
 }
 
-# common network parameters
-Net.input_shape = (6048, 32)
-Net.output_shape = (8, 10)
-
 #AudioDtaset
-AudioDataset.num_frames = 44100  # 1 seconds
+AudioDataset.num_frames = 44100  # 1 second
+AudioDataset.new_freq = 16000
+AudioDataset.monol = True
+AudioDataset.half_precisionl = True
 
 # Discogs datamodule parameters
 DiscotubeMultiViewAudioDataModule.batch_size = 32
@@ -36,6 +37,7 @@ DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v0.txt"
 # SimCLR parameters
 SimCLR.temperature = 0.1
 SimCLR.lr = 1e-4
+SimCLR.mixup_alpha = 0.3
 
 # MelSpectrogram parameters
 MelSpectrogram.sr = 16000
@@ -45,6 +47,8 @@ MelSpectrogram.power = 2
 MelSpectrogram.n_mel = 96
 MelSpectrogram.norm = "slaney"
 MelSpectrogram.mel_scale = "slaney"
+MelSpectrogram.norm_std = 1.268292820667291 
+MelSpectrogram.norm_mean = 2.06755686098554 
 
 # data augmentation
 MelSpectrogram.stretch_factor = 1

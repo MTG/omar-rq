@@ -26,6 +26,8 @@ class MelSpectrogram(torch.nn.Module):
         time_mask_param: int,
         norm: str,
         mel_scale: str,
+        norm_mean: float,
+        norm_std: float,
     ):
         super().__init__()
 
@@ -50,20 +52,30 @@ class MelSpectrogram(torch.nn.Module):
             mel_scale=mel_scale,
         )
 
+        self.mean = norm_mean
+        self.std = norm_std
+
+    def znorm(self, input_values: torch.Tensor) -> torch.Tensor:
+        return (input_values - (self.mean)) / (self.std * 2)
+
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
-        # Resample the input
+        # resample the input
         # resampled = self.resample(waveform)
 
-        # Convert to power spectrogram
+        # convert to power spectrogram
         spec = self.spec(waveform)
 
-        # Apply SpecAugment
+        # apply SpecAugment
         spec = self.spec_aug(spec)
 
-        # Convert to mel-scale
+        # convert to mel-scale
         mel = self.mel_scale(spec)
 
-        # Apply logC compression
+        # apply logC compression
         logmel = torch.log10(1 + mel * 10000)
+
+        # normalize
+        if self.mean is not None and self.std is not None:
+            logmel = self.znorm(logmel)
 
         return logmel

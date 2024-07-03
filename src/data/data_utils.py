@@ -17,10 +17,11 @@ class AudioDataset(Dataset):
         self,
         data_dir: Path,
         filelist: Path,
-        num_frames: int = 44100,
-        frame_offset: Union[int, str] = "random",
-        new_freq: int = 16000,
-        mono: bool = True,
+        num_frames: int,
+        frame_offset: Union[int, str],
+        new_freq: int,
+        mono: bool,
+        half_precision: bool,
     ):
         self.data_dir = data_dir
         with open(filelist, "r") as f:
@@ -31,6 +32,7 @@ class AudioDataset(Dataset):
         self.new_freq = new_freq
         self.resample = Resample(new_freq=self.new_freq)
         self.mono = mono
+        self.half_precision = half_precision
 
     def __len__(self):
         return len(self.filelist)
@@ -40,6 +42,10 @@ class AudioDataset(Dataset):
 
         # load audio
         audio, sr = self.load_audio(file_path, frame_offset=self.frame_offset)
+
+        # work with 16-bit precission
+        if self.half_precision:
+            audio = audio.half()
 
         # downmix to mono if necessary
         if audio.shape[0] > 1 and self.mono:
@@ -107,7 +113,7 @@ class AudioDataModule(L.LightningDataModule):
         data_dir: Path,
         filelist_train: Path,
         filelist_val: Path,
-        num_workers: int = 16,
+        num_workers: int,
     ):
         super().__init__()
 
