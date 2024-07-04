@@ -84,7 +84,7 @@ class SimCLR(L.LightningModule):
         logits = logits / self.temperature
         return logits, labels
 
-    def training_step(self, batch, mode="train"):
+    def training_step(self, batch, batch_idx, mode="train"):
         """Training step for SimCLR."""
 
         global first_run
@@ -130,7 +130,7 @@ class SimCLR(L.LightningModule):
 
         return loss
 
-    def validation_step(self, batch):
+    def validation_step(self, batch, batch_idx):
         return self.training_step(batch, mode="val")
 
     def configure_optimizers(self):
