@@ -12,23 +12,31 @@ train.representation = @melspectrogram
 train.params = {
     "accelerator": "gpu",
     "devices": 2,
-    "max_steps": 100,
-    "log_every_n_steps": 10,
+    "max_steps": 1e4,
+    "log_every_n_steps": 50,
     "precision": "bf16-mixed",
     "strategy": "ddp_find_unused_parameters_true",
+    "num_sanity_val_steps": 0,
+    "profiler": "pytorch",
 }
 
-#AudioDtaset
-AudioDataset.num_frames = 44100  # 1 second
+# Dataloader
+AudioDataset.num_frames = 132300 # 3 seconds
 AudioDataset.new_freq = 16000
-AudioDataset.monol = True
-AudioDataset.half_precisionl = True
+AudioDataset.mono = True
+AudioDataset.half_precision = True
+
+AudioDataModule.num_workers = 16
 
 # Discogs datamodule parameters
-DiscotubeMultiViewAudioDataModule.batch_size = 32
-DiscotubeMultiViewAudioDataModule.data_dir = "/mnt/projects/discotube"
-DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v0.txt"
-DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v0.txt"
+DiscotubeMultiViewAudioDataModule.batch_size = 64
+DiscotubeMultiViewAudioDataModule.data_dir = "/scratch/palonso/data/discotube-2023-03/"
+DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v1.txt"
+DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v1.txt"
+
+# DiscotubeMultiViewAudioDataModule.data_dir = "/mnt/projects/discotube"
+# DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v0.txt"
+# DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v0.txt"
 
 # CosineAnnealing schedeler
  CosineAnnealingCallback.warmup_steps = 10
@@ -52,8 +60,8 @@ MelSpectrogram.norm_mean = 2.06755686098554
 
 # data augmentation
 MelSpectrogram.stretch_factor = 1
-MelSpectrogram.freq_mask_param = 0
-MelSpectrogram.time_mask_param = 0
+MelSpectrogram.freq_mask_param = 10
+MelSpectrogram.time_mask_param = 10
 
 # Transformer parameters
 Transformer.patch_size = (16, 16)
@@ -61,7 +69,7 @@ Transformer.context_length = 63
 Transformer.in_chans = 1
 Transformer.embed_dim = 768
 Transformer.head_dims = 768
-Transformer.depth = 2
+Transformer.depth = 12
 Transformer.num_heads = 12
 Transformer.mlp_ratio=4.0
 Transformer.dropout=0.1
