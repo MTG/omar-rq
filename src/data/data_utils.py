@@ -18,10 +18,10 @@ class AudioDataset(Dataset):
         data_dir: Path,
         filelist: Path,
         num_frames: int,
-        frame_offset: Union[int, str],
         new_freq: int,
         mono: bool,
         half_precision: bool,
+        frame_offset: Union[int, str] = "random",
     ):
         self.data_dir = data_dir
         with open(filelist, "r") as f:
@@ -78,6 +78,7 @@ class AudioDataset(Dataset):
             frame_offset=offset,
             num_frames=self.num_frames,
         )
+
         return audio, sr
 
     def resample_audio(self, audio, sr):
@@ -104,6 +105,7 @@ class AudioDataset(Dataset):
         return n_samples
 
 
+@gin.configurable
 class AudioDataModule(L.LightningDataModule):
     """DataModule for the AudioDataset."""
 
@@ -137,12 +139,12 @@ class AudioDataModule(L.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(
-            self.dataset_train, batch_size=self.batch_size, num_workers=self.num_workers
+            self.dataset_train, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.dataset_val, batch_size=self.batch_size, num_workers=self.num_workers
+            self.dataset_val, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True,
         )
 
 
@@ -163,9 +165,14 @@ class MultiViewAudioDataset(AudioDataset):
             # compute the offsets for the two views
             offsets = self.get_views_offset(n_samples)
 
+            audio_full, sr = torchaudio.load(file_path)
+            # sr = 44100
+            # audio_full = torch.randn(1, n_samples)
+
             views = dict()
             for i, offset in enumerate(offsets):
-                audio, sr = self.load_audio(file_path, frame_offset=offset)
+                # audio, sr = self.load_audio(file_path, frame_offset=offset)
+                audio = audio_full[:, offset : offset + self.num_frames]
 
                 # downmix to mono if necessary
                 if audio.shape[0] > 1 and self.mono:
@@ -175,15 +182,13 @@ class MultiViewAudioDataset(AudioDataset):
                 if sr != self.new_freq:
                     audio = self.resample_audio(audio, sr)
 
-                # TODO aumentations
-
                 views[f"view_{i}"] = audio.squeeze(0)
 
             return views
 
         except Exception as e:
             # TODO add this to the lightning logger
-            print(f"Error loading {file_path}")
+            print(f"Error loading {file_path}, {e}")
             return self.__getitem__(idx + 1)
 
     def get_views_offset(self, length: int, prob_floor: float = 0.1):
