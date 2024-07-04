@@ -124,14 +124,18 @@ class SimCLR(L.LightningModule):
         y_hat, y = self.info_nce_loss(z)
         loss = self.criterion(y_hat, y)
 
-        self.log(f"{mode}/loss", loss)
+        sync_dist = False
+        if mode == "val":
+            sync_dist = True
+
+        self.log(f"{mode}/loss", loss, sync_dist=sync_dist)
 
         first_run = False
 
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return self.training_step(batch, mode="val")
+        return self.training_step(batch, batch_idx, mode="val")
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
