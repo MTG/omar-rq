@@ -50,7 +50,7 @@ def train(
     wandb_logger.log_hyperparams(gin_config_dict)
 
     # log the number of parameters in the network (required to compute scaling laws)
-    wandb_logger.experiment.config["param_count"] = net.get_parameter_count()
+    # wandb_logger.experiment.config["param_count"] = net.get_parameter_count()
 
     # create callbacks
     cosine_annealing_callback = CosineAnnealingCallback(total_steps=params["max_steps"])
