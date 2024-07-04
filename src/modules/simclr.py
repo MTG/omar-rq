@@ -84,7 +84,7 @@ class SimCLR(L.LightningModule):
         logits = logits / self.temperature
         return logits, labels
 
-    def training_step(self, batch):
+    def training_step(self, batch, mode="train"):
         """Training step for SimCLR."""
 
         global first_run
@@ -124,11 +124,14 @@ class SimCLR(L.LightningModule):
         y_hat, y = self.info_nce_loss(z)
         loss = self.criterion(y_hat, y)
 
-        self.log("train/loss", loss)
+        self.log(f"{mode}/loss", loss)
 
         first_run = False
 
         return loss
+
+    def validation_step(self, batch):
+        return self.training_step(batch, mode="val")
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -140,12 +143,15 @@ class SimCLR(L.LightningModule):
         batch_size = x.size(0)
         rn_indices = torch.randperm(batch_size)
 
-        lambd = np.random.beta(self.mixup_alpha, self.mixup_alpha, batch_size).astype(np.float32)
+        lambd = np.random.beta(self.mixup_alpha, self.mixup_alpha, batch_size).astype(
+            np.float32
+        )
         lambd = np.concatenate([lambd[:, None], 1 - lambd[:, None]], 1).max(1)
 
         lam = torch.FloatTensor(lambd).to(x.device)
 
-        x = x * lam.reshape(batch_size, 1) + \
-        x[rn_indices] * (1. - lam.reshape(batch_size, 1))
+        x = x * lam.reshape(batch_size, 1) + x[rn_indices] * (
+            1.0 - lam.reshape(batch_size, 1)
+        )
 
         return x
