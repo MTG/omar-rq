@@ -17,7 +17,6 @@ train.params = {
     "precision": "bf16-mixed",
     "strategy": "ddp_find_unused_parameters_true",
     "num_sanity_val_steps": 0,
-    "profiler": "pytorch",
 }
 
 # Dataloader
