@@ -8,6 +8,19 @@ A repository of models and training code for several SSL aproaches and architect
 pip install -e .[dev]
 ```
 
+## Cluster setup 
+
+We have to save ou wand key
+```bash
+export "WANDB_API_KEY"="YOUR_API_KEY" >> ~/.bashrc
+```
+
+To run an interactiver job
+```bash
+srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1  srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
+```
+
+
 
 ## Configure
 

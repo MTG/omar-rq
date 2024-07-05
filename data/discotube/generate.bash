@@ -2,27 +2,19 @@
 
 # Set the directory
 directory="/gpfs/projects/upf97/discotube"
+find "$directory" -type f -name "*.mp4" > all.txt
+count=$(wc -l < all.txt)
+echo "Total number of files: $count"
 
-# Find all mp3 files and store their absolute paths in an array
-mapfile -t mp3_files < <(find "$directory" -type f -name "*.mp3" -print0 | xargs -0 realpath)
+count_train=$(echo "scale=0; $count * 0.8" | bc)
+# to integer
+count_train=${count_train%.*}
+count_test=$(echo "scale=0; $count * 0.2" | bc)
+# to integer
+count_test=${count_test%.*}
 
-# Get the total number of mp3 files
-total_files=${#mp3_files[@]}
+head -n $count_train all.txt > train.txt
+tail -n $count_test all.txt > test.txt
 
-# Calculate the number of files for train (80%) and test (20%)
-train_count=$((total_files * 80 / 100))
-test_count=$((total_files - train_count))
-
-# Write the paths to the train.txt file and the test.txt file
-> train.txt  # Clear the train.txt file if it exists
-> test.txt   # Clear the test.txt file if it exists
-
-for (( i=0; i<total_files; i++ )); do
-  if [ $i -lt $train_count ]; then
-    echo "${mp3_files[$i]}" >> train.txt
-  else
-    echo "${mp3_files[$i]}" >> test.txt
-  fi
-done
 
 echo "Files have been written to 'train.txt' and 'test.txt'."
