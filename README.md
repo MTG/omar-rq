@@ -4,15 +4,12 @@ A repository of models and training code for several SSL aproaches and architect
 
 ## Install
 
-```
-pip install -e .[dev]
-```
-
 
 ## Configure
 
 All the experiment configuration is controle with gin-config.
 Check the default [cofngi file](cfg/config.gin).
+
 
 
 ## Experiment tracking

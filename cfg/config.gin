@@ -11,7 +11,7 @@ train.representation = @melspectrogram
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 2,
+    "devices": 1,
     "max_steps": 1e4,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
@@ -30,12 +30,12 @@ AudioDataModule.num_workers = 16
 # Discogs datamodule parameters
 DiscotubeMultiViewAudioDataModule.batch_size = 64
 DiscotubeMultiViewAudioDataModule.data_dir = "/scratch/palonso/data/discotube-2023-03/"
-DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v1.txt"
-DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v1.txt"
+DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train.txt"
+DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/test.txt"
 
 # DiscotubeMultiViewAudioDataModule.data_dir = "/mnt/projects/discotube"
-# DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v0.txt"
-# DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v0.txt"
+# DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train.txt"
+# DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/test.txt"
 
 # CosineAnnealing schedeler
  CosineAnnealingCallback.warmup_steps = 10
