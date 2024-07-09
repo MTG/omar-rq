@@ -70,7 +70,7 @@ class RandomProjectionQuantizer(nn.Module):
         return xq
 
 @gin.configurable
-class MaskingModel(L.LightningModule):
+class maskingmodel(L.LightningModule):
     """
     MusicFM
 
