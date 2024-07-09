@@ -10,9 +10,9 @@ pip install -e .[dev]
 
 ## Cluster setup 
 
-We have to save ou wand key
+wandb without internet
 ```bash
-export "WANDB_API_KEY"="YOUR_API_KEY" >> ~/.bashrc
+echo "export WANDB_MODE=offline" >> .bashrc 
 ```
 
 To run an interactiver job
