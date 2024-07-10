@@ -20,6 +20,20 @@ To run an interactiver job
 srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1  srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
 ```
 
+save the environment
+```bash
+conda pack -n mtg-bsc
+```
+
+load the eviroment at bsc
+
+```bash
+module load anaconda
+mkdir -p mtg-bsc
+tar -xzf mtg-bsc.tar.gz -C mtg-bsc
+source mtg-bsc/bin/activate
+python
+```
 
 
 ## Configure
@@ -45,3 +59,4 @@ In the `config_file` modify these parameters:
 ## Run the experiment
 
 - `python src/train.py`
+
