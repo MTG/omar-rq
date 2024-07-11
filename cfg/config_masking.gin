@@ -3,7 +3,7 @@ train.project_name = "dev0"
 train.save_dir = "./"
 
 # modules to use
-train.module = @simclr
+train.module = @maskingmodel
 train.datamodule = @discotube_multiview
 train.net = @transformer
 train.representation = @melspectrogram
@@ -41,10 +41,8 @@ DiscotubeMultiViewAudioDataModule.filelist_val = "data/gtzan/test.txt"
  CosineAnnealingCallback.warmup_steps = 10
  CosineAnnealingCallback.eta_min = 1e-7
 
-# SimCLR parameters
-SimCLR.temperature = 0.1
-SimCLR.lr = 1e-4
-SimCLR.mixup_alpha = 0.3
+# MaskingModel parameters
+MaskingModel.num_codebooks = 1
 
 # MelSpectrogram parameters
 MelSpectrogram.sr = 16000

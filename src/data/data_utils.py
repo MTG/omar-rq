@@ -94,14 +94,14 @@ class AudioDataset(Dataset):
             # ACCC codec has a fixed packet size of 1024 samples
             # https://stackoverflow.com/questions/59173435/aac-packet-size
             hop_length = 1024
+            n_samples = metadata.num_frames * hop_length
+        elif metadata.encoding == "PCM_S":
+            n_samples = metadata.num_frames
         else:
             # for now we are using mp4 files only, check which other encodings we would like to support
             raise NotImplementedError(
                 f"Encoding {metadata.encoding} not supported for now"
             )
-
-        n_samples = metadata.num_frames * hop_length
-
         return n_samples
 
 

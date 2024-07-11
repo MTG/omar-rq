@@ -1,3 +1,5 @@
+import pdb
+
 import gin
 import torch
 from torch import nn, einsum
@@ -70,7 +72,7 @@ class RandomProjectionQuantizer(nn.Module):
         return xq
 
 @gin.configurable
-class maskingmodel(L.LightningModule):
+class MaskingModel(L.LightningModule):
     """
     MusicFM
 
@@ -83,6 +85,7 @@ class maskingmodel(L.LightningModule):
     def __init__(
         self,
         net: nn.Module,
+        representation: nn.Module,
         num_codebooks=1,
         codebook_dim=16,
         codebook_size=4096,
@@ -100,8 +103,9 @@ class maskingmodel(L.LightningModule):
         self.num_codebooks = num_codebooks
         self.codebook_size = codebook_size
         self.net = net
-
-        self.linear = nn.Linear(self.net.d_out, codebook_size)
+        self.representation = representation
+        # pdb.set_trace()
+        self.linear = nn.Linear(self.net.head.out_features, codebook_size)
         # random quantizer
         seed = 142
         for i in range(num_codebooks):
@@ -177,6 +181,7 @@ class maskingmodel(L.LightningModule):
         x, masked_indices = self.masking(x)
 
         # forward
+        x = self.representation(x)
         logits = self.linear(x)
         logits = {
             key: logits[:, :, i * self.codebook_size: (i + 1) * self.codebook_size]
