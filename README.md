@@ -20,7 +20,10 @@ To run an interactiver job
 srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1  srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
 ```
 
-save the environment
+### if you are saving a new environment
+
+Let's say you have a conda environment called `mtg-bsc` and you want to use this environment in the cluster. First you need to
+save the environment in local
 ```bash
 conda pack -n mtg-bsc
 ```
@@ -33,6 +36,24 @@ mkdir -p mtg-bsc
 tar -xzf mtg-bsc.tar.gz -C mtg-bsc
 source mtg-bsc/bin/activate
 python
+```
+After that you save the eviroment in /gfs/projects/upf97/envs/mtg-bsc
+    
+```bash
+cp -r mtg-bsc /gpfs/projects/upf97/envs/
+```
+### if you are using a eviroment already saved in the cluster
+
+The first time you use the environment you need to copy it from the shared folder to your home folder.
+```bash
+cp -r /gpfs/projects/upf97/envs/mtg-bsc ~/ssl-mtg/
+```
+
+From that instant you can run it with the following command from `~/ssl-mtg/`
+
+```bash
+module load anaconda
+source mtg-bsc/bin/activate
 ```
 
 
