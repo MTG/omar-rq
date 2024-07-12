@@ -1,9 +1,8 @@
 #!/bin/bash
-#SBATCH --partition=interactive
+#SBATCH --partition=acc
 #SBATCH --account=upf97
-#SBATCH --qos=acc_interactive
+#SBATCH --qos=acc
 #SBATCH --cpus-per-task=4
-#SBATCH --ntasks-per-socket=20
 #SBATCH --time=00:15:00
 #SBATCH --output=du_output.txt
 

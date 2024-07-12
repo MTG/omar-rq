@@ -9,19 +9,7 @@
 #SBATCH -o %N.%J.OUTPUT.out
 #SBATCH -e %N.%J.ERROR_LOGS.err
 
-source /etc/profile.d/lmod.sh
-module load Python/3.8.6-GCCcore-10.2.0
-module load CUDA/12.1.0
-pip3 install --upgrade pip
+module load anaconda
+source mtg-bsc/bin/activate
 
-pip3 install torch torchvision torchaudio
-pip3 install git+https://github.com/huggingface/transformers.git@main bitsandbytes
-pip3 install git+https://github.com/huggingface/accelerate.git
-pip3 install git+https://github.com/huggingface/peft.git@e536616888d51b453ed354a6f1e243fecb02ea08
-pip3 install scikit-learn tensorboard pandas matplotlib music21 seaborn tqdm
-pip3 install wandb==0.13.3
-
-export WANDB_API_KEY=0bd2bcedf5cb93b5aa685f6fc7192aba6fd7b74b
-python -m wandb login
-
-python3 train_codellama_remi.py
+python3 src/train.py --config cfg/config.gin
