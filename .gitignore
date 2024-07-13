@@ -5,3 +5,5 @@
 wandb/
 checkpoints/
 /mtg-bsc/
+.idea/
+
