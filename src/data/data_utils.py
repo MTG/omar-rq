@@ -74,12 +74,11 @@ class AudioDataset(Dataset):
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
 
-        sr = 16000
         mmap = numpy.memmap(file_path, offset=offset, dtype='float16', mode='r', shape=(1, self.num_frames))
         audio = numpy.array(mmap)
         del mmap
 
-        return audio, sr
+        return audio, self.new_freq
 
     def resample_audio(self, audio, sr):
         if self.resample.orig_freq != sr:
