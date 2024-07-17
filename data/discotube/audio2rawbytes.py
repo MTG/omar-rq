@@ -19,7 +19,7 @@ def save_as_mmap(waveform, mmap_path):
 
 
 def process_audio_files(input_directory, output_directory, output_sample_rate=16000):
-    for file in tqdm(os.listdir(input_directory)):
+    for file in os.listdir(input_directory):
         if file.endswith(".mp4"):
             mp4_path = os.path.join(input_directory, file)
 
@@ -41,7 +41,7 @@ def process_audio_files(input_directory, output_directory, output_sample_rate=16
             # Save downsampled audio as a memory-mapped file
             save_as_mmap(waveform, mmap_path)
 
-            print(f"Processed {mp4_path} and saved as {mmap_path}")
+            #print(f"Processed {mp4_path} and saved as {mmap_path}")
 
 
 if __name__ == "__main__":
