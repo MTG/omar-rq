@@ -17,7 +17,7 @@ echo "export WANDB_MODE=offline" >> .bashrc
 
 To run an interactiver job
 ```bash
-srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1  srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
+srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
 ```
 
 ### if you are saving a new environment
