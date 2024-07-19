@@ -114,8 +114,8 @@ class SimCLR(L.LightningModule):
         if first_run:
             print(f"z_0 shape: {z_0.shape}")
 
-        if first_run:
-            self.logger.log_image(key="representation", images=[x_0[0], x_1[0]])
+        #if first_run:
+        #    self.logger.log_image(key="representation", images=[x_0[0], x_1[0]])
 
         # stack embeddings on the batch dimension
         z = torch.cat([z_0, z_1], dim=0)

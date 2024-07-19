@@ -4,7 +4,7 @@ import gin
 import torch
 from torch import nn, einsum
 from einops import rearrange
-import lightning as L
+import pytorch_lightning as L
 
 
 class RandomProjectionQuantizer(nn.Module):
@@ -60,15 +60,14 @@ class RandomProjectionQuantizer(nn.Module):
 
     @torch.no_grad()
     def forward(self, x):
-        # always eval
+        # Set to evaluation mode
         self.eval()
-
-        # random projection [batch, length, input_dim] -> [batch, length, codebook_dim]
+        # Apply random projection
+        print(x.shape)
+        print(self.random_projection.shape)
         x = einsum("b n d, d e -> b n e", x, self.random_projection)
-
-        # codebook lookup
+        # Perform codebook lookup
         xq = self.codebook_lookup(x)
-
         return xq
 
 @gin.configurable
@@ -87,17 +86,14 @@ class MaskingModel(L.LightningModule):
         net: nn.Module,
         representation: nn.Module,
         num_codebooks=1,
-        codebook_dim=16,
+        codebook_dim=8,
         codebook_size=4096,
-        hop_length=240,
-        n_mels=128,
         mask_hop=0.4,
         mask_prob=0.6,
     ):
         super(MaskingModel, self).__init__()
 
         # global variables
-        self.hop_length = hop_length
         self.mask_hop = mask_hop
         self.mask_prob = mask_prob
         self.num_codebooks = num_codebooks
@@ -106,6 +102,10 @@ class MaskingModel(L.LightningModule):
         self.representation = representation
         # pdb.set_trace()
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
+        # TODO the representation model is compatible with other representations
+        self.sr = representation.sr
+        self.hop_length = representation.hop_len
+        self.n_mel = representation.n_mel
         # random quantizer
         seed = 142
         for i in range(num_codebooks):
@@ -113,7 +113,7 @@ class MaskingModel(L.LightningModule):
                 self,
                 f"quantizer_mel_{i}",
                 RandomProjectionQuantizer(
-                    n_mels * 4, codebook_dim, codebook_size, seed=seed + i
+                    self.n_mel, codebook_dim*4, codebook_size, seed=seed + i
                 ),
             )
         # loss function
@@ -123,8 +123,8 @@ class MaskingModel(L.LightningModule):
         """random masking of 400ms with given probability"""
         mx = x.clone()
         b, t = mx.shape
-        len_masking_raw = int(24000 * self.mask_hop)
-        len_masking_token = int(24000 / self.hop_length / 2 / 2 * self.mask_hop)
+        len_masking_raw = int(self.sr * self.mask_hop)
+        len_masking_token = int(self.sr / self.hop_length / 2 / 2 * self.mask_hop)
 
         # get random mask indices
         start_indices = torch.rand(b, t // len_masking_raw) < self.mask_prob
@@ -174,6 +174,7 @@ class MaskingModel(L.LightningModule):
         return losses, accuracies
 
     def forward(self, x):
+        x = self.representation(x)
         # get target feature tokens
         target_tokens = self.get_targets(x)
 
@@ -181,7 +182,6 @@ class MaskingModel(L.LightningModule):
         x, masked_indices = self.masking(x)
 
         # forward
-        x = self.representation(x)
         logits = self.linear(x)
         logits = {
             key: logits[:, :, i * self.codebook_size: (i + 1) * self.codebook_size]
@@ -216,47 +216,6 @@ class MaskingModel(L.LightningModule):
         return optimizer
 
 
-
-
-
-# Test the MaskingModel
-def test_masking_model():
-    class SimpleNet(nn.Module):
-        def __init__(self, d_out=512):
-            super(SimpleNet, self).__init__()
-            self.d_out = d_out
-            self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
-            self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-            self.fc = nn.Linear(64 * 32 * 32, d_out)  # Adjust according to input size
-
-        def forward(self, x):
-            x = nn.functional.relu(self.conv1(x))
-            x = nn.functional.relu(self.conv2(x))
-            x = x.view(x.size(0), -1)
-            x = self.fc(x)
-            return x
-    # Instantiate the SimpleNet and MaskingModel
-    net = SimpleNet()
-    model = MaskingModel(net=net, num_codebooks=1, codebook_dim=16, codebook_size=4096, n_mels=128)
-
-    # Generate some random input data
-    batch_size = 4
-    n_mels = 128
-    seq_len = 240  # example sequence length for mel spectrograms
-    input_data = torch.randn(batch_size, n_mels, seq_len)
-
-    # Run the forward pass
-    logits, losses, accuracies = model(input_data)
-
-    # Print the outputs
-    print("Logits:", logits)
-    print("Losses:", losses)
-    print("Accuracies:", accuracies)
-
-
-# Run the test
-if __name__ == "__main__":
-    test_masking_model()
 
 
 

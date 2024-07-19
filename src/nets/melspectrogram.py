@@ -31,6 +31,14 @@ class MelSpectrogram(torch.nn.Module):
     ):
         super().__init__()
 
+        self.sr = sr
+        self.win_len = win_len
+        self.hop_len = hop_len
+        self.power = power
+        self.n_mel = n_mel
+        self.stretch_factor = stretch_factor
+        self.freq_mask_param = freq_mask_param
+
         self.spec = Spectrogram(
             n_fft=win_len,
             win_length=win_len,

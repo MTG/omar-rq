@@ -3,10 +3,11 @@ train.project_name = "dev0"
 train.save_dir = "./"
 
 # modules to use
-train.module = @maskingmodel
-train.datamodule = @discotube_multiview
-train.net = @transformer
 train.representation = @melspectrogram
+train.module = @maskingmodel
+train.datamodule = @discotube
+train.net = @transformer
+
 
 # Lighting trainer parameters
 train.params = {
@@ -28,21 +29,17 @@ AudioDataset.half_precision = True
 AudioDataModule.num_workers = 16
 
 # Discogs datamodule parameters
-DiscotubeMultiViewAudioDataModule.batch_size = 2
-DiscotubeMultiViewAudioDataModule.data_dir = "/home/pedro/PycharmProjects/"
-DiscotubeMultiViewAudioDataModule.filelist_train = "data/gtzan/train.txt"
-DiscotubeMultiViewAudioDataModule.filelist_val = "data/gtzan/test.txt"
+DiscotubeAudioDataModule.batch_size = 2
+DiscotubeAudioDataModule.data_dir = "/home/pedro/PycharmProjects/"
+DiscotubeAudioDataModule.filelist_train = "data/gtzan/train_mmap.txt"
+DiscotubeAudioDataModule.filelist_val = "data/gtzan/test_mmap.txt"
 
-# DiscotubeMultiViewAudioDataModule.data_dir = "/mnt/projects/discotube"
-# DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train.txt"
-# DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/test.txt"
 
 # CosineAnnealing schedeler
- CosineAnnealingCallback.warmup_steps = 10
- CosineAnnealingCallback.eta_min = 1e-7
+CosineAnnealingCallback.warmup_steps = 10
+CosineAnnealingCallback.eta_min = 1e-7
 
-# MaskingModel parameters
-MaskingModel.num_codebooks = 1
+
 
 # MelSpectrogram parameters
 MelSpectrogram.sr = 16000
@@ -55,10 +52,15 @@ MelSpectrogram.mel_scale = "slaney"
 MelSpectrogram.norm_std = 1.268292820667291
 MelSpectrogram.norm_mean = 2.06755686098554
 
+
+
 # data augmentation
 MelSpectrogram.stretch_factor = 1
 MelSpectrogram.freq_mask_param = 10
 MelSpectrogram.time_mask_param = 10
+
+# MaskingModel parameters
+MaskingModel.num_codebooks = 1
 
 # Transformer parameters
 Transformer.patch_size = (16, 16)

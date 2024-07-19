@@ -2,6 +2,7 @@ from typing import Union
 from pathlib import Path
 
 import gin.torch
+import numpy
 import torch
 import torchaudio
 import pytorch_lightning as L
@@ -73,13 +74,11 @@ class AudioDataset(Dataset):
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
 
-        audio, sr = torchaudio.load(
-            file_path,
-            frame_offset=offset,
-            num_frames=self.num_frames,
-        )
+        mmap = numpy.memmap(file_path, offset=offset, dtype='float16', mode='r', shape=(1, self.num_frames))
+        audio = numpy.array(mmap)
+        del mmap
 
-        return audio, sr
+        return torch.from_numpy(audio), self.new_freq
 
     def resample_audio(self, audio, sr):
         if self.resample.orig_freq != sr:
@@ -88,21 +87,9 @@ class AudioDataset(Dataset):
 
     @staticmethod
     def get_audio_duration(filepath: Path):
-        metadata = torchaudio.info(filepath, buffer_size=1)
-
-        if metadata.encoding == "AAC":
-            # ACCC codec has a fixed packet size of 1024 samples
-            # https://stackoverflow.com/questions/59173435/aac-packet-size
-            hop_length = 1024
-            n_samples = metadata.num_frames * hop_length
-        elif metadata.encoding == "PCM_S":
-            n_samples = metadata.num_frames
-        else:
-            # for now we are using mp4 files only, check which other encodings we would like to support
-            raise NotImplementedError(
-                f"Encoding {metadata.encoding} not supported for now"
-            )
-        return n_samples
+        path = Path(filepath)
+        bytes = path.stat().st_size
+        return bytes // 2  # porque lo guardamos como halfs, 2 byes por float
 
 
 @gin.configurable
@@ -165,14 +152,14 @@ class MultiViewAudioDataset(AudioDataset):
             # compute the offsets for the two views
             offsets = self.get_views_offset(n_samples)
 
-            audio_full, sr = torchaudio.load(file_path)
+            #audio_full, sr = torchaudio.load(file_path)
             # sr = 44100
             # audio_full = torch.randn(1, n_samples)
 
             views = dict()
             for i, offset in enumerate(offsets):
-                # audio, sr = self.load_audio(file_path, frame_offset=offset)
-                audio = audio_full[:, offset : offset + self.num_frames]
+                audio, sr = self.load_audio(file_path, frame_offset=offset)
+                #audio = audio_full[:, offset : offset + self.num_frames]
 
                 # downmix to mono if necessary
                 if audio.shape[0] > 1 and self.mono:
