@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 from tqdm import tqdm
@@ -12,18 +13,21 @@ def process_subdir(args):
     subprocess.run(['python3', 'audio2rawbytes.py', subdir, str(mode)])
 
 # Function to get subdirectories up to a limit
-def get_limited_subdirs(base_dir, limit=10000000):
+def get_subdirs(base_dir):
     subdirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
-    return subdirs[:limit]
+    return subdirs
 
 # Directories to process with a limit of 5000 each to not exceed 10000 total
-dirs_2020_09 = get_limited_subdirs('/gpfs/projects/upf97/discotube/discotube-2020-09/audio/', 50000)
-dirs_2023_03 = get_limited_subdirs('/gpfs/projects/upf97/discotube/discotube-2023-03/audio-new/audio/', 50000)
+dirs_2020_09 = get_subdirs('/gpfs/projects/upf97/discotube/discotube-2020-09/audio/')
+dirs_2023_03 = get_subdirs('/gpfs/projects/upf97/discotube/discotube-2023-03/audio-new/audio/')
 print(dirs_2020_09)
 
 # Combine all tasks
 tasks = [(subdir, 0) for subdir in dirs_2020_09] + [(subdir, 1) for subdir in dirs_2023_03]
 
-# Run tasks in parallel using ThreadPoolExecutor
-with ThreadPoolExecutor(max_workers=75) as executor:
-    list(tqdm(executor.map(process_subdir, tasks), total=len(tasks), desc="Processing Subdirectories"))
+len_tasks = len(tasks)
+block_len = len_tasks // 40
+subset = int(sys.argv[1])
+subset_tasks = tasks[subset*block_len:(subset+1)*block_len]
+for task in tqdm(subset_tasks):
+    process_subdir(task)
