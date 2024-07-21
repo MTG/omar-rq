@@ -4,7 +4,7 @@
 #SBATCH --qos=acc_resa
 #SBATCH --cpus-per-task=1
 #SBATCH --time=30:00:00
-#SBATCH --output=debug_$1_output.txt
+#SBATCH --output=debug_${SLURM_ARRAY_TASK_ID}_output.txt
 #SBATCH --mail-type=all
 #SBATCH --mail-user=pedro.ramoneda@upf.edu
 
@@ -12,4 +12,4 @@
 module load anaconda
 source ../../essentia/bin/activate
 
-python3 subset_audio2mmap.py $1
+python3 subset_audio2mmap.py $SLURM_ARRAY_TASK_ID
