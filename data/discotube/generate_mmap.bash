@@ -5,11 +5,12 @@ directory="/gpfs/projects/upf97/discotube"
 find "$directory" -type f -name "*.mmap" > all.txt
 count=$(wc -l < all.txt)
 echo "Total number of files: $count"
-
 count_train=$(echo "scale=0; $count * 0.8" | bc)
+
 # to integer
 count_train=${count_train%.*}
 count_test=$(echo "scale=0; $count * 0.2" | bc)
+
 # to integer
 count_test=${count_test%.*}
 
