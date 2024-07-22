@@ -8,6 +8,7 @@ import torchaudio
 import pytorch_lightning as L
 from torch.utils.data import Dataset, DataLoader
 from torchaudio.transforms import Resample
+from pathlib import Path
 
 
 @gin.configurable
@@ -65,8 +66,7 @@ class AudioDataset(Dataset):
     ):
         if frame_offset == "random":
             n_samples = self.get_audio_duration(file_path)
-
-º            offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
+            offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
             offset_bytes = offset_floats * 2  # 2 bytes per float
 
         elif isinstance(frame_offset, int):
