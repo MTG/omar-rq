@@ -25,6 +25,10 @@ class RandomProjectionQuantizer(nn.Module):
     ):
         super().__init__()
 
+        self.codebook_dim = codebook_dim
+        self.codebook_size = codebook_size
+        self.input_dim = input_dim
+
         # random seed
         torch.manual_seed(seed)
 
@@ -113,7 +117,7 @@ class MaskingModel(L.LightningModule):
                 self,
                 f"quantizer_mel_{i}",
                 RandomProjectionQuantizer(
-                    self.n_mel, codebook_dim*4, codebook_size, seed=seed + i
+                    self.n_mel, codebook_dim, codebook_size, seed=seed + i
                 ),
             )
         # loss function
@@ -146,7 +150,6 @@ class MaskingModel(L.LightningModule):
 
     @torch.no_grad()
     def rearrange(self, x):
-
         return rearrange(x, "b f (t s) -> b t (s f)", s=4)
 
     @torch.no_grad()
@@ -174,7 +177,7 @@ class MaskingModel(L.LightningModule):
         return losses, accuracies
 
     def forward(self, x):
-        x = self.representation(x)
+        x = self.representation(x[0])
         # get target feature tokens
         target_tokens = self.get_targets(x)
 

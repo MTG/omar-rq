@@ -66,15 +66,17 @@ class AudioDataset(Dataset):
         if frame_offset == "random":
             n_samples = self.get_audio_duration(file_path)
 
-            offset = torch.randint(0, n_samples - self.num_frames, (1,)).item()
+º            offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
+            offset_bytes = offset_floats * 2  # 2 bytes per float
 
         elif isinstance(frame_offset, int):
             assert frame_offset >= 0
-            offset = frame_offset
+            offset_floats = frame_offset
+            offset_bytes = offset_floats * 2
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
 
-        mmap = numpy.memmap(file_path, offset=offset, dtype='float16', mode='r', shape=(1, self.num_frames))
+        mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, self.num_frames))
         audio = numpy.array(mmap)
         del mmap
 
