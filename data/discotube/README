@@ -1,0 +1,6 @@
+
+For parallelizing the audio2mmap conversion, we can use the following command:
+
+```
+sbatch --array=0-39 slurm_audio2mmap.bash
+```
