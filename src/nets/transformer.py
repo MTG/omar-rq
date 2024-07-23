@@ -186,8 +186,6 @@ class Transformer(Net):
         for layer in self.transformer:
             x = layer(x)
 
-        x = self.norm(x)
-        x = self.head(x[:, 0])  # Use the output from the class token
         return x
 
     # class VisionTransformerTiny(VisionTransformer):

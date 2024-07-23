@@ -21,11 +21,10 @@ train.params = {
 }
 
 # Dataloader
-AudioDataset.num_frames = 132016 # 3 seconds multiple of 16
+AudioDataset.num_frames = 131000 # 8 seconds multiple of 16
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-
 AudioDataModule.num_workers = 16
 
 # Discogs datamodule parameters
@@ -40,7 +39,6 @@ CosineAnnealingCallback.warmup_steps = 10
 CosineAnnealingCallback.eta_min = 1e-7
 
 
-
 # MelSpectrogram parameters
 MelSpectrogram.sr = 16000
 MelSpectrogram.win_len = 512
@@ -53,7 +51,6 @@ MelSpectrogram.norm_std = 1.268292820667291
 MelSpectrogram.norm_mean = 2.06755686098554
 
 
-
 # data augmentation
 MelSpectrogram.stretch_factor = 1
 MelSpectrogram.freq_mask_param = 10
@@ -61,6 +58,8 @@ MelSpectrogram.time_mask_param = 10
 
 # MaskingModel parameters
 MaskingModel.num_codebooks = 1
+MaskingModel.patch_frames = 16
+
 
 # Transformer parameters
 Transformer.patch_size = (16, 16)
