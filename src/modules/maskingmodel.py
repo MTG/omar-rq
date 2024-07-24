@@ -7,6 +7,8 @@ from torch import nn, einsum
 from einops import rearrange
 import pytorch_lightning as L
 
+from src.nets import MelSpectrogram
+
 
 class RandomProjectionQuantizer(nn.Module):
     """
@@ -109,16 +111,19 @@ class MaskingModel(L.LightningModule):
         self.representation = representation
         # pdb.set_trace()
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
-        # TODO the representation model is compatible with other representations
-        self.sr = representation.sr
-        self.hop_length = representation.hop_len
-        self.n_mel = representation.n_mel
-        self.rproj_input_dim = patch_frames*patch_frames
-        # random quantizer
-        seed = 142
-        self.codebook = RandomProjectionQuantizer(
-            self.rproj_input_dim, patch_frames, codebook_size, seed=seed
-        )
+
+        if type(self.representation) == MelSpectrogram:
+            self.sr = representation.sr
+            self.hop_length = representation.hop_len
+            self.n_mel = representation.n_mel
+            self.rproj_input_dim = patch_frames*patch_frames
+            # random quantizer
+            seed = 142
+            self.codebook = RandomProjectionQuantizer(
+                self.rproj_input_dim, patch_frames, codebook_size, seed=seed
+            )
+        else:
+            raise NotImplementedError(f"Representation {type(self.representation)} is supported")
 
         # loss function
         self.loss = nn.CrossEntropyLoss()
@@ -169,6 +174,7 @@ class MaskingModel(L.LightningModule):
 
         return masked_tokens.to(tokens.device), mask.to(tokens.device)
 
+    # THIS CODE IS CLEANED FOR IMPLEMENTING THE SAME BUT DIRECTLY FROM AUDIO
     # def masking_raw_audio(self, x):
     #     """random masking of 400ms with given probability"""
     #     mx = x.clone()
@@ -200,7 +206,6 @@ class MaskingModel(L.LightningModule):
     #     mx[batch_indices, time_domain_masked_indices, :] = masking_noise[batch_indices, time_domain_masked_indices, :].to(device=x.device)
     #     mx = mx.transpose(1, 2)
     #     return mx, token_domain_masked_indices
-
     # @torch.no_grad()
     # def rearrange(self, x):
     #     return rearrange(x, "b f (t s) -> b t (s f)", s=self.patch_frames)
