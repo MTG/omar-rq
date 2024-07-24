@@ -46,7 +46,6 @@ class MaskingModel(L.LightningModule):
 
         self.net = net
         self.representation = representation
-        # pdb.set_trace()
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
@@ -159,20 +158,16 @@ class MaskingModel(L.LightningModule):
     #     return target_tokens
 
     def get_loss(self, logits, target_tokens, mask):
-        losses = {}
-        accuracies = {}
         # remove cls first token from logits
-        logits = {key: logit_out[:, 1:] for key, logit_out in logits.items()}
-        for key in logits.keys():
-            logit_out = logits[key]
-            # zeros boolean with the shape of logit_out
-            masked_logits = logit_out[mask]
-            masked_tokens = target_tokens[key][mask]
-            losses[key] = self.loss(masked_logits, masked_tokens)
-            accuracies[key] = (
-                torch.sum(masked_logits.argmax(-1) == masked_tokens)
-                / masked_tokens.numel()
-            )
+        logits = logits[:, 1:]
+        # zeros boolean with the shape of logit_out
+        masked_logits = logits[mask]
+        masked_tokens = target_tokens[mask]
+        losses = self.loss(masked_logits, masked_tokens)
+        accuracies = (
+            torch.sum(masked_logits.argmax(-1) == masked_tokens)
+            / masked_tokens.numel()
+        )
         return losses, accuracies
 
     def forward(self, x):
@@ -187,8 +182,6 @@ class MaskingModel(L.LightningModule):
 
         # forward q
         logits = self.linear(x)
-        logits = {"spectrogram": logits}
-        target_tokens = {"spectrogram": target_tokens}
 
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
@@ -197,31 +190,18 @@ class MaskingModel(L.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x = batch
-        logits, losses, accuracies = self.forward(x)
-        loss = sum(losses.values())
-        self.log('train_loss', loss)
-        for key in accuracies:
-            self.log(f'train_acc_{key}', accuracies[key])
+        logits, loss, accuracies = self.forward(x)
+        self.log('train_loss', loss, prog_bar=True)
+        self.log(f'train_acc', accuracies)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x = batch
-        logits, losses, accuracies = self.forward(x)
-        loss = sum(losses.values())
-        self.log('val_loss', loss, prog_bar=True, on_step=True)
-        for key in accuracies:
-            self.log(f'val_acc_{key}', accuracies[key])
+        logits, loss, accuracies = self.forward(x)
+        self.log('val_loss', loss, prog_bar=True)
+        self.log(f'val_acc', accuracies)
         return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
-
-
-
-
-
-
-
-
-
