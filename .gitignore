@@ -4,3 +4,6 @@
 *__pycache__*
 wandb/
 checkpoints/
+/mtg-bsc/
+.idea/
+
