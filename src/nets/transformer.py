@@ -135,6 +135,7 @@ class Transformer(Net):
         num_heads,
         mlp_ratio=4.0,
         dropout=0.1,
+        with_head=False,
     ):
         super().__init__()
         self.patch_size = patch_size
@@ -163,6 +164,7 @@ class Transformer(Net):
 
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
+        self.with_head = with_head
 
     def forward(self, x):
         x = self.patch_embed(x)  # Embed the patches
@@ -186,6 +188,10 @@ class Transformer(Net):
         for layer in self.transformer:
             x = layer(x)
 
+        if self.with_head:
+            x = self.norm(x)
+            x = x[:, 0]  # Extract the class token
+            x = self.head(x)
         return x
 
     # class VisionTransformerTiny(VisionTransformer):
