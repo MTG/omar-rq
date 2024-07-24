@@ -1,4 +1,3 @@
-# ssl-mtg: MTG self-supervised learning models
 
 A repository of models and training code for several SSL aproaches and architectures.
 
@@ -67,6 +66,18 @@ Check the default [cofngi file](cfg/config.gin).
 
 We use [wandb](https://docs.wandb.ai/) for the experiment tracking.
 Make sure you are [registered](https://docs.wandb.ai/quickstart#2-log-in-to-wb) to log the experiment online.
+
+### Using wandb in the BSC cluster
+
+BSC nodes do not have internet access so wandb logs cannot be updated directly.
+To address this we will use our local machine as a proxy to log the experiments.
+
+To do this follow the following steps in your local machine:
+1. Install wandb `pip install wandb`
+2. Login to wandb `wandb login`
+3. Run the following command to sync the cluster logs to your local machine and sync them to wandb `rsync -a alonging1:/gpfs/scratch/upf97/wandb/logs/ .; wandb sync .`.
+Additionally, you can create a background process to keep the logs updated `watch -n 10 "rsync -a alonging1:/gpfs/scratch/upf97/wandb/logs/ .; wandb sync ."`.
+
 
 
 ## Prepare the data experiment
