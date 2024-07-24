@@ -74,12 +74,16 @@ class RandomProjectionQuantizer(nn.Module):
 @gin.configurable
 class MaskingModel(L.LightningModule):
     """
-    MusicFM
+    MaskingModel
 
-    Input: 128-band mel spectrogram
-    Frontend: 2-layer Residual convolution
-    Backend: 12-layer Conformer
-    Quantizer: a codebook for mel spectrogram
+    This model is used to train a model with a masking laguage modelling mechanism.
+    net is the model that will be trained
+    representation is the module that will be used to extract the features
+    patch_frames is the number of frames that will be used to create a patch (default 16 x 16)
+    num_codebooks is the number of codebooks that will be used (default 1)
+    codebook_size is the size of the codebook (default 4096)
+    mask_seconds is the number of seconds that will be masked (default 0.4)
+    mask_prob is the probability that a mask will be applied (default 0.6)
     """
 
     def __init__(
