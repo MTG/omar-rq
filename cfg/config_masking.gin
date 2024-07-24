@@ -53,8 +53,13 @@ MelSpectrogram.freq_mask_param = 10
 MelSpectrogram.time_mask_param = 10
 
 # MaskingModel parameters
-src.modules.maskingmodel.MaskingModel.num_codebooks = 1
-src.modules.maskingmodel.MaskingModel.patch_frames = 16
+modules.maskingmodel.MaskingModel.num_codebooks = 1
+modules.maskingmodel.MaskingModel.patch_frames = 16
+modules.maskingmodel.MaskingModel.patch_frames = 16
+modules.maskingmodel.MaskingModel.num_codebooks = 1
+modules.maskingmodel.MaskingModel.codebook_size = 4096
+modules.maskingmodel.MaskingModel.mask_seconds = 0.4
+modules.maskingmodel.MaskingModel.mask_prob = 0.6
 
 # Transformer parameters
 Transformer.patch_size = (16, 16)

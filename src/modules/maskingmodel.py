@@ -29,11 +29,11 @@ class MaskingModel(L.LightningModule):
         self,
         net: nn.Module,
         representation: nn.Module,
-        patch_frames=16,
-        num_codebooks=1,
-        codebook_size=4096,
-        mask_seconds=0.4,
-        mask_prob=0.6,
+        patch_frames: int,
+        num_codebooks: int,
+        codebook_size: int,
+        mask_seconds: float,
+        mask_prob: float
     ):
         super(MaskingModel, self).__init__()
 
