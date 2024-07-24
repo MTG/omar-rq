@@ -8,7 +8,6 @@ train.module = @maskingmodel
 train.datamodule = @discotube
 train.net = @transformer
 
-
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
@@ -33,11 +32,9 @@ DiscotubeAudioDataModule.data_dir = "/home/pedro/PycharmProjects/"
 DiscotubeAudioDataModule.filelist_train = "data/gtzan/train_mmap.txt"
 DiscotubeAudioDataModule.filelist_val = "data/gtzan/test_mmap.txt"
 
-
-# CosineAnnealing schedeler
+# CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 10
 CosineAnnealingCallback.eta_min = 1e-7
-
 
 # MelSpectrogram parameters
 MelSpectrogram.sr = 16000
@@ -50,16 +47,14 @@ MelSpectrogram.mel_scale = "slaney"
 MelSpectrogram.norm_std = 1.268292820667291
 MelSpectrogram.norm_mean = 2.06755686098554
 
-
 # data augmentation
 MelSpectrogram.stretch_factor = 1
 MelSpectrogram.freq_mask_param = 10
 MelSpectrogram.time_mask_param = 10
 
 # MaskingModel parameters
-MaskingModel.num_codebooks = 1
-MaskingModel.patch_frames = 16
-
+src.modules.maskingmodel.MaskingModel.num_codebooks = 1
+src.modules.maskingmodel.MaskingModel.patch_frames = 16
 
 # Transformer parameters
 Transformer.patch_size = (16, 16)
