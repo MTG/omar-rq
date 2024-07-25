@@ -9,20 +9,20 @@ pip install -e .[dev]
 
 ## Cluster setup 
 
-To run an interactiver job
+To run an interactive job
 ```bash
 srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
 ```
 
 ### if you are saving a new environment
 
-Let's say you have a conda environment called `mtg-bsc` and you want to use this environment in the cluster. First you need to
+Let's say you have a Conda environment called `mtg-bsc` and you want to use this environment in the cluster. First you need to
 save the environment in local
 ```bash
 conda pack -n mtg-bsc
 ```
 
-load the eviroment at bsc
+load the environment at BSC
 
 ```bash
 module load anaconda
@@ -39,20 +39,20 @@ cp -r mtg-bsc /gpfs/projects/upf97/envs/
 ### if you are using an environment already saved in the cluster
 
 
-To activate the environment in the cluster:
+To activate the environment `mtg-bsc` in the cluster:
 
 ```bash
 module load anaconda
-source /gpfs/projects/upf97/envs/mtg-bsc/mtg-bsc/bin/activate
+source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 ```
 
-Or optionally copy it to your home folder
+Or optionally copy it to your home folder:
 
 ```bash
 cp -r /gpfs/projects/upf97/envs/mtg-bsc ~/ssl-mtg/
 ```
 
-And activated it from `~/ssl-mtg/` like this:
+And activate it from `~/ssl-mtg/` like this:
 
 ```bash
 module load anaconda
@@ -62,8 +62,8 @@ source mtg-bsc/bin/activate
 
 ## Configure
 
-All the experiment configuration is controle with gin-config.
-Check the default [cofngi file](cfg/config.gin).
+All the experiment configuration is controled with gin-config.
+Check the default [config file](cfg/config.gin).
 
 
 ## Experiment tracking
@@ -89,7 +89,7 @@ In the `config_file` modify these parameters:
 
 - `DiscotubeMultiViewAudioDataModule.data_dir = "/scratch/palonso/data/discotube-2023-03/"` -> This should point to your base data folder.
 - `DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v1.txt"` -> This should point to a filelist of training audio paths relative to the `data_dir` (one audio file per line).
-- `DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v1.txt"` -> Same. Wih the tracks for the validation split.
+- `DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v1.txt"` -> Same. With the tracks for the validation split.
 
 
 ## Run the experiment
