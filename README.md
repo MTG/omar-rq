@@ -91,6 +91,8 @@ In the `config_file` modify these parameters:
 - `DiscotubeMultiViewAudioDataModule.filelist_train = "data/discotube/train_v1.txt"` -> This should point to a filelist of training audio paths relative to the `data_dir` (one audio file per line).
 - `DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v1.txt"` -> Same. With the tracks for the validation split.
 
+> [!NOTE]  
+> In the context of the BSC MareNostrum cluster experiments, new filelists should be located in the common project folder so that every use can access them: `/gpfs/projects/upf97/data/`.
 
 ## Run the experiment
 
