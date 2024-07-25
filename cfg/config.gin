@@ -1,6 +1,7 @@
 # general training parameters
 train.project_name = "dev0"
-train.save_dir = "/home/palonso/test_logs"
+# NOTE: path to logs in the BSC cluster. Change it for local experiments
+train.save_dir = "/gpfs/projects/upf97/logs/"  
 train.offline_logger = True
 
 # modules to use
