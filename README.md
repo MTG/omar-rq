@@ -31,7 +31,7 @@ tar -xzf mtg-bsc.tar.gz -C mtg-bsc
 source mtg-bsc/bin/activate
 python
 ```
-After that you save the environment in /gpfs/projects/upf97/envs/
+After that, save the environment in `/gpfs/projects/upf97/envs/`
     
 ```bash
 cp -r mtg-bsc /gpfs/projects/upf97/envs/
@@ -48,12 +48,11 @@ source /gpfs/projects/upf97/envs/mtg-bsc/mtg-bsc/bin/activate
 
 Or optionally copy it to your home folder
 
-The first time you use the environment you need to copy it from the shared folder to your home folder.
 ```bash
 cp -r /gpfs/projects/upf97/envs/mtg-bsc ~/ssl-mtg/
 ```
 
-From that instant you can run it with the following command from `~/ssl-mtg/`
+And activated it from `~/ssl-mtg/` like this:
 
 ```bash
 module load anaconda
