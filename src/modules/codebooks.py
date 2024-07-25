@@ -69,19 +69,51 @@ class RandomProjectionQuantizer(nn.Module):
 
 class Codebook(nn.Module):
     def __init__(self, num_codes, code_dim):
+        """
+        Initializes the Codebook with the specified number of codes and code dimensionality.
+
+        Parameters:
+        -----------
+        num_codes : int
+            The number of codes in the codebook.
+        code_dim : int
+            The dimensionality of each code.
+        """
         super(Codebook, self).__init__()
         self.codebook = nn.Embedding(num_codes, code_dim)
         self.num_codes = num_codes
         self.code_dim = code_dim
 
     def forward(self, x):
-        # x shape: (batch_size, num_patches, code_dim)
+        """
+        Quantizes the input tensor `x` by finding the nearest code in the codebook.
+
+        Parameters:
+        -----------
+        x : torch.Tensor
+            The input tensor with shape (batch_size, num_patches, code_dim).
+
+        Returns:
+        --------
+        quantized : torch.Tensor
+            The quantized tensor with the same shape as `x`.
+        codes : torch.Tensor
+            The indices of the codes in the codebook that are closest to each patch in the input tensor.
+        """
+        # Flatten the input tensor to shape (batch_size * num_patches, code_dim)
         flattened = x.view(-1, self.code_dim)
+
+        # Compute the distances between the flattened input and the codebook embeddings
         distances = (
             torch.sum(flattened**2, dim=1, keepdim=True)
             + torch.sum(self.codebook.weight**2, dim=1)
             - 2 * torch.matmul(flattened, self.codebook.weight.t())
         )
+
+        # Find the indices of the closest codes in the codebook
         codes = torch.argmin(distances, dim=1)
+
+        # Retrieve the quantized embeddings corresponding to the closest codes
         quantized = self.codebook(codes).view(x.shape)
+
         return quantized, codes

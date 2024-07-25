@@ -139,6 +139,7 @@ class Transformer(Net):
         do_vit_tokenization=False
     ):
         super().__init__()
+        self.in_chans = in_chans
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.context_length = context_length

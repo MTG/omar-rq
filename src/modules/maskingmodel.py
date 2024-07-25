@@ -5,8 +5,8 @@ import torch
 from torch import nn
 import pytorch_lightning as L
 
-from src.modules.codebooks import RandomProjectionQuantizer
-
+from src.modules.codebooks import Codebook
+from src.nets.transformer import PatchEmbed
 
 
 @gin.configurable
@@ -32,8 +32,6 @@ class MaskingModel(L.LightningModule):
         codebook_size: int,
         mask_seconds: float,
         mask_prob: float,
-        patch_frames_t: int,
-        patch_frames_f: int
     ):
         super(MaskingModel, self).__init__()
 
@@ -42,22 +40,24 @@ class MaskingModel(L.LightningModule):
         self.mask_prob = mask_prob
         self.num_codebooks = num_codebooks
         self.codebook_size = codebook_size
-        self.patch_frames_t = patch_frames_t
-        self.patch_frames_f = patch_frames_f
+        self.patch_size = net.patch_size
+        self.in_chans = net.in_chans
+        self.embed_dim = net.embed_dim
+        self.patch_frames_t = self.patch_size[0]
+        self.patch_frames_f = self.patch_size[1]
 
         self.net = net
         self.representation = representation
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
+        self.patch_embed = PatchEmbed(self.patch_size, self.in_chans, self.embed_dim)
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            self.rproj_input_dim = patch_frames_t*patch_frames_f
             # random quantizer
-            seed = 142
-            self.codebook = RandomProjectionQuantizer(
-                self.rproj_input_dim, patch_frames_f, codebook_size, seed=seed
+            self.codebook = Codebook(
+                self.codebook_size, self.embed_dim
             )
         else:
             raise NotImplementedError(f"Representation {type(self.representation)} is supported")
@@ -78,17 +78,7 @@ class MaskingModel(L.LightningModule):
         return padded_spectrogram
 
     def vit_tokenization(self, spectrogram):
-        B, F, T = spectrogram.shape
-        # Number of patches
-        num_patches_f = F // self.patch_frames_f
-        num_patches_t = T // self.patch_frames_t
-        # Reshape spectrogram into patches
-        patches = spectrogram.unfold(1, self.patch_frames_f, self.patch_frames_f)
-        patches = patches.unfold(2, self.patch_frames_t, self.patch_frames_t)
-        # Reshape to (B, num_patches_f * num_patches_t, patch_frames_f, patch_frames_t)
-        patches = patches.contiguous().view(B, num_patches_f * num_patches_t, self.patch_frames_f, self.patch_frames_t)
-        # Flatten patches to tokens
-        patches = patches.view(B, num_patches_f * num_patches_t, -1)
+
         # Return patches and tokens
         tokens = self.codebook(patches)
         return patches, tokens
