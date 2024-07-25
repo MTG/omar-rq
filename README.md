@@ -36,7 +36,17 @@ After that you save the environment in /gpfs/projects/upf97/envs/
 ```bash
 cp -r mtg-bsc /gpfs/projects/upf97/envs/
 ```
-### if you are using a eviroment already saved in the cluster
+### if you are using an environment already saved in the cluster
+
+
+To activate the environment in the cluster:
+
+```bash
+module load anaconda
+source /gpfs/projects/upf97/envs/mtg-bsc/mtg-bsc/bin/activate
+```
+
+Or optionally copy it to your home folder
 
 The first time you use the environment you need to copy it from the shared folder to your home folder.
 ```bash
