@@ -9,11 +9,6 @@ pip install -e .[dev]
 
 ## Cluster setup 
 
-wandb without internet
-```bash
-echo "export WANDB_MODE=offline" >> .bashrc 
-```
-
 To run an interactiver job
 ```bash
 srun --partition=interactive --account=upf97 --qos=acc_interactive --gres=gpu:1 --cpus-per-task=20 --time=02:00:00 --pty /bin/bash
