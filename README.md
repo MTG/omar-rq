@@ -93,7 +93,7 @@ In the `config_file` modify these parameters:
 - `DiscotubeMultiViewAudioDataModule.filelist_val = "data/discotube/val_v1.txt"` -> Same. With the tracks for the validation split.
 
 > [!NOTE]  
-> In the context of the BSC MareNostrum cluster experiments, new filelists should be located in the common project folder so that every use can access them: `/gpfs/projects/upf97/data/`.
+> In the context of the BSC MareNostrum cluster experiments, new filelists should be located in the common project folder so that every user can access them: `/gpfs/projects/upf97/data/`.
 
 ## Run the experiment
 
