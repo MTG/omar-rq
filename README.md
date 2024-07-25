@@ -31,7 +31,7 @@ tar -xzf mtg-bsc.tar.gz -C mtg-bsc
 source mtg-bsc/bin/activate
 python
 ```
-After that you save the eviroment in /gfs/projects/upf97/envs/mtg-bsc
+After that you save the environment in /gpfs/projects/upf97/envs/
     
 ```bash
 cp -r mtg-bsc /gpfs/projects/upf97/envs/
