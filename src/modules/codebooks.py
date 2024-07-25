@@ -101,6 +101,7 @@ class Codebook(nn.Module):
             The indices of the codes in the codebook that are closest to each patch in the input tensor.
         """
         # Flatten the input tensor to shape (batch_size * num_patches, code_dim)
+        B, _, _ = x.shape
         flattened = x.view(-1, self.code_dim)
 
         # Compute the distances between the flattened input and the codebook embeddings
@@ -112,8 +113,9 @@ class Codebook(nn.Module):
 
         # Find the indices of the closest codes in the codebook
         codes = torch.argmin(distances, dim=1)
+        codes = codes.view(B, -1)
 
         # Retrieve the quantized embeddings corresponding to the closest codes
-        #quantized = self.codebook(codes).view(x.shape)
+        quantized = self.codebook(codes).view(x.shape)
 
         return codes

@@ -69,4 +69,4 @@ nets.transformer.Transformer.depth = 12
 nets.transformer.Transformer.num_heads = 12
 nets.transformer.Transformer.mlp_ratio=4.0
 nets.transformer.Transformer.dropout=0.1
-nets.transformer.Transformer.do_vit_tokenization = True
+nets.transformer.Transformer.do_vit_tokenization = False

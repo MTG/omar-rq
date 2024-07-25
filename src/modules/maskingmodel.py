@@ -43,6 +43,7 @@ class MaskingModel(L.LightningModule):
         self.patch_size = net.patch_size
         self.net = net
         self.representation = representation
+        self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
@@ -97,10 +98,7 @@ class MaskingModel(L.LightningModule):
         masked_spec = spectrogram.clone()
         masking_noise = torch.randn_like(masked_spec) * 0.1
         masked_spec[mask] = masking_noise[mask]
-
-        # recover original for spectrogram
-        spectrogram_restored = masked_spec.view(B, self.n_mel, -1)
-        return spectrogram_restored, mask.to(spectrogram.device)
+        return masked_spec, mask.to(spectrogram.device)
 
     # THIS CODE IS CLEANED FOR IMPLEMENTING THE SAME BUT DIRECTLY FROM AUDIO
     # def masking_raw_audio(self, x):
@@ -168,8 +166,8 @@ class MaskingModel(L.LightningModule):
         x, target_tokens = self.vit_tokenization(x)
         # masking
         x, mask = self.random_masking(x)
+        x = self.embedding_layer(x)
         x = self.net(x)
-        # forward q
         logits = self.linear(x)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
