@@ -30,14 +30,12 @@ for net_name, net in NETS.items():
 
 @gin.configurable
 def train(
-    project_name: str,
-    save_dir: str,
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
     net: nn.Module,
     representation: nn.Module,
     params: dict,
-    offline_logger: bool,
+    wandb_params: dict,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
@@ -48,11 +46,7 @@ def train(
 
     # get the lightning wandb logger wrapper and log the config
     gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
-    wandb_logger = WandbLogger(
-        project=project_name,
-        save_dir=save_dir,
-        offline=offline_logger,
-    )
+    wandb_logger = WandbLogger(**wandb_params)
     wandb_logger.log_hyperparams(gin_config_dict)
 
     # log the number of parameters in the network (required to compute scaling laws)

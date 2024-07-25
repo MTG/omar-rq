@@ -1,8 +1,11 @@
-# general training parameters
-train.project_name = "dev0"
-# NOTE: path to logs in the BSC cluster. Change it for local experiments
-train.save_dir = "/gpfs/projects/upf97/logs/"  
-train.offline_logger = True
+# wandb training parameters
+train.wandb_params = {
+    "project": "mtg-ssl",
+    "offline": True,
+    # NOTE: path to logs in the BSC cluster. Change it for local experiments
+    "save_dir": "/gpfs/projects/upf97/logs/",
+    "entity": "mtg-upf",
+}
 
 # modules to use
 train.module = @simclr
