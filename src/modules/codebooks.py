@@ -114,6 +114,6 @@ class Codebook(nn.Module):
         codes = torch.argmin(distances, dim=1)
 
         # Retrieve the quantized embeddings corresponding to the closest codes
-        quantized = self.codebook(codes).view(x.shape)
+        #quantized = self.codebook(codes).view(x.shape)
 
-        return quantized, codes
+        return codes
