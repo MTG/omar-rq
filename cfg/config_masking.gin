@@ -54,15 +54,15 @@ MelSpectrogram.time_mask_param = 10
 
 # MaskingModel parameters
 modules.maskingmodel.MaskingModel.num_codebooks = 1
-modules.maskingmodel.MaskingModel.patch_frames = 16
-modules.maskingmodel.MaskingModel.patch_frames = 16
+modules.maskingmodel.MaskingModel.patch_frames_t = 4
+modules.maskingmodel.MaskingModel.patch_frames_f = 16
 modules.maskingmodel.MaskingModel.num_codebooks = 1
 modules.maskingmodel.MaskingModel.codebook_size = 4096
 modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6
 
 # Transformer parameters
-Transformer.patch_size = (16, 16)
+Transformer.patch_size = (4, 16)
 Transformer.context_length = 63
 Transformer.in_chans = 1
 Transformer.embed_dim = 768
@@ -71,3 +71,4 @@ Transformer.depth = 12
 Transformer.num_heads = 12
 Transformer.mlp_ratio=4.0
 Transformer.dropout=0.1
+Transformer.do_vit_tokenization = True

@@ -2,11 +2,10 @@
 
 import gin
 import torch
-from torch import nn, einsum
+from torch import nn
 import pytorch_lightning as L
 
 from src.modules.codebooks import RandomProjectionQuantizer
-
 
 
 
@@ -29,11 +28,12 @@ class MaskingModel(L.LightningModule):
         self,
         net: nn.Module,
         representation: nn.Module,
-        patch_frames: int,
         num_codebooks: int,
         codebook_size: int,
         mask_seconds: float,
-        mask_prob: float
+        mask_prob: float,
+        patch_frames_t: int,
+        patch_frames_f: int
     ):
         super(MaskingModel, self).__init__()
 
@@ -42,7 +42,8 @@ class MaskingModel(L.LightningModule):
         self.mask_prob = mask_prob
         self.num_codebooks = num_codebooks
         self.codebook_size = codebook_size
-        self.patch_frames = patch_frames
+        self.patch_frames_t = patch_frames_t
+        self.patch_frames_f = patch_frames_f
 
         self.net = net
         self.representation = representation
@@ -52,11 +53,11 @@ class MaskingModel(L.LightningModule):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            self.rproj_input_dim = patch_frames*patch_frames
+            self.rproj_input_dim = patch_frames_t*patch_frames_f
             # random quantizer
             seed = 142
             self.codebook = RandomProjectionQuantizer(
-                self.rproj_input_dim, patch_frames, codebook_size, seed=seed
+                self.rproj_input_dim, patch_frames_f, codebook_size, seed=seed
             )
         else:
             raise NotImplementedError(f"Representation {type(self.representation)} is supported")
@@ -76,39 +77,38 @@ class MaskingModel(L.LightningModule):
 
         return padded_spectrogram
 
-    def vit_tokenization(self, spectrogram, patch_size=16):
+    def vit_tokenization(self, spectrogram):
         B, F, T = spectrogram.shape
-
         # Number of patches
-        num_patches_f = F // patch_size
-        num_patches_t = T // patch_size
-
-        # Reshape the spectrogram to (B, num_patches_f, patch_size, num_patches_t, patch_size)
-        patches = spectrogram.reshape(B, num_patches_f, patch_size, num_patches_t, patch_size)
-
-        # Move the patch dimensions next to each other and then flatten the patches
-        patches = patches.permute(0, 1, 3, 2, 4).reshape(B, num_patches_f * num_patches_t, patch_size * patch_size)
+        num_patches_f = F // self.patch_frames_f
+        num_patches_t = T // self.patch_frames_t
+        # Reshape spectrogram into patches
+        patches = spectrogram.unfold(1, self.patch_frames_f, self.patch_frames_f)
+        patches = patches.unfold(2, self.patch_frames_t, self.patch_frames_t)
+        # Reshape to (B, num_patches_f * num_patches_t, patch_frames_f, patch_frames_t)
+        patches = patches.contiguous().view(B, num_patches_f * num_patches_t, self.patch_frames_f, self.patch_frames_t)
+        # Flatten patches to tokens
+        patches = patches.view(B, num_patches_f * num_patches_t, -1)
+        # Return patches and tokens
         tokens = self.codebook(patches)
         return patches, tokens
 
-    def random_masking(self, tokens, mask_ratio=0.5):
-        B, num_patches, patch_size = tokens.shape
-        num_masked = int(mask_ratio * num_patches)
-
+    def random_masking(self, spectrogram):
+        B, num_patches, patch_size = spectrogram.shape
+        num_masked = int(self.mask_prob * num_patches)
         # Generate random mask indices
         mask_indices = torch.rand(B, num_patches).argsort(dim=1)[:, :num_masked]
-
         # Create a mask array with the same shape as tokens, initialized to False
         mask = torch.zeros(B, num_patches, dtype=torch.bool)
-
         # Use advanced indexing to set the mask indices to True
         mask[torch.arange(B).unsqueeze(1), mask_indices] = True
-
         # Apply the mask to the tokens
-        masked_tokens = tokens.clone()
-        masked_tokens[mask] = 0  # Here, 0 can be replaced with any mask value or token
-
-        return masked_tokens.to(tokens.device), mask.to(tokens.device)
+        masked_spec = spectrogram.clone()
+        # apply mask to spectrogram, random noise between 0 and 1
+        masking_noise = torch.randn_like(masked_spec) * 0.1
+        # mask is B, F and spectrogram is B, F, T
+        masked_spec[mask] = masking_noise[mask]
+        return masked_spec, mask.to(spectrogram.device)
 
     # THIS CODE IS CLEANED FOR IMPLEMENTING THE SAME BUT DIRECTLY FROM AUDIO
     # def masking_raw_audio(self, x):
@@ -174,18 +174,13 @@ class MaskingModel(L.LightningModule):
         x = self.representation(x[0])
         # get target feature tokens
         x, target_tokens = self.vit_tokenization(x)
-
         # masking
         x, mask = self.random_masking(x)
-
         x = self.net(x)
-
         # forward q
         logits = self.linear(x)
-
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
-
         return logits, losses, accuracies
 
     def training_step(self, batch, batch_idx):

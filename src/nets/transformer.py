@@ -135,7 +135,8 @@ class Transformer(Net):
         num_heads,
         mlp_ratio=4.0,
         dropout=0.1,
-        with_head=False,
+        do_classification=False,
+        do_vit_tokenization=False
     ):
         super().__init__()
         self.patch_size = patch_size
@@ -161,17 +162,18 @@ class Transformer(Net):
                 for _ in range(depth)
             ]
         )
-
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
-        self.with_head = with_head
+        self.do_classification = do_classification
+        self.do_vit_tokenization = do_vit_tokenization
 
     def forward(self, x):
-        x = self.patch_embed(x)  # Embed the patches
+        if self.do_vit_tokenization:
+            x = self.patch_embed(x)  # Embed the patches
         B, N, _ = x.shape
 
         cls_token = self.cls_token.expand(B, -1, -1)
-        x = torch.cat((cls_token, x), dim=1)  # Add class token
+        x = torch.cat((cls_token, x), dim=1) # Add class token
 
         # Ensure positional embeddings cover the entire sequence length
         if x.size(1) > self.pos_embed.size(1):
@@ -188,7 +190,7 @@ class Transformer(Net):
         for layer in self.transformer:
             x = layer(x)
 
-        if self.with_head:
+        if self.do_classification:
             x = self.norm(x)
             x = x[:, 0]  # Extract the class token
             x = self.head(x)

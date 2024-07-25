@@ -65,3 +65,23 @@ class RandomProjectionQuantizer(nn.Module):
         # Perform codebook lookup
         xq = self.codebook_lookup(x)
         return xq
+
+
+class Codebook(nn.Module):
+    def __init__(self, num_codes, code_dim):
+        super(Codebook, self).__init__()
+        self.codebook = nn.Embedding(num_codes, code_dim)
+        self.num_codes = num_codes
+        self.code_dim = code_dim
+
+    def forward(self, x):
+        # x shape: (batch_size, num_patches, code_dim)
+        flattened = x.view(-1, self.code_dim)
+        distances = (
+            torch.sum(flattened**2, dim=1, keepdim=True)
+            + torch.sum(self.codebook.weight**2, dim=1)
+            - 2 * torch.matmul(flattened, self.codebook.weight.t())
+        )
+        codes = torch.argmin(distances, dim=1)
+        quantized = self.codebook(codes).view(x.shape)
+        return quantized, codes
