@@ -1,1 +1,3 @@
-rsync -avz . alogin1:~/ssl-mtg
+grep -v '^#' .gitignore > rsync-exclude
+rsync -avz --exclude-from=rsync-exclude . alogin1:~/ssl-mtg
+rm rsync-exclude
