@@ -1,6 +1,11 @@
 # general training parameters
-train.project_name = "dev0"
-train.save_dir = "./"
+train.wandb_params = {
+    "project": "mtg-ssl",
+    "offline": True,
+    # NOTE: path to logs in the BSC cluster. Change it for local experiments
+    "save_dir": "/gpfs/projects/upf97/logs/",
+    "entity": "mtg-upf",
+}
 
 # modules to use
 train.representation = @melspectrogram
@@ -11,8 +16,8 @@ train.net = @transformer
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 1,
-    "max_steps": 1e4,
+    "devices": 4,
+    "max_steps": 300000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
     "strategy": "ddp_find_unused_parameters_true",
@@ -20,20 +25,20 @@ train.params = {
 }
 
 # Dataloader
-AudioDataset.num_frames = 131000 # 8 seconds multiple of 16
+AudioDataset.num_frames = 480000 # 30s
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 16
+AudioDataModule.num_workers = 80
 
 # Discogs datamodule parameters
-DiscotubeAudioDataModule.batch_size = 2
-DiscotubeAudioDataModule.data_dir = "/home/pedro/PycharmProjects/"
-DiscotubeAudioDataModule.filelist_train = "data/gtzan/train_mmap.txt"
-DiscotubeAudioDataModule.filelist_val = "data/gtzan/test_mmap.txt"
+DiscotubeAudioDataModule.batch_size = 128
+DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
+DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
+DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
 
 # CosineAnnealing scheduler
-CosineAnnealingCallback.warmup_steps = 10
+CosineAnnealingCallback.warmup_steps = 16000
 CosineAnnealingCallback.eta_min = 1e-7
 
 # MelSpectrogram parameters

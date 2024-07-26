@@ -5,8 +5,7 @@ import torch
 from torch import nn
 import pytorch_lightning as L
 
-from src.modules.codebooks import Codebook
-from src.nets.transformer import PatchEmbed
+from modules.codebooks import Codebook
 
 
 @gin.configurable
