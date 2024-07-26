@@ -6,7 +6,7 @@ import traceback
 import gin.torch
 import pytorch_lightning as L
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
 
 from torch import nn
 
@@ -30,13 +30,12 @@ for net_name, net in NETS.items():
 
 @gin.configurable
 def train(
-    project_name: str,
-    save_dir: str,
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
     net: nn.Module,
     representation: nn.Module,
     params: dict,
+    wandb_params: dict,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
@@ -47,8 +46,8 @@ def train(
 
     # get the lightning wandb logger wrapper and log the config
     gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
-    tb_logger = TensorBoardLogger("tb_logs", name=project_name + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
-    #tb_logger.log_hyperparams(gin_config_dict)
+    wandb_logger = WandbLogger(**wandb_params)
+    wandb_logger.log_hyperparams(gin_config_dict)
 
     # log the number of parameters in the network (required to compute scaling laws)
     # tb_logger.experiment.config["param_count"] = net.get_parameter_count()
@@ -58,7 +57,7 @@ def train(
     callbacks = [cosine_annealing_callback]
 
     # create the trainer and fit the model
-    trainer = Trainer(logger=tb_logger, callbacks=callbacks, **params)
+    trainer = Trainer(logger=wandb_logger, callbacks=callbacks, **params)
     trainer.fit(model=module, datamodule=datamodule)
 
 
