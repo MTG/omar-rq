@@ -1,4 +1,5 @@
-
+import math
+import pdb
 
 import gin
 import torch
@@ -86,9 +87,10 @@ class MaskingModel(L.LightningModule):
         tokens = self.codebook(patches)
         return patches, tokens
 
-    def random_masking(self, spectrogram):
+    def random_masking_simple(self, spectrogram):
         B, num_patches, patch_size = spectrogram.shape
         num_masked = int(self.mask_prob * num_patches)
+        # we have a windows_random
         # Generate random mask indices
         mask_indices = torch.rand(B, num_patches).argsort(dim=1)[:, :num_masked]
         # Create a mask array with the same shape as tokens, initialized to False
@@ -98,6 +100,68 @@ class MaskingModel(L.LightningModule):
         masking_noise = torch.randn_like(masked_spec) * 0.1
         masked_spec[mask] = masking_noise[mask]
         return masked_spec, mask.to(spectrogram.device)
+
+    def random_masking(self, spectrogram):
+        B, num_patches, patch_size = spectrogram.shape
+        if torch.isnan(spectrogram).any():
+            raise ValueError("NaNs detected in the original spectrogram")
+        mx = spectrogram.clone()
+
+        # Debug print statements
+        print(f"Spectrogram shape: {spectrogram.shape}")
+        print(f"Batch size (B): {B}, Number of patches: {num_patches}, Patch size: {patch_size}")
+
+        # Check for NaNs in the original spectrogram
+        if torch.isnan(spectrogram).any():
+            raise ValueError("NaNs detected in the original spectrogram 2")
+
+        len_masking_spec_frames = math.ceil(self.mask_seconds * self.sr / self.hop_length)
+        windows_tokens = len_masking_spec_frames // self.patch_size[0] * (self.n_mel // self.patch_size[1])
+
+        print(f"Length of masking spec frames: {len_masking_spec_frames}")
+        print(f"Windows tokens: {windows_tokens}")
+
+        # Generate random mask indices
+        start_indices = torch.rand(B, math.ceil(num_patches / windows_tokens)) < self.mask_prob
+        print(f"Start indices shape: {start_indices.shape}")
+
+        mask = torch.nonzero(start_indices.repeat_interleave(windows_tokens, dim=1))
+        print(f"Mask shape before trimming: {mask.shape}")
+
+        # Trim mask to fit the number of patches
+        if mask.size(0) > num_patches:
+            mask = mask[:num_patches].transpose(0, 1)
+        else:
+            mask = mask.transpose(0, 1)
+        print(f"Mask shape after trimming: {mask.shape}")
+
+        # Check if mask indices are out of bounds
+        if torch.any(mask[0] >= B) or torch.any(mask[1] >= num_patches):
+            raise ValueError("Mask indices are out of bounds")
+
+        # Mask with random values
+        masking_noise = (torch.randn(mx.shape, dtype=spectrogram.dtype) * 0.1).to(spectrogram.device)  # 0 mean 0.1 std
+        print(f"Masking noise shape: {masking_noise.shape}")
+
+        # Check for NaNs in the masking noise
+        if torch.isnan(masking_noise).any():
+            raise ValueError("NaNs detected in the masking noise")
+
+        # Apply masking in parallel
+        try:
+            mx[mask[0], mask[1], :] = masking_noise[mask[0], mask[1], :]
+        except IndexError as e:
+            print(f"IndexError: {e}")
+            print(f"Mask indices (0): {mask[0]}")
+            print(f"Mask indices (1): {mask[1]}")
+            raise
+
+        # Check for NaNs after applying the mask
+        if torch.isnan(mx).any():
+            print(f"NaNs detected after applying the mask at indices: {torch.isnan(mx).nonzero()}")
+            raise ValueError("NaNs detected in the masked spectrogram")
+
+        return mx, mask
 
     # THIS CODE IS CLEANED FOR IMPLEMENTING THE SAME BUT DIRECTLY FROM AUDIO
     # def masking_raw_audio(self, x):
