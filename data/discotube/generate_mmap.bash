@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the directory
-directory="/gpfs/scratch/upf97/discotube"
+directory="/gpfs/scratch/upf97/mmaps"
 find "$directory" -type f -name "*.mmap" > all.txt
 count=$(wc -l < all.txt)
 echo "Total number of files: $count"
