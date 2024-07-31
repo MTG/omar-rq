@@ -34,8 +34,8 @@ AudioDataModule.num_workers = 0
 # Discogs datamodule parameters
 DiscotubeAudioDataModule.batch_size = 2
 DiscotubeAudioDataModule.data_dir = "data/gtzan"
-DiscotubeAudioDataModule.filelist_train = "data/gtzan/train.txt"
-DiscotubeAudioDataModule.filelist_val = "data/gtzan/test.txt"
+DiscotubeAudioDataModule.filelist_train = "data/gtzan/train_mmap.txt"
+DiscotubeAudioDataModule.filelist_val = "data/gtzan/test_mmap.txt"
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 16000

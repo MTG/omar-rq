@@ -3,6 +3,7 @@ import torch
 from torch import nn, einsum
 
 
+
 class RandomProjectionQuantizer(nn.Module):
     """
     Random projection and codebook lookup module
