@@ -4,6 +4,7 @@ from collections import Counter
 
 import gin
 import torch
+import wandb
 from torch import nn
 import pytorch_lightning as L
 
@@ -49,7 +50,7 @@ class MaskingModel(L.LightningModule):
         self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
         self.lr = lr
-        self.tokens_coverage = Counter()
+        self.tokens_coverage = []
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
             self.sr = representation.sr
@@ -144,6 +145,7 @@ class MaskingModel(L.LightningModule):
         x = self.representation(x[0])
         # get target feature tokens
         x, target_tokens = self.vit_tokenization(x) # B x t x (16 x 4)
+        self.tokens_coverage += target_tokens.flatten().cpu().tolist()
         # masking
         x, mask = self.random_masking(x)
         x = self.embedding_layer(x)
@@ -151,7 +153,8 @@ class MaskingModel(L.LightningModule):
         logits = self.linear(x)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
-        self.log()
+        # move to on_epoch_end after debugging
+        self.logger.experiment.log({"accumulated_tokens_histogram": wandb.Histogram(self.tokens_coverage, num_bins=self.num_codebooks)})
         return logits, losses, accuracies
 
     def training_step(self, batch, batch_idx):
