@@ -145,7 +145,8 @@ class Transformer(Net):
         self.context_length = context_length
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        if self.do_classification:
+            self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         # Initial positional embeddings (dynamically resized later)
         self.pos_embed = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -173,8 +174,9 @@ class Transformer(Net):
             x = self.patch_embed(x)  # Embed the patches
         B, N, _ = x.shape
 
-        cls_token = self.cls_token.expand(B, -1, -1)
-        x = torch.cat((cls_token, x), dim=1) # Add class token
+        if self.do_classification:
+            cls_token = self.cls_token.expand(B, -1, -1)
+            x = torch.cat((cls_token, x), dim=1) # Add class token
 
         # Ensure positional embeddings cover the entire sequence length
         if x.size(1) > self.pos_embed.size(1):

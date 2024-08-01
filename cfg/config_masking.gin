@@ -1,6 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
+    "name": "masking_patch4x16",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -59,7 +60,7 @@ nets.melspectrogram.MelSpectrogram.time_mask_param = 10
 
 # MaskingModel parameters
 modules.maskingmodel.MaskingModel.num_codebooks = 1
-modules.maskingmodel.MaskingModel.num_codebooks = 1
+modules.maskingmodel.MaskingModel.lr = 1e-3
 modules.maskingmodel.MaskingModel.codebook_size = 4096
 modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6

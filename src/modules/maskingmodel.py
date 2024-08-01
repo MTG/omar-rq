@@ -13,6 +13,7 @@ from modules.codebooks import RandomProjectionQuantizer
 class MaskingModel(L.LightningModule):
     """
     MaskingModel
+    inspired https://github.com/minzwon/musicfm/blob/b83ebedb401bcef639b26b05c0c8bee1dc2dfe71/model/musicfm_25hz.py#L125
 
     This model is used to train a model with a masking laguage modelling mechanism.
     net is the model that will be trained
@@ -27,6 +28,7 @@ class MaskingModel(L.LightningModule):
     def __init__(
         self,
         net: nn.Module,
+        lr: float,
         representation: nn.Module,
         num_codebooks: int,
         codebook_size: int,
@@ -45,6 +47,7 @@ class MaskingModel(L.LightningModule):
         self.representation = representation
         self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
+        self.lr = lr
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
             self.sr = representation.sr
@@ -103,9 +106,9 @@ class MaskingModel(L.LightningModule):
         masked_spec[mask] = masking_noise[mask]
         return masked_spec, mask.to(spectrogram.device)
 
-    def random_masking(self, spectrogram):
-        B, num_patches, patch_size = spectrogram.shape
-        mx = spectrogram.clone()
+    def random_masking(self, patches):
+        B, num_patches, patch_size = patches.shape
+        mx = patches.clone()
 
         len_masking_spec_frames = math.ceil(self.mask_seconds * self.sr / self.hop_length)
         windows_tokens = len_masking_spec_frames // self.patch_size[0] * (self.n_mel // self.patch_size[1])
@@ -119,61 +122,12 @@ class MaskingModel(L.LightningModule):
             mask = mask[:, :num_patches]
 
         # Mask with random values
-        masking_noise = (torch.randn(mx.shape, dtype=spectrogram.dtype) * 0.1).to(spectrogram.device)  # 0 mean 0.1 std
+        masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(patches.device)  # 0 mean 0.1 std
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
-        return mx, mask.to(spectrogram.device)
-
-    # THIS CODE IS CLEANED FOR IMPLEMENTING THE SAME BUT DIRECTLY FROM AUDIO
-    # def masking_raw_audio(self, x):
-    #     """random masking of 400ms with given probability"""
-    #     mx = x.clone()
-    #     b, f, t = mx.shape
-    #
-    #     len_masking_spec_frames = math.ceil(self.mask_seconds * self.sr / self.hop_length)
-    #     len_masking_spec_tokens = math.ceil(len_masking_spec_frames / self.patch_frames)
-    #
-    #     # get random mask indices
-    #     start_indices = torch.rand(b, t // len_masking_spec_frames) < self.mask_prob
-    #     time_domain_masked_indices = torch.nonzero(
-    #         start_indices.repeat_interleave(len_masking_spec_frames, dim=1)
-    #     )
-    #     token_domain_masked_indices = torch.nonzero(
-    #         start_indices.repeat_interleave(len_masking_spec_tokens, dim=1)
-    #     )
-    #     # trim
-    #     time_domain_masked_indices = time_domain_masked_indices[:t].transpose(0, 1)
-    #     token_domain_masked_indices = token_domain_masked_indices[:t//self.patch_frames].transpose(0, 1)
-    #
-    #     # mask with random values
-    #     mx = mx.transpose(1, 2)
-    #     masking_noise = (
-    #         torch.randn(mx.shape, dtype=x.dtype) * 0.1
-    #     )  # 0 mean 0.1 std
-    #     # Ensure the indices are in the right format
-    #     batch_indices = torch.arange(x.size(0)).unsqueeze(1).expand_as(time_domain_masked_indices)
-    #     # Apply masking in parallel
-    #     mx[batch_indices, time_domain_masked_indices, :] = masking_noise[batch_indices, time_domain_masked_indices, :].to(device=x.device)
-    #     mx = mx.transpose(1, 2)
-    #     return mx, token_domain_masked_indices
-    # @torch.no_grad()
-    # def rearrange(self, x):
-    #     return rearrange(x, "b f (t s) -> b t (s f)", s=self.patch_frames)
-
-    # @torch.no_grad()
-    # def tokenize(self, x):
-    #     # TODO if more than one codebook modify here
-    #     layer = getattr(self, "quantizer_mel_0")
-    #     return layer(x)
-    #
-    # def get_targets(self, x):
-    #     x = self.rearrange(x)
-    #     target_tokens = self.tokenize(x)
-    #     return target_tokens
+        return mx, mask.to(patches.device)
 
     def get_loss(self, logits, target_tokens, mask):
-        # remove cls first token from logits
-        logits = logits[:, 1:]
         # zeros boolean with the shape of logit_out
         masked_logits = logits[mask]
         masked_tokens = target_tokens[mask]
@@ -212,5 +166,5 @@ class MaskingModel(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer

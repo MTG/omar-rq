@@ -73,6 +73,7 @@ class AudioDataset(Dataset):
                 mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, n_samples))
                 audio = numpy.array(mmap)
                 audio = numpy.pad(audio, ((0, 0), (0, self.num_frames - audio.shape[1])), mode="constant")
+                del mmap
 
             else:
                 offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
