@@ -1,5 +1,6 @@
 import math
 import pdb
+from collections import Counter
 
 import gin
 import torch
@@ -48,6 +49,7 @@ class MaskingModel(L.LightningModule):
         self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
         self.lr = lr
+        self.tokens_coverage = Counter()
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
             self.sr = representation.sr
@@ -149,6 +151,7 @@ class MaskingModel(L.LightningModule):
         logits = self.linear(x)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
+        self.log()
         return logits, losses, accuracies
 
     def training_step(self, batch, batch_idx):

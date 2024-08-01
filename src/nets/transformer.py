@@ -143,6 +143,8 @@ class Transformer(Net):
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.context_length = context_length
+        self.do_classification = do_classification
+        self.do_vit_tokenization = do_vit_tokenization
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
         if self.do_classification:
@@ -166,8 +168,7 @@ class Transformer(Net):
         )
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
-        self.do_classification = do_classification
-        self.do_vit_tokenization = do_vit_tokenization
+
 
     def forward(self, x):
         if self.do_vit_tokenization:
