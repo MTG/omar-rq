@@ -17,7 +17,7 @@ train.net = @transformer
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 4,
+    "devices": 1,
     "max_steps": 300000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",

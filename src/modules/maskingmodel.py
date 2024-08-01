@@ -153,13 +153,16 @@ class MaskingModel(L.LightningModule):
         logits = self.linear(x)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
-        # move to on_epoch_end after debugging
-        self.logger.experiment.log({"accumulated_tokens_histogram": wandb.Histogram(self.tokens_coverage, num_bins=self.num_codebooks)})
-        return logits, losses, accuracies
+        return logits, losses, accuracies, target_tokens
 
     def training_step(self, batch, batch_idx):
         x = batch
-        logits, loss, accuracies = self.forward(x)
+        logits, loss, accuracies, target_tokens = self.forward(x)
+        # log tokens coverage
+        if batch_idx < 100:
+            self.tokens_coverage += target_tokens.flatten().cpu().tolist()
+        elif batch_idx == 100:
+            self.logger.experiment.log({"accumulated_tokens_histogram": wandb.Histogram(self.tokens_coverage)})
         self.log('train_loss', loss, prog_bar=True)
         self.log(f'train_acc', accuracies)
         return loss
