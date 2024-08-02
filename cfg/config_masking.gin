@@ -22,7 +22,7 @@ train.params = {
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
     "strategy": "ddp_find_unused_parameters_true",
-    "num_sanity_val_steps": 0,
+    "num_sanity_val_steps": 0
 }
 
 # Dataloader
@@ -30,7 +30,7 @@ AudioDataset.num_frames = 480000 # 30s
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 120
+AudioDataModule.num_workers = 140
 
 # Discogs datamodule parameters
 DiscotubeAudioDataModule.batch_size = 256
@@ -55,8 +55,8 @@ nets.melspectrogram.MelSpectrogram.norm_mean = 2.06755686098554
 
 # data augmentation
 nets.melspectrogram.MelSpectrogram.stretch_factor = 1
-nets.melspectrogram.MelSpectrogram.freq_mask_param = 10
-nets.melspectrogram.MelSpectrogram.time_mask_param = 10
+nets.melspectrogram.MelSpectrogram.freq_mask_param = 0
+nets.melspectrogram.MelSpectrogram.time_mask_param = 0
 
 # MaskingModel parameters
 modules.maskingmodel.MaskingModel.num_codebooks = 1
