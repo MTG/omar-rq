@@ -1,5 +1,4 @@
 import math
-import pdb
 from collections import Counter
 
 import gin
@@ -34,8 +33,10 @@ class MaskingModel(L.LightningModule):
         representation: nn.Module,
         num_codebooks: int,
         codebook_size: int,
+        codebook_dim: int,
         mask_seconds: float,
         mask_prob: float,
+        seed: int,
     ):
         super(MaskingModel, self).__init__()
 
@@ -50,6 +51,7 @@ class MaskingModel(L.LightningModule):
         self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
         self.lr = lr
+        self.seed = seed
         self.tokens_coverage = []
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
@@ -59,8 +61,9 @@ class MaskingModel(L.LightningModule):
             # random quantizer
             self.codebook = RandomProjectionQuantizer(
                 input_dim=self.patch_size[0]*self.patch_size[1],
-                codebook_dim=self.net.head.out_features,
+                codebook_dim=codebook_dim,
                 codebook_size=codebook_size,
+                seed=self.seed
             )
         else:
             raise NotImplementedError(f"Representation {type(self.representation)} is supported")
@@ -114,7 +117,7 @@ class MaskingModel(L.LightningModule):
         mx = patches.clone()
 
         len_masking_spec_frames = math.ceil(self.mask_seconds * self.sr / self.hop_length)
-        windows_tokens = len_masking_spec_frames // self.patch_size[0] * (self.n_mel // self.patch_size[1])
+        windows_tokens = len_masking_spec_frames // self.patch_size[1] * (self.n_mel // self.patch_size[0])
 
         # Generate random mask indices
         start_indices = torch.rand(B, math.ceil(num_patches / windows_tokens)) < self.mask_prob
@@ -145,7 +148,6 @@ class MaskingModel(L.LightningModule):
         x = self.representation(x[0])
         # get target feature tokens
         x, target_tokens = self.vit_tokenization(x) # B x t x (16 x 4)
-        self.tokens_coverage += target_tokens.flatten().cpu().tolist()
         # masking
         x, mask = self.random_masking(x)
         x = self.embedding_layer(x)
@@ -159,10 +161,15 @@ class MaskingModel(L.LightningModule):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
         # log tokens coverage
-        if batch_idx < 100:
+        if batch_idx < 1000:
             self.tokens_coverage += target_tokens.flatten().cpu().tolist()
-        elif batch_idx == 100:
-            self.logger.experiment.log({"accumulated_tokens_histogram": wandb.Histogram(self.tokens_coverage)})
+        elif batch_idx == 1000:
+            # Print the histogram you can check it in the wandb dashboard (log section)
+            print("Logged histogram image of token counts for the first 1000 steps.")
+            print(Counter(self.tokens_coverage))
+            self.logger.experiment.log({
+                "histogram": wandb.Histogram(self.tokens_coverage)
+            })
         self.log('train_loss', loss, prog_bar=True)
         self.log(f'train_acc', accuracies)
         return loss

@@ -64,7 +64,7 @@ class MelSpectrogram(torch.nn.Module):
         self.std = norm_std
 
     def znorm(self, input_values: torch.Tensor) -> torch.Tensor:
-        return (input_values - (self.mean)) / (self.std * 2)
+        return (input_values - (self.mean)) / (self.std)
 
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
         # resample the input

@@ -62,9 +62,10 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         queries, keys, values = qkv
 
         use_dropout = 0.0 if not self.training else self.dropout
-        context_vec = nn.functional.scaled_dot_product_attention(
-            queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
-        )
+        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
+            context_vec = nn.functional.scaled_dot_product_attention(
+                queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
+            )
 
         # Combine heads, where self.d_out = self.num_heads * self.head_dim
         context_vec = (

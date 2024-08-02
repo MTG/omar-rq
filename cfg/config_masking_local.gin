@@ -65,7 +65,7 @@ modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6
 
 # Transformer parameters
-nets.transformer.Transformer.patch_size = (4, 16)
+nets.transformer.Transformer.patch_size = (96, 3)
 nets.transformer.Transformer.context_length = 63
 nets.transformer.Transformer.in_chans = 1
 nets.transformer.Transformer.embed_dim = 768
@@ -73,5 +73,5 @@ nets.transformer.Transformer.head_dims = 768
 nets.transformer.Transformer.depth = 12
 nets.transformer.Transformer.num_heads = 12
 nets.transformer.Transformer.mlp_ratio=4.0
-nets.transformer.Transformer.dropout=0.1
+nets.transformer.Transformer.dropout=0.0
 nets.transformer.Transformer.do_vit_tokenization = False
