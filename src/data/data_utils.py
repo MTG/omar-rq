@@ -66,19 +66,26 @@ class AudioDataset(Dataset):
     ):
         if frame_offset == "random":
             n_samples = self.get_audio_duration(file_path)
-            offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
-            offset_bytes = offset_floats * 2  # 2 bytes per float
+            # if num samples is less than self.num_frames, we just return the audio and pad it
+            if n_samples < self.num_frames:
+                offset_floats = 0
+                offset_bytes = 0
+                mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, n_samples))
+                audio = numpy.array(mmap)
+                audio = numpy.pad(audio, ((0, 0), (0, self.num_frames - audio.shape[1])), mode="constant")
+                del mmap
+
+            else:
+                offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
+                offset_bytes = offset_floats * 2  # 2 bytes per float
+                mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, self.num_frames))
+                audio = numpy.array(mmap)
+                del mmap
 
         elif isinstance(frame_offset, int):
-            assert frame_offset >= 0
-            offset_floats = frame_offset
-            offset_bytes = offset_floats * 2
+            raise NotImplementedError("frame_offset as int is not implemented yet")
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
-
-        mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, self.num_frames))
-        audio = numpy.array(mmap)
-        del mmap
 
         return torch.from_numpy(audio), self.new_freq
 

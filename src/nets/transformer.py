@@ -62,9 +62,10 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         queries, keys, values = qkv
 
         use_dropout = 0.0 if not self.training else self.dropout
-        context_vec = nn.functional.scaled_dot_product_attention(
-            queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
-        )
+        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
+            context_vec = nn.functional.scaled_dot_product_attention(
+                queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
+            )
 
         # Combine heads, where self.d_out = self.num_heads * self.head_dim
         context_vec = (
@@ -135,14 +136,20 @@ class Transformer(Net):
         num_heads,
         mlp_ratio=4.0,
         dropout=0.1,
+        do_classification=False,
+        do_vit_tokenization=False
     ):
         super().__init__()
+        self.in_chans = in_chans
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.context_length = context_length
+        self.do_classification = do_classification
+        self.do_vit_tokenization = do_vit_tokenization
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        if self.do_classification:
+            self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         # Initial positional embeddings (dynamically resized later)
         self.pos_embed = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -160,16 +167,18 @@ class Transformer(Net):
                 for _ in range(depth)
             ]
         )
-
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
 
+
     def forward(self, x):
-        x = self.patch_embed(x)  # Embed the patches
+        if self.do_vit_tokenization:
+            x = self.patch_embed(x)  # Embed the patches
         B, N, _ = x.shape
 
-        cls_token = self.cls_token.expand(B, -1, -1)
-        x = torch.cat((cls_token, x), dim=1)  # Add class token
+        if self.do_classification:
+            cls_token = self.cls_token.expand(B, -1, -1)
+            x = torch.cat((cls_token, x), dim=1) # Add class token
 
         # Ensure positional embeddings cover the entire sequence length
         if x.size(1) > self.pos_embed.size(1):
@@ -186,8 +195,10 @@ class Transformer(Net):
         for layer in self.transformer:
             x = layer(x)
 
-        x = self.norm(x)
-        x = self.head(x[:, 0])  # Use the output from the class token
+        if self.do_classification:
+            x = self.norm(x)
+            x = x[:, 0]  # Extract the class token
+            x = self.head(x)
         return x
 
     # class VisionTransformerTiny(VisionTransformer):
