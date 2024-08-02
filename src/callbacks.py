@@ -33,7 +33,7 @@ class GinConfigSaverCallback(Callback):
         appending the current checkpoint path."""
 
         # Get the full path to the checkpoint
-        ckpt_name = f"'epoch={trainer.current_epoch}-step={trainer.global_step}.ckpt'"
+        ckpt_name = f"epoch={trainer.current_epoch}-step={trainer.global_step}.ckpt"
         ckpt_path = os.path.abspath(os.path.join(self.ckpt_dir, ckpt_name))
 
         # Update the gin config file with the current checkpoint path
