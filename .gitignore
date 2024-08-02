@@ -1,4 +1,4 @@
-/data/gtzan
+/data/
 .pyc
 *egg-info*
 *__pycache__*
@@ -7,3 +7,4 @@ checkpoints/
 /mtg-bsc/
 .idea/
 
+/figs/

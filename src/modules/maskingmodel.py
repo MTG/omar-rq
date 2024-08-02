@@ -1,5 +1,8 @@
 import math
+import os
+import random
 from collections import Counter
+from time import sleep
 
 import gin
 import torch
@@ -37,6 +40,7 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
+        plot_tokens: bool = False
     ):
         super(MaskingModel, self).__init__()
 
@@ -52,6 +56,7 @@ class MaskingModel(L.LightningModule):
         self.linear = nn.Linear(self.net.head.out_features, codebook_size)
         self.lr = lr
         self.seed = seed
+        self.plot_tokens = plot_tokens
         self.tokens_coverage = []
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
@@ -82,6 +87,44 @@ class MaskingModel(L.LightningModule):
         padded_spectrogram = torch.nn.functional.pad(spectrogram, (0, pad_t, 0, pad_f), mode='constant', value=0)
         return padded_spectrogram
 
+    def plot_spectrogram_with_tokens(self, spectrogram, num_patches_f, num_patches_t, tokens):
+        from matplotlib import pyplot as plt
+        plt.figure(figsize=(36, 8), dpi=300)
+
+        plt.imshow(spectrogram, aspect='auto', cmap='viridis', origin='lower')
+        plt.colorbar(label='Magnitude')
+        plt.title('Spectrogram with Token Numbers')
+        plt.xlabel('Time')
+        plt.ylabel('Frequency')
+
+        token_index = 0
+        for i in range(num_patches_f):
+            for j in range(num_patches_t):
+                # Calculate the patch boundaries
+                start_f = i * self.patch_size[0]
+                end_f = start_f + self.patch_size[0]
+                start_t = j * self.patch_size[1]
+                end_t = start_t + self.patch_size[1]
+
+                # Draw the patch boundary
+                plt.plot([start_t, start_t], [start_f, end_f], color='white', linewidth=1)
+                plt.plot([end_t, end_t], [start_f, end_f], color='white', linewidth=1)
+                plt.plot([start_t, end_t], [start_f, start_f], color='white', linewidth=1)
+                plt.plot([start_t, end_t], [end_f, end_f], color='white', linewidth=1)
+
+                # Place the token number in the center of each patch
+                center_t = (start_t + end_t) / 2
+                center_f = (start_f + end_f) / 2
+                plt.text(center_t, center_f, str(tokens[token_index].item()), color='red', fontsize=8, ha='center', va='center', rotation=90)
+                token_index += 1
+        # save the plot in ../figs as pdf
+        randint = random.randint(0, 100000)
+        if not os.path.exists('../figs'):
+            os.makedirs('figs')
+        # save pdf
+        plt.savefig(f'figs/spectrogram_with_tokens_{randint}.pdf')
+        plt.close()
+
     def vit_tokenization(self, spectrogram):
         B, F, T = spectrogram.shape
         # Number of patches
@@ -96,6 +139,8 @@ class MaskingModel(L.LightningModule):
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
         # Return patches and tokens
         tokens = self.codebook(patches)
+        if self.plot_tokens:
+            self.plot_spectrogram_with_tokens(spectrogram[0].detach().cpu(), num_patches_f, num_patches_t, tokens[0].detach().cpu())
         return patches, tokens
 
     def random_masking_simple(self, spectrogram):
