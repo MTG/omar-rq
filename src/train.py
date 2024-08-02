@@ -14,37 +14,30 @@ from cosineannealingscheduler import CosineAnnealingCallback
 from data import DATASETS
 from modules import MODULES
 from nets import NETS
-from utils import gin_config_to_readable_dictionary
+from utils import gin_config_to_readable_dictionary, build_module, build_dev_datamodule
 from callbacks import GinConfigSaverCallback
 
 
 # Register all modules, datasets and networs with gin
+for net_name, net in NETS.items():
+    gin.external_configurable(net, net_name)
+
 for module_name, module in MODULES.items():
     gin.external_configurable(module, module_name)
 
 for data_name, data in DATASETS.items():
     gin.external_configurable(data, data_name)
 
-for net_name, net in NETS.items():
-    gin.external_configurable(net, net_name)
-
 
 @gin.configurable
 def train(
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
-    net: nn.Module,
-    representation: nn.Module,
     params: dict,
     wandb_params: dict,
     config_file: Path,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
-
-    net = net()
-    representation = representation()
-    module = module(net=net, representation=representation)
-    datamodule = datamodule()
 
     # get the lightning wandb logger wrapper and log the config
     gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
@@ -72,8 +65,12 @@ if __name__ == "__main__":
 
     try:
         gin.parse_config_file(args.config_file)
+
+        module = build_module()
+        datamodule = build_dev_datamodule()
+
         gin.finalize()
 
-        train(config_file=args.config_file)
+        train(module, datamodule, config_file=args.config_file)
     except Exception:
         traceback.print_exc()

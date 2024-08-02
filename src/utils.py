@@ -1,3 +1,11 @@
+import gin.torch
+import pytorch_lightning as L
+from torch import nn
+
+from modules import MODULES
+from nets import NETS
+
+
 def gin_config_to_readable_dictionary(gin_config: dict):
     """
     Parses the gin configuration to a dictionary. Useful for logging to e.g. W&B
@@ -15,3 +23,34 @@ def gin_config_to_readable_dictionary(gin_config: dict):
             data[".".join([name, k])] = v
 
     return data
+
+
+@gin.configurable
+def build_module(
+    representation: nn.Module,
+    net: nn.Module,
+    module: L.LightningModule,
+):
+
+    representation = representation()
+    net = net()
+    module = module(net=net, representation=representation)
+
+    return module
+
+
+@gin.configurable
+def build_dev_datamodule(
+    datamodule: L.LightningDataModule,
+):
+    datamodule = datamodule()
+    return datamodule
+
+
+@gin.configurable
+def build_test_datamodule(
+    datamodule: L.LightningDataModule,
+):
+    # datamodule = datamodule()
+    # return datamodule
+    raise NotImplementedError
