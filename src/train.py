@@ -15,6 +15,7 @@ from data import DATASETS
 from modules import MODULES
 from nets import NETS
 from utils import gin_config_to_readable_dictionary
+from callbacks import GinConfigSaverCallback
 
 
 # Register all modules, datasets and networs with gin
@@ -36,6 +37,7 @@ def train(
     representation: nn.Module,
     params: dict,
     wandb_params: dict,
+    config_file: Path,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
@@ -54,7 +56,8 @@ def train(
 
     # create callbacks
     cosine_annealing_callback = CosineAnnealingCallback(total_steps=params["max_steps"])
-    callbacks = [cosine_annealing_callback]
+    config_save_callback = GinConfigSaverCallback(gin_config_path=config_file)
+    callbacks = [cosine_annealing_callback, config_save_callback]
 
     # create the trainer and fit the model
     trainer = Trainer(logger=wandb_logger, callbacks=callbacks, **params)
@@ -71,6 +74,6 @@ if __name__ == "__main__":
         gin.parse_config_file(args.config_file)
         gin.finalize()
 
-        train()
+        train(config_file=args.config_file)
     except Exception:
         traceback.print_exc()
