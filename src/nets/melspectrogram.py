@@ -21,13 +21,13 @@ class MelSpectrogram(torch.nn.Module):
         hop_len: int,
         power: int,
         n_mel: int,
-        stretch_factor: float,
-        freq_mask_param: int,
-        time_mask_param: int,
         norm: str,
         mel_scale: str,
         norm_mean: float,
         norm_std: float,
+        stretch_factor: float=None,
+        freq_mask_param: int=None,
+        time_mask_param: int=None,
     ):
         super().__init__()
 
@@ -46,11 +46,15 @@ class MelSpectrogram(torch.nn.Module):
             power=power,
         )
 
-        self.spec_aug = torch.nn.Sequential(
-            TimeStretch(stretch_factor, fixed_rate=True),
-            FrequencyMasking(freq_mask_param=freq_mask_param),
-            TimeMasking(time_mask_param=time_mask_param),
-        )
+        # During evaluation we do not apply specaugment. (TODO: also during validation?)
+        if stretch_factor is None or freq_mask_param is None or time_mask_param is None:
+            self.spec_aug = None
+        else:
+            self.spec_aug = torch.nn.Sequential(
+                TimeStretch(stretch_factor, fixed_rate=True),
+                FrequencyMasking(freq_mask_param=freq_mask_param),
+                TimeMasking(time_mask_param=time_mask_param),
+            )
 
         self.mel_scale = MelScale(
             n_mels=n_mel,
@@ -74,7 +78,8 @@ class MelSpectrogram(torch.nn.Module):
         spec = self.spec(waveform)
 
         # apply SpecAugment
-        spec = self.spec_aug(spec)
+        if self.spec_aug is not None:
+            spec = self.spec_aug(spec)
 
         # convert to mel-scale
         mel = self.mel_scale(spec)
