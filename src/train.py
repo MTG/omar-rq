@@ -59,18 +59,18 @@ def train(
 
 if __name__ == "__main__":
     parser = ArgumentParser("Train SSL models using gin config")
-    parser.add_argument("--config-file", type=Path, default="cfg/config.gin")
+    parser.add_argument("--train-config", type=Path, default="cfg/train_config.gin", help="Path to the gin config file for training.")
 
     args = parser.parse_args()
 
     try:
-        gin.parse_config_file(args.config_file)
+        gin.parse_config_file(args.train_config)
 
         module = build_module()
         datamodule = build_dev_datamodule()
 
         gin.finalize()
 
-        train(module, datamodule, config_file=args.config_file)
+        train(module, datamodule, config_file=args.train_config)
     except Exception:
         traceback.print_exc()
