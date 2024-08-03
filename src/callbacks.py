@@ -44,5 +44,5 @@ class GinConfigSaverCallback(Callback):
         )
 
         # Save the updated gin config file
-        with open(os.path.join(self.ckpt_dir, "config.gin"), "w") as f:
+        with open(os.path.join(self.ckpt_dir, os.path.basename(self.gin_config_path)), "w") as f:
             f.write(gin_config)
