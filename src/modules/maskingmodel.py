@@ -40,7 +40,7 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
-        plot_tokens: bool = False,
+        plot_tokens: bool = False, # TODO: why is this a class constructor?
     ):
         super(MaskingModel, self).__init__()
 
@@ -55,7 +55,7 @@ class MaskingModel(L.LightningModule):
         self.embedding_layer = nn.Linear(
             self.patch_size[0] * self.patch_size[1], self.net.head.out_features
         )
-        self.linear = nn.Linear(self.net.head.out_features, codebook_size)
+        self.linear = nn.Linear(self.net.head.out_features, codebook_size) # TODO: affine or linear
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens
@@ -69,7 +69,7 @@ class MaskingModel(L.LightningModule):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            # random quantizer
+            # random quantizer # TODO: this should be out this if-else statement
             self.codebook = RandomProjectionQuantizer(
                 input_dim=self.patch_size[0] * self.patch_size[1],
                 codebook_dim=codebook_dim,
@@ -153,7 +153,7 @@ class MaskingModel(L.LightningModule):
 
     def vit_tokenization(self, spectrogram):
         B, F, T = spectrogram.shape
-        # Number of patches
+        # Number of patches # TODO: aren't we padding the spectrogram? should we use the padded spectrogram?
         num_patches_f = F // self.patch_size[0]
         num_patches_t = T // self.patch_size[1]
         # Reshape spectrogram into patches
@@ -176,8 +176,8 @@ class MaskingModel(L.LightningModule):
             )
         return patches, tokens
 
-    def random_masking_simple(self, spectrogram):
-        B, num_patches, patch_size = spectrogram.shape
+    def random_masking_simple(self, patches):
+        B, num_patches, patch_size = patches.shape
         num_masked = int(self.mask_prob * num_patches)
         # we have a windows_random
         # Generate random mask indices
@@ -185,15 +185,17 @@ class MaskingModel(L.LightningModule):
         # Create a mask array with the same shape as tokens, initialized to False
         mask = torch.zeros(B, num_patches, dtype=torch.bool)
         mask[torch.arange(B).unsqueeze(1), mask_indices] = True
-        masked_spec = spectrogram.clone()
+        masked_spec = patches.clone()
         masking_noise = torch.randn_like(masked_spec) * 0.1
         masked_spec[mask] = masking_noise[mask]
-        return masked_spec, mask.to(spectrogram.device)
+        return masked_spec, mask.to(patches.device)
 
     def random_masking(self, patches):
         B, num_patches, patch_size = patches.shape
+        # assert patch_size == self.patch_size[0] * self.patch_size[1] # TODO: something like this should be here
         mx = patches.clone()
 
+        # TODO: i would set this during __init__ and not here
         len_masking_spec_frames = math.ceil(
             self.mask_seconds * self.sr / self.hop_length
         )
@@ -216,7 +218,7 @@ class MaskingModel(L.LightningModule):
         # Mask with random values
         masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(
             patches.device
-        )  # 0 mean 0.1 std
+        )  # 0 mean 0.1 std # TODO: 0.1? why?
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
         return mx, mask.to(patches.device)
@@ -225,6 +227,7 @@ class MaskingModel(L.LightningModule):
         # zeros boolean with the shape of logit_out
         masked_logits = logits[mask]
         masked_tokens = target_tokens[mask]
+        # The loss is calculated only for the masked tokens
         losses = self.loss(masked_logits, masked_tokens)
         accuracies = (
             torch.sum(masked_logits.argmax(-1) == masked_tokens) / masked_tokens.numel()
