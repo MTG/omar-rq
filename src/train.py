@@ -36,6 +36,7 @@ def train(
     params: dict,
     wandb_params: dict,
     config_file: Path,
+    ckpt_path: str = None,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
@@ -54,7 +55,8 @@ def train(
 
     # create the trainer and fit the model
     trainer = Trainer(logger=wandb_logger, callbacks=callbacks, **params)
-    trainer.fit(model=module, datamodule=datamodule)
+    # If a checkpoint is provided, load it and continue training
+    trainer.fit(model=module, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
 if __name__ == "__main__":
@@ -71,11 +73,11 @@ if __name__ == "__main__":
     try:
         gin.parse_config_file(args.train_config)
 
-        module = build_module()
+        module, ckpt_path = build_module()
         datamodule = build_dev_datamodule()
 
         gin.finalize()
 
-        train(module, datamodule, config_file=args.train_config)
+        train(module, datamodule, config_file=args.train_config, ckpt_path=ckpt_path)
     except Exception:
         traceback.print_exc()
