@@ -46,7 +46,7 @@ class GinConfigSaverCallback(Callback):
             .replace(" ", "") # just in case
             .replace("'", "") # required
         )
-        # Read the model config file as text
+        # Read the model config file as text and store it in the class
         with open(model_config_path, "r") as f:
             self.model_config = f.read()
         # Create the new model config's path
@@ -61,7 +61,15 @@ class GinConfigSaverCallback(Callback):
             self.model_config = "\n".join(model_config_lines[3:]) + "\n"
 
         # Remove the model config path from the train config since it is relative
-        self.train_config = "\n".join(train_config_lines[3:]) + "\n"
+        train_config_lines = train_config_lines[3:]
+
+        # If nets.transformer.Transformer.num_patches in train_config, comment it
+        for i, line in enumerate(train_config_lines):
+            if "nets.transformer.Transformer.num_patches" in line:
+                train_config_lines[i] = "# " + line
+
+        # Create the config as a string and store it in the class
+        self.train_config = "\n".join(train_config_lines) + "\n"
         # The training gin config will be saved here at the end of each epoch
         self.new_train_config_path = os.path.abspath(
             os.path.join(self.ckpt_dir, os.path.basename(self.train_config_path))
