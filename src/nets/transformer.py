@@ -30,15 +30,12 @@ class PatchEmbed(nn.Module):
 
 
 class MHAPyTorchScaledDotProduct(nn.Module):
-    def __init__(
-        self, d_in, d_out, num_heads, context_length, dropout=0.0, qkv_bias=False
-    ):
+    def __init__(self, d_in, d_out, num_heads, dropout=0.0, qkv_bias=False):
         super().__init__()
 
         assert d_out % num_heads == 0, "embed_dim is indivisible by num_heads"
 
         self.num_heads = num_heads
-        self.context_length = context_length
         self.head_dim = d_out // num_heads
         self.d_out = d_out
 
@@ -62,9 +59,16 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         queries, keys, values = qkv
 
         use_dropout = 0.0 if not self.training else self.dropout
-        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
+        with torch.backends.cuda.sdp_kernel(
+            enable_flash=True, enable_math=False, enable_mem_efficient=False
+        ):
             context_vec = nn.functional.scaled_dot_product_attention(
-                queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
+                queries,
+                keys,
+                values,
+                attn_mask=None,
+                dropout_p=use_dropout,
+                is_causal=True,
             )
 
         # Combine heads, where self.d_out = self.num_heads * self.head_dim
@@ -82,9 +86,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention"""
 
-    def __init__(
-        self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850
-    ):
+    def __init__(self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1):
         super().__init__()
         self.norm1 = nn.LayerNorm(embed_dim)
         self.attn = MHAPyTorchScaledDotProduct(
@@ -92,7 +94,6 @@ class TransformerEncoder(nn.Module):
             embed_dim,
             num_heads,
             dropout=dropout,
-            context_length=context_length,
         )
         self.norm2 = nn.LayerNorm(embed_dim)
 
@@ -128,7 +129,6 @@ class Transformer(Net):
     def __init__(
         self,
         patch_size,
-        context_length,
         in_chans,
         embed_dim,
         head_dims,
@@ -137,13 +137,12 @@ class Transformer(Net):
         mlp_ratio=4.0,
         dropout=0.1,
         do_classification=False,
-        do_vit_tokenization=False
+        do_vit_tokenization=False,
     ):
         super().__init__()
         self.in_chans = in_chans
         self.patch_size = patch_size
         self.embed_dim = embed_dim
-        self.context_length = context_length
         self.do_classification = do_classification
         self.do_vit_tokenization = do_vit_tokenization
 
@@ -162,14 +161,12 @@ class Transformer(Net):
                     num_heads,
                     mlp_ratio,
                     dropout,
-                    context_length=context_length,
                 )
                 for _ in range(depth)
             ]
         )
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
-
 
     def forward(self, x):
         if self.do_vit_tokenization:
@@ -178,7 +175,7 @@ class Transformer(Net):
 
         if self.do_classification:
             cls_token = self.cls_token.expand(B, -1, -1)
-            x = torch.cat((cls_token, x), dim=1) # Add class token
+            x = torch.cat((cls_token, x), dim=1)  # Add class token
 
         # Ensure positional embeddings cover the entire sequence length
         if x.size(1) > self.pos_embed.size(1):
