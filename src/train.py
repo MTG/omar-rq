@@ -49,7 +49,7 @@ def train(
 
     # create callbacks
     cosine_annealing_callback = CosineAnnealingCallback(total_steps=params["max_steps"])
-    config_save_callback = GinConfigSaverCallback(gin_config_path=config_file)
+    config_save_callback = GinConfigSaverCallback(config_file)
     callbacks = [cosine_annealing_callback, config_save_callback]
 
     # create the trainer and fit the model
@@ -59,7 +59,12 @@ def train(
 
 if __name__ == "__main__":
     parser = ArgumentParser("Train SSL models using gin config")
-    parser.add_argument("--train-config", type=Path, default="cfg/train_config.gin", help="Path to the gin config file for training.")
+    parser.add_argument(
+        "--train-config",
+        type=Path,
+        default="cfg/train_config.gin",
+        help="Path to the gin config file for training.",
+    )
 
     args = parser.parse_args()
 
