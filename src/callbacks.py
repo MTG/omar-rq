@@ -2,6 +2,8 @@ import os
 
 from pytorch_lightning.callbacks import Callback
 
+from nets.transformer import Transformer
+
 
 class GinConfigSaverCallback(Callback):
     """Callback to save the gin config file in the checkpoints directory."""
@@ -43,6 +45,12 @@ class GinConfigSaverCallback(Callback):
             + self.gin_config
         )
 
+        # If the model is a transformer, add the number of patches to the gin config
+        if isinstance(pl_module.net, Transformer):
+            gin_config += f"\nnets.transformer.Transformer.num_patches = {pl_module.net.num_patches}\n"
+
         # Save the updated gin config file
-        with open(os.path.join(self.ckpt_dir, os.path.basename(self.gin_config_path)), "w") as f:
+        with open(
+            os.path.join(self.ckpt_dir, os.path.basename(self.gin_config_path)), "w"
+        ) as f:
             f.write(gin_config)
