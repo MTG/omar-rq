@@ -36,14 +36,16 @@ def build_module(
 
     if ckpt_path is not None:
         # Load the checkpoint if provided
+        print(f"Loading checkpoint from {ckpt_path}")
         module = module.load_from_checkpoint(
             ckpt_path, net=net, representation=representation, strict=False
         )
     else:
         # Otherwise, create from random initialization
+        print("Creating new model")
         module = module(net=net, representation=representation)
 
-    return module
+    return module, ckpt_path
 
 
 @gin.configurable
