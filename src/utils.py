@@ -2,9 +2,6 @@ import gin.torch
 import pytorch_lightning as L
 from torch import nn
 
-from modules import MODULES
-from nets import NETS
-
 
 def gin_config_to_readable_dictionary(gin_config: dict):
     """
@@ -40,7 +37,7 @@ def build_module(
     if ckpt_path is not None:
         # Load the checkpoint if provided
         module = module.load_from_checkpoint(
-            ckpt_path, net=net, representation=representation
+            ckpt_path, net=net, representation=representation, strict=False
         )
     else:
         # Otherwise, create from random initialization
