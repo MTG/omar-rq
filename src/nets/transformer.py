@@ -134,6 +134,7 @@ class Transformer(Net):
         head_dims,
         depth,
         num_heads,
+        num_patches=1,
         mlp_ratio=4.0,
         dropout=0.1,
         do_classification=False,
@@ -143,6 +144,7 @@ class Transformer(Net):
         self.in_chans = in_chans
         self.patch_size = patch_size
         self.embed_dim = embed_dim
+        self.num_patches = num_patches
         self.do_classification = do_classification
         self.do_vit_tokenization = do_vit_tokenization
 
@@ -151,7 +153,10 @@ class Transformer(Net):
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         # Initial positional embeddings (dynamically resized later)
-        self.pos_embed = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        # During initialization use a dynamic patch size. This value will be
+        # Updated and stored in self.num_patches during the forward pass
+        # It will be written to the gin config file
+        self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches, embed_dim))
         self.dropout = nn.Dropout(dropout)
 
         self.transformer = nn.ModuleList(
@@ -165,6 +170,7 @@ class Transformer(Net):
                 for _ in range(depth)
             ]
         )
+        # TODO: these two should be only case when do_classification is True
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
 
@@ -184,6 +190,7 @@ class Transformer(Net):
                 1, x.size(1), self.embed_dim, device=self.pos_embed.device
             )
             new_pos_embed[:, : self.pos_embed.size(1)] = self.pos_embed
+            self.num_patches = x.size(1)  # Update the number of patches
             self.pos_embed = nn.Parameter(new_pos_embed)
 
         x = x + self.pos_embed
