@@ -35,8 +35,8 @@ def train(
     datamodule: L.LightningDataModule,
     params: dict,
     wandb_params: dict,
-    config_file: Path,
-    ckpt_path: str = None,
+    config_path: Path,
+    ckpt_path: Path = None,
 ) -> None:
     """Train a model using the given module, datamodule and netitecture"""
 
@@ -50,7 +50,7 @@ def train(
 
     # create callbacks
     cosine_annealing_callback = CosineAnnealingCallback(total_steps=params["max_steps"])
-    config_save_callback = GinConfigSaverCallback(config_file)
+    config_save_callback = GinConfigSaverCallback(config_path)
     callbacks = [cosine_annealing_callback, config_save_callback]
 
     # create the trainer and fit the model
@@ -78,6 +78,6 @@ if __name__ == "__main__":
 
         gin.finalize()
 
-        train(module, datamodule, config_file=args.train_config, ckpt_path=ckpt_path)
+        train(module, datamodule, config_path=args.train_config, ckpt_path=ckpt_path)
     except Exception:
         traceback.print_exc()

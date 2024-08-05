@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import gin.torch
 import pytorch_lightning as L
 from torch import nn
@@ -27,7 +29,7 @@ def build_module(
     representation: nn.Module,
     net: nn.Module,
     module: L.LightningModule,
-    ckpt_path: str = None,
+    ckpt_path: Path = None,
 ):
 
     # Evaluate the provided references, i.e. convert the strings to the actual objects

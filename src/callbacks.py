@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from pytorch_lightning.callbacks import Callback
 
@@ -10,7 +11,7 @@ class GinConfigSaverCallback(Callback):
     It is not the most elegant way of using gin, but I could not find a better
     solution."""
 
-    def __init__(self, train_config_path):
+    def __init__(self, train_config_path: Path):
         """Initialize the callback with the path to the training gin config file.
         This config file must have the model_config.gin path in the 2nd line of
         the file.
@@ -25,13 +26,14 @@ class GinConfigSaverCallback(Callback):
         """Read the gin config file when the training starts once."""
 
         # This is where wandb logger saves the checkpoint
-        self.ckpt_dir = os.path.join(
+        # convert it to a full path
+        self.ckpt_dir = Path(os.path.join(
             trainer.logger.save_dir,
             trainer.logger.name,
             trainer.logger.version,
             "checkpoints",
-        )
-        os.makedirs(self.ckpt_dir, exist_ok=True)
+        )).resolve()
+        self.ckpt_dir.mkdir(parents=True, exist_ok=True)
 
         # Read the training gin config file once when the training starts
         with open(self.train_config_path, "r") as f:
@@ -40,7 +42,7 @@ class GinConfigSaverCallback(Callback):
         # Get the model config path from the train config
         #  NOTE: IT MUST BE STORED IN THE 2ND LINE OF THE TRAIN CONFIG
         train_config_lines = train_config.split("\n")
-        model_config_path = (
+        model_config_path = Path(
             train_config_lines[1]
             .replace("include ", "")
             .replace(" ", "") # just in case
@@ -50,9 +52,7 @@ class GinConfigSaverCallback(Callback):
         with open(model_config_path, "r") as f:
             self.model_config = f.read()
         # Create the new model config's path
-        self.new_model_config_path = os.path.abspath(
-            os.path.join(self.ckpt_dir, os.path.basename(model_config_path))
-        )
+        self.new_model_config_path = self.ckpt_dir / model_config_path.name
 
         # If the model config contains a ckpt path remove it
         # otherwise there will be 2 build_module.ckpt_path lines
@@ -71,9 +71,7 @@ class GinConfigSaverCallback(Callback):
         # Create the config as a string and store it in the class
         self.train_config = "\n".join(train_config_lines) + "\n"
         # The training gin config will be saved here at the end of each epoch
-        self.new_train_config_path = os.path.abspath(
-            os.path.join(self.ckpt_dir, os.path.basename(self.train_config_path))
-        )
+        self.new_train_config_path = self.ckpt_dir / self.train_config_path.name
 
     def on_train_epoch_end(self, trainer, pl_module):
         """Save the gin config file in the checkpoints directory, appending the current 
@@ -92,7 +90,7 @@ class GinConfigSaverCallback(Callback):
 
         # Create the full path to the checkpoint
         ckpt_name = f"epoch={trainer.current_epoch}-step={trainer.global_step}.ckpt"
-        ckpt_path = os.path.abspath(os.path.join(self.ckpt_dir, ckpt_name))
+        ckpt_path = self.ckpt_dir / ckpt_name
 
         # Update the model config with the current checkpoint path
         model_config = (
