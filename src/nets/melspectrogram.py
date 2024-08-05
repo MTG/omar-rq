@@ -25,9 +25,9 @@ class MelSpectrogram(torch.nn.Module):
         mel_scale: str,
         norm_mean: float,
         norm_std: float,
-        stretch_factor: float=None,
-        freq_mask_param: int=None,
-        time_mask_param: int=None,
+        stretch_factor: float = None,
+        freq_mask_param: int = None,
+        time_mask_param: int = None,
     ):
         super().__init__()
 

@@ -35,19 +35,26 @@ def evaluate(
     weights from the checkpoint and evaluates the model on the test set."""
 
     # disable randomness, dropout, etc...
-    model.eval()
+    module.eval()
 
 
 if __name__ == "__main__":
     parser = ArgumentParser("Evaluate SSL models using gin config")
     parser.add_argument(
-        "ckpt_dir", type=Path, help="Path to the directory containing the model checkpoint and its training gin config."
+        "ckpt_dir",
+        type=Path,
+        help="Path to the directory containing the model checkpoint and its training gin config.",
     )
     parser.add_argument(
-        "--test-config", type=Path, default="cfg/test_config.gin", help="Path to the gin config file for testing."
+        "--test-config",
+        type=Path,
+        default="cfg/test_config.gin",
+        help="Path to the gin config file for testing.",
     )
     parser.add_argument(
-        "--output-dir", type=Path, help="Path to the directory where the evaluation results will be stored."
+        "--output-dir",
+        type=Path,
+        help="Path to the directory where the evaluation results will be stored.",
     )
 
     args = parser.parse_args()
@@ -55,22 +62,22 @@ if __name__ == "__main__":
     try:
 
         # Load the checkpoint and the gin config
-        train_config_path = list(args.ckpt_dir.glob('**/*.gin'))[0]
-        print(f'Train config path: {train_config_path}')
+        train_config_path = list(args.ckpt_dir.glob("**/*.gin"))[0]
+        print(f"Train config path: {train_config_path}")
 
         # Read the training config to get the model config path and the
         # model checkpoint path
         # We store these information in the 2nd and 5th lines in the train gin config
-        with open(train_config_path, 'r') as f:
+        with open(train_config_path, "r") as f:
             train_config_str = f.read()
-        train_config_str = train_config_str.split('\n')
-        ckpt_path = Path(train_config_str[1].split(' = ')[1].replace("'", ""))
-        model_config_path = train_config_str[4].replace('include ', '')
-        print(f'Model checkpoint path: {ckpt_path}')
-        print(f'Model config path: {model_config_path}')
+        train_config_str = train_config_str.split("\n")
+        ckpt_path = Path(train_config_str[1].split(" = ")[1].replace("'", ""))
+        model_config_path = train_config_str[4].replace("include ", "")
+        print(f"Model checkpoint path: {ckpt_path}")
+        print(f"Model config path: {model_config_path}")
 
         # Read the test config as a string
-        with open(args.test_config, 'r') as f:
+        with open(args.test_config, "r") as f:
             test_config_str = f.read()
         # Append the model config to the test config
         test_config_str += f"\n\n# Model config\ninclude {model_config_path}"

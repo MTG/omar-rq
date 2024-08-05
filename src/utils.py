@@ -30,7 +30,7 @@ def build_module(
     representation: nn.Module,
     net: nn.Module,
     module: L.LightningModule,
-    ckpt_path: str=None,
+    ckpt_path: str = None,
 ):
 
     # Evaluate the provided references, i.e. convert the strings to the actual objects
@@ -39,7 +39,8 @@ def build_module(
 
     if ckpt_path is not None:
         # Load the checkpoint if provided
-        module = module.load_from_checkpoint(ckpt_path, net=net, representation=representation
+        module = module.load_from_checkpoint(
+            ckpt_path, net=net, representation=representation
         )
     else:
         # Otherwise, create from random initialization
