@@ -1,16 +1,14 @@
+import os
 from argparse import ArgumentParser
-from datetime import datetime
 from pathlib import Path
 import traceback
 
 import gin.torch
 import pytorch_lightning as L
-from pytorch_lightning import Trainer
 
-from torch import nn
 
 from data import DATASETS
-from modules import MODULES, MaskingModel
+from modules import MODULES
 from nets import NETS
 from utils import gin_config_to_readable_dictionary, build_module
 
@@ -41,9 +39,9 @@ def evaluate(
 if __name__ == "__main__":
     parser = ArgumentParser("Evaluate SSL models using gin config")
     parser.add_argument(
-        "ckpt_dir",
+        "config_path",
         type=Path,
-        help="Path to the directory containing the model checkpoint and its training gin config.",
+        help="Path to the model config of a trained model.",
     )
     parser.add_argument(
         "--test-config",
@@ -61,32 +59,19 @@ if __name__ == "__main__":
 
     try:
 
-        # Load the checkpoint and the gin config
-        train_config_path = list(args.ckpt_dir.glob("**/*.gin"))[0]
-        print(f"Train config path: {train_config_path}")
-
-        # Read the training config to get the model config path and the
-        # model checkpoint path
-        # We store these information in the 2nd and 5th lines in the train gin config
-        with open(train_config_path, "r") as f:
-            train_config_str = f.read()
-        train_config_str = train_config_str.split("\n")
-        ckpt_path = Path(train_config_str[1].split(" = ")[1].replace("'", ""))
-        model_config_path = train_config_str[4].replace("include ", "")
-        print(f"Model checkpoint path: {ckpt_path}")
-        print(f"Model config path: {model_config_path}")
-
         # Read the test config as a string
         with open(args.test_config, "r") as f:
-            test_config_str = f.read()
-        # Append the model config to the test config
-        test_config_str += f"\n\n# Model config\ninclude {model_config_path}"
+            test_config = f.read()
+        # Append the model config path to the test config
+        test_config += (
+            f"\n\n# Model config\ninclude '{os.path.abspath(args.config_path)}'\n"
+        )
 
         # Convert the config string to a gin config
-        gin.parse_config(test_config_str)
+        gin.parse_config(test_config)
 
         # Build the module and datamodule
-        module = build_module(ckpt_path=ckpt_path)
+        module, _ = build_module()
         # datamodule = build_test_datamodule()
 
         gin.finalize()
