@@ -37,32 +37,39 @@ class GinConfigSaverCallback(Callback):
         with open(self.train_config_path, "r") as f:
             train_config = f.read()
 
-        # Get the model config path from the gin config
+        # Get the model config path from the train config
+        #  NOTE: IT MUST BE STORED IN THE 2ND LINE OF THE TRAIN CONFIG
         train_config_lines = train_config.split("\n")
         model_config_path = (
             train_config_lines[1]
             .replace("include ", "")
-            .replace(" ", "")
-            .replace("'", "")
+            .replace(" ", "") # just in case
+            .replace("'", "") # required
         )
+        # Read the model config file as text
         with open(model_config_path, "r") as f:
             self.model_config = f.read()
-        # Create the new model config
+        # Create the new model config's path
         self.new_model_config_path = os.path.abspath(
             os.path.join(self.ckpt_dir, os.path.basename(model_config_path))
         )
 
-        # Remove the model config path from the train config
+        # If the model config contains a ckpt path remove it
+        # otherwise there will be 2 build_module.ckpt_path lines
+        model_config_lines = self.model_config.split("\n")
+        if "build_module.ckpt_path" in  model_config_lines[1]:
+            self.model_config = "\n".join(model_config_lines[3:]) + "\n"
+
+        # Remove the model config path from the train config since it is relative
         self.train_config = "\n".join(train_config_lines[3:]) + "\n"
         # The training gin config will be saved here at the end of each epoch
         self.new_train_config_path = os.path.abspath(
             os.path.join(self.ckpt_dir, os.path.basename(self.train_config_path))
         )
 
-    # TODO: resume wandb
     def on_train_epoch_end(self, trainer, pl_module):
-        """Save the gin config file in the checkpoints directory,
-        appending the current checkpoint path."""
+        """Save the gin config file in the checkpoints directory, appending the current 
+        checkpoint path."""
 
         # Update the train config with the current checkpoint path and the abspath
         # to the model config
