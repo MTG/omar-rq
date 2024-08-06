@@ -33,6 +33,7 @@ class MaskingModel(L.LightningModule):
         self,
         net: nn.Module,
         lr: float,
+        weight_decay: float,
         representation: nn.Module,
         num_codebooks: int,
         codebook_size: int,
@@ -57,6 +58,7 @@ class MaskingModel(L.LightningModule):
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens
+        self.weight_decay = weight_decay
         self.tokens_coverage = []
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
@@ -227,5 +229,5 @@ class MaskingModel(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         return optimizer
