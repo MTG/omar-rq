@@ -1,3 +1,5 @@
+from typing import Union, List
+
 import torch
 import torch.nn as nn
 import gin.torch
@@ -79,14 +81,36 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         return context_vec
 
 
+class DeepNorm(nn.Module):
+    def __init__(self, alpha: float, normalized_shape: Union[int, List[int], torch.Size], *,
+                 eps: float = 1e-5, elementwise_affine: bool = True):
+        super().__init__()
+        self.alpha = alpha
+        self.layer_norm = nn.LayerNorm(normalized_shape, eps=eps, elementwise_affine=elementwise_affine)
+
+    def forward(self, x: torch.Tensor, gx: torch.Tensor):
+        return self.layer_norm(x + self.alpha * gx)
+
+
 class TransformerEncoder(nn.Module):
-    """Transformer Encoder Block with Multihead Attention"""
+    """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
     def __init__(
-        self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850
+            self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850, use_deepnorm=False, alpha=0.1
     ):
         super().__init__()
-        self.norm1 = nn.LayerNorm(embed_dim)
+
+        # Initialize norm layers based on the use_deepnorm flag
+        self.use_deepnorm = use_deepnorm
+        self.alpha = alpha
+
+        if use_deepnorm:
+            self.norm1 = DeepNorm(alpha, embed_dim)
+            self.norm2 = DeepNorm(alpha, embed_dim)
+        else:
+            self.norm1 = nn.LayerNorm(embed_dim)
+            self.norm2 = nn.LayerNorm(embed_dim)
+
         self.attn = MHAPyTorchScaledDotProduct(
             embed_dim,
             embed_dim,
@@ -94,7 +118,6 @@ class TransformerEncoder(nn.Module):
             dropout=dropout,
             context_length=context_length,
         )
-        self.norm2 = nn.LayerNorm(embed_dim)
 
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, int(embed_dim * mlp_ratio)),
@@ -105,15 +128,23 @@ class TransformerEncoder(nn.Module):
         )
 
     def forward(self, x):
-        # First normalization layer
-        x = self.norm1(x)
+        # Apply the first normalization
+        if self.use_deepnorm:
+            gx = x.clone()  # Assuming gx is the gradient or some context, here we replicate x for demonstration.
+            x = self.norm1(x, gx)
+        else:
+            x = self.norm1(x)
 
         # Multihead attention layer
         attn_output = self.attn(x)
         x = attn_output + x  # Skip connection
 
-        # Second normalization layer
-        x = self.norm2(x)
+        # Apply the second normalization
+        if self.use_deepnorm:
+            gx = x.clone()  # Again, using x as gx for demonstration.
+            x = self.norm2(x, gx)
+        else:
+            x = self.norm2(x)
 
         # Feed forward layer
         x = self.mlp(x) + x  # Skip connection
@@ -136,8 +167,10 @@ class Transformer(Net):
         num_heads,
         mlp_ratio=4.0,
         dropout=0.1,
+        alpha_deepnorm=0.1,
         do_classification=False,
-        do_vit_tokenization=False
+        do_vit_tokenization=False,
+        do_deepnorm=False
     ):
         super().__init__()
         self.in_chans = in_chans
@@ -146,6 +179,8 @@ class Transformer(Net):
         self.context_length = context_length
         self.do_classification = do_classification
         self.do_vit_tokenization = do_vit_tokenization
+        self.do_deepnorm = do_deepnorm
+        self.alpha_deepnorm = alpha_deepnorm
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
         if self.do_classification:
@@ -162,6 +197,8 @@ class Transformer(Net):
                     num_heads,
                     mlp_ratio,
                     dropout,
+                    use_deepnorm=self.do_deepnorm,
+                    alpha=self.alpha_deepnorm,
                     context_length=context_length,
                 )
                 for _ in range(depth)
