@@ -221,7 +221,7 @@ class MaskingModel(L.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x = batch
-        logits, loss, accuracies = self.forward(x)
+        logits, loss, accuracies, target_tokens = self.forward(x)
         self.log('val_loss', loss, prog_bar=True)
         self.log(f'val_acc', accuracies)
         return loss
