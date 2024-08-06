@@ -131,25 +131,21 @@ class TransformerEncoder(nn.Module):
     def forward(self, x):
         # Apply the first normalization
         if self.use_deepnorm:
-            gx = x.clone()  # Assuming gx is the gradient or some context, here we replicate x for demonstration.
+            gx = self.attn(x)
             x = self.norm1(x, gx)
         else:
             x = self.norm1(x)
-
-        # Multihead attention layer
-        attn_output = self.attn(x)
-        x = attn_output + x  # Skip connection
-
+            # Multihead attention layer
+            attn_output = self.attn(x)
+            x = attn_output + x  # Skip connection
         # Apply the second normalization
         if self.use_deepnorm:
-            gx = x.clone()  # Again, using x as gx for demonstration.
+            gx = self.mlp(x)
             x = self.norm2(x, gx)
         else:
             x = self.norm2(x)
-
-        # Feed forward layer
-        x = self.mlp(x) + x  # Skip connection
-
+            # Feed forward layer
+            x = self.mlp(x) + x  # Skip connection
         return x
 
 

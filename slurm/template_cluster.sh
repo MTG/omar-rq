@@ -5,7 +5,6 @@
 #SBATCH --qos=acc_resa
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-task=80
-#SBATCH --mem=64g
 #SBATCH --time=72:00:00
 #SBATCH --output=debug_%j_output.txt
 #SBATCH --mail-type=all
