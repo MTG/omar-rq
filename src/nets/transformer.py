@@ -82,6 +82,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 
 
 class DeepNorm(nn.Module):
+    # Code borrowed from https://nn.labml.ai/normalization/deep_norm/index.html
     def __init__(self, alpha: float, normalized_shape: Union[int, List[int], torch.Size], *,
                  eps: float = 1e-5, elementwise_affine: bool = True):
         super().__init__()
