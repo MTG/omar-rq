@@ -31,7 +31,7 @@ AudioDataset.num_frames = 480000 # 30s
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 140
+AudioDataModule.num_workers = 80
 
 # Discogs datamodule parameters
 DiscotubeAudioDataModule.batch_size = 256
