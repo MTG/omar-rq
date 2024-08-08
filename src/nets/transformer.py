@@ -250,7 +250,7 @@ class Transformer(Net):
         x = x + self.pos_embed
 
         # do not process skip_tokens
-        if skip_tokens:
+        if skip_tokens is not None:
             xc = x.clone()
             x = x[~skip_tokens]
 

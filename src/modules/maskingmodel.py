@@ -203,9 +203,9 @@ class MaskingModel(L.LightningModule):
         x = self.embedding_layer(x)
 
         if self.feed_masked_tokens:
-            skip_tokens = mask
-        else:
             skip_tokens = None
+        else:
+            skip_tokens = mask
 
         x = self.net(x, skip_tokens=skip_tokens)
         logits = self.linear(x)
