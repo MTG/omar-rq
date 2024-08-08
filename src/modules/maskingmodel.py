@@ -41,7 +41,8 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
-        plot_tokens: bool = False
+        feed_masked_tokens: bool,
+        plot_tokens: bool = False,
     ):
         super(MaskingModel, self).__init__()
 
@@ -61,6 +62,7 @@ class MaskingModel(L.LightningModule):
         self.weight_decay = weight_decay
         self.tokens_coverage = []
         self.first_coverage = True
+        self.feed_masked_tokens = feed_masked_tokens
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
             self.sr = representation.sr
@@ -199,7 +201,13 @@ class MaskingModel(L.LightningModule):
         # masking
         x, mask = self.random_masking(x)
         x = self.embedding_layer(x)
-        x = self.net(x)
+
+        if self.feed_masked_tokens:
+            skip_tokens = mask
+        else:
+            skip_tokens = None
+
+        x = self.net(x, skip_tokens=skip_tokens)
         logits = self.linear(x)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
