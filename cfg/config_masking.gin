@@ -1,7 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "masking_transformer_small_fixed_dn",
+    "name": "masking_transformer_small_fixed_dn_0",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -67,7 +67,7 @@ modules.maskingmodel.MaskingModel.codebook_size = 8192
 modules.maskingmodel.MaskingModel.codebook_dim = 16
 modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6
-modules.maskingmodel.MaskingModel.seed = 42
+modules.maskingmodel.MaskingModel.seed = 0
 modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
