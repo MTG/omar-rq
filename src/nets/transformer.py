@@ -30,7 +30,6 @@ class PatchEmbed(nn.Module):
         x = x.transpose(1, 2)  # (B, N, E)
         return x
 
-
 class MHAPyTorchScaledDotProduct(nn.Module):
     def __init__(
         self, d_in, d_out, num_heads, context_length, dropout=0.0, qkv_bias=False
@@ -90,14 +89,22 @@ class DeepNorm(nn.Module):
         self.layer_norm = nn.LayerNorm(normalized_shape, eps=eps, elementwise_affine=elementwise_affine)
 
     def forward(self, x: torch.Tensor, gx: torch.Tensor):
-        return self.layer_norm(x + self.alpha * gx)
+        return self.layer_norm(self.alpha * x + gx)
 
 
 class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
     def __init__(
-            self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850, use_deepnorm=False, alpha=0.1
+            self,
+            embed_dim,
+            num_heads,
+            mlp_ratio=4.0,
+            dropout=0.1,
+            context_length=1850,
+            use_deepnorm=False,
+            alpha=0.1,
+            beta=0.1
     ):
         super().__init__()
 
@@ -127,6 +134,18 @@ class TransformerEncoder(nn.Module):
             nn.Linear(int(embed_dim * mlp_ratio), embed_dim),
             nn.Dropout(dropout),
         )
+
+        with torch.no_grad():
+            # Initialize linear projections of MLP
+            self.mlp[0].weight *= beta
+            self.mlp[3].weight *= beta
+            # Initialize only values projection in self.attn
+            # Separate weights for q, k, v
+            qkv_weight = self.attn.qkv.weight.view(3, self.attn.d_out, self.attn.d_in)
+            # Apply beta to value weights (third set of weights)
+            qkv_weight[2] *= beta
+            # Initialize output projection of attention
+            self.attn.proj.weight *= beta
 
     def forward(self, x):
         # Apply the first normalization
@@ -165,6 +184,7 @@ class Transformer(Net):
         mlp_ratio=4.0,
         dropout=0.1,
         alpha_deepnorm=0.1,
+        beta_deepnorm=0.1,
         do_classification=False,
         do_vit_tokenization=False,
         do_deepnorm=False
@@ -178,6 +198,7 @@ class Transformer(Net):
         self.do_vit_tokenization = do_vit_tokenization
         self.do_deepnorm = do_deepnorm
         self.alpha_deepnorm = alpha_deepnorm
+        self.beta_deepnorm = beta_deepnorm
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
         if self.do_classification:
@@ -195,6 +216,7 @@ class Transformer(Net):
                     mlp_ratio,
                     dropout,
                     use_deepnorm=self.do_deepnorm,
+                    beta=self.beta_deepnorm,
                     alpha=self.alpha_deepnorm,
                     context_length=context_length,
                 )
