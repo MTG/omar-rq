@@ -227,7 +227,7 @@ class Transformer(Net):
         self.head = nn.Linear(embed_dim, head_dims)
 
 
-    def forward(self, x):
+    def forward(self, x, skip_tokens=None):
         if self.do_vit_tokenization:
             x = self.patch_embed(x)  # Embed the patches
         B, N, _ = x.shape
@@ -246,6 +246,12 @@ class Transformer(Net):
             self.pos_embed = nn.Parameter(new_pos_embed)
 
         x = x + self.pos_embed
+
+        # do not process skip_tokens
+        if skip_tokens:
+            xc = x.clone()
+            x = x[~skip_tokens]
+
         x = self.dropout(x)
 
         for layer in self.transformer:
@@ -255,6 +261,13 @@ class Transformer(Net):
             x = self.norm(x)
             x = x[:, 0]  # Extract the class token
             x = self.head(x)
+
+        else:
+            # reinsert the processed tokens
+            if skip_tokens:
+                xc[~skip_tokens] = x[~skip_tokens]
+                x = xc
+
         return x
 
     # class VisionTransformerTiny(VisionTransformer):
