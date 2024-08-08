@@ -187,7 +187,7 @@ class Transformer(Net):
         beta_deepnorm=0.1,
         do_classification=False,
         do_vit_tokenization=False,
-        do_deepnorm=False
+        do_deepnorm=False,
     ):
         super().__init__()
         self.in_chans = in_chans
@@ -201,6 +201,7 @@ class Transformer(Net):
         self.beta_deepnorm = beta_deepnorm
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
+
         if self.do_classification:
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
             self.head = nn.Linear(embed_dim, head_dims)
@@ -225,15 +226,17 @@ class Transformer(Net):
             ]
         )
 
+        self.norm = nn.LayerNorm(embed_dim)
 
     def forward(self, x, skip_tokens=None):
         if self.do_vit_tokenization:
             x = self.patch_embed(x)  # Embed the patches
+
         B, N, _ = x.shape
 
         if self.do_classification:
             cls_token = self.cls_token.expand(B, -1, -1)
-            x = torch.cat((cls_token, x), dim=1) # Add class token
+            x = torch.cat((cls_token, x), dim=1)  # Add class token
 
         # Ensure positional embeddings cover the entire sequence length
         if x.size(1) > self.pos_embed.size(1):
