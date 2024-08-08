@@ -42,6 +42,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         self.context_length = context_length
         self.head_dim = d_out // num_heads
         self.d_out = d_out
+        self.d_in = d_in
 
         self.qkv = nn.Linear(d_in, 3 * d_out, bias=qkv_bias)
         self.proj = nn.Linear(d_in, d_out)
