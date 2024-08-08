@@ -32,49 +32,49 @@ class PatchEmbed(nn.Module):
 
 
 class MHAPyTorchScaledDotProduct(nn.Module):
-    def __init__(
-        self, d_in, d_out, num_heads, context_length, dropout=0.0, qkv_bias=False
-    ):
+    def __init__(self, d_in, d_out, num_heads, context_length, dropout=0.0, qkv_bias=False):
         super().__init__()
 
-        assert d_out % num_heads == 0, "embed_dim is indivisible by num_heads"
+        assert d_out % num_heads == 0, "embed_dim must be divisible by num_heads"
 
         self.num_heads = num_heads
         self.context_length = context_length
         self.head_dim = d_out // num_heads
         self.d_out = d_out
 
-        self.qkv = nn.Linear(d_in, 3 * d_out, bias=qkv_bias)
-        self.proj = nn.Linear(d_in, d_out)
-        self.dropout = dropout
+        self.query_proj = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.key_proj = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.value_proj = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.proj = nn.Linear(d_out, d_out)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         batch_size, num_tokens, embed_dim = x.shape
 
-        # (b, num_tokens, embed_dim) --> (b, num_tokens, 3 * embed_dim)
-        qkv = self.qkv(x)
+        # Project inputs to query, key, and value
+        queries = self.query_proj(x)
+        keys = self.key_proj(x)
+        values = self.value_proj(x)
 
-        # (b, num_tokens, 3 * embed_dim) --> (b, num_tokens, 3, num_heads, head_dim)
-        qkv = qkv.view(batch_size, num_tokens, 3, self.num_heads, self.head_dim)
+        # Reshape to (batch_size, num_tokens, num_heads, head_dim)
+        queries = queries.view(batch_size, num_tokens, self.num_heads, self.head_dim)
+        keys = keys.view(batch_size, num_tokens, self.num_heads, self.head_dim)
+        values = values.view(batch_size, num_tokens, self.num_heads, self.head_dim)
 
-        # (b, num_tokens, 3, num_heads, head_dim) --> (3, b, num_heads, num_tokens, head_dim)
-        qkv = qkv.permute(2, 0, 3, 1, 4)
+        # Transpose to (batch_size, num_heads, num_tokens, head_dim)
+        queries = queries.transpose(1, 2)
+        keys = keys.transpose(1, 2)
+        values = values.transpose(1, 2)
 
-        # (3, b, num_heads, num_tokens, head_dim) -> 3 times (b, num_heads, num_tokens, head_dim)
-        queries, keys, values = qkv
+        # Scaled Dot-Product Attention
+        scores = torch.matmul(queries, keys.transpose(-2, -1)) / (self.head_dim ** 0.5)
+        attn = torch.softmax(scores, dim=-1)
+        attn = self.dropout(attn)
 
-        use_dropout = 0.0 if not self.training else self.dropout
-        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
-            context_vec = nn.functional.scaled_dot_product_attention(
-                queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
-            )
+        context_vec = torch.matmul(attn, values)
 
-        # Combine heads, where self.d_out = self.num_heads * self.head_dim
-        context_vec = (
-            context_vec.transpose(1, 2)
-            .contiguous()
-            .view(batch_size, num_tokens, self.d_out)
-        )
+        # Combine heads
+        context_vec = context_vec.transpose(1, 2).contiguous().view(batch_size, num_tokens, self.d_out)
 
         context_vec = self.proj(context_vec)
 
@@ -97,7 +97,8 @@ class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
     def __init__(
-            self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850, use_deepnorm=False, alpha=0.1
+            self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850, use_deepnorm=False, alpha=0.1,
+            beta=0.1
     ):
         super().__init__()
 
@@ -120,6 +121,7 @@ class TransformerEncoder(nn.Module):
             context_length=context_length,
         )
 
+
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, int(embed_dim * mlp_ratio)),
             nn.GELU(),
@@ -127,6 +129,15 @@ class TransformerEncoder(nn.Module):
             nn.Linear(int(embed_dim * mlp_ratio), embed_dim),
             nn.Dropout(dropout),
         )
+
+        with torch.no_grad():
+            self.mlp[0].weight *= beta
+            self.mlp[3].weight *= beta
+
+            self.attn.value_proj.weight *= beta
+            self.attn.proj.weight *= beta
+
+
 
     def forward(self, x):
         # Apply the first normalization
@@ -165,6 +176,7 @@ class Transformer(Net):
         mlp_ratio=4.0,
         dropout=0.1,
         alpha_deepnorm=0.1,
+        beta_deepnorm=0.1,
         do_classification=False,
         do_vit_tokenization=False,
         do_deepnorm=False
@@ -195,6 +207,7 @@ class Transformer(Net):
                     mlp_ratio,
                     dropout,
                     use_deepnorm=self.do_deepnorm,
+                    beta=beta_deepnorm,
                     alpha=self.alpha_deepnorm,
                     context_length=context_length,
                 )
