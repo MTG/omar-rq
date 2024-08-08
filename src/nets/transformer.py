@@ -268,8 +268,8 @@ class Transformer(Net):
 
         else:
             # reinsert the processed tokens
-            if skip_tokens:
-                xc[~skip_tokens] = x[~skip_tokens]
+            if skip_tokens is not None:
+                xc[~skip_tokens] = x.view(-1, D)
                 x = xc
 
         return x
