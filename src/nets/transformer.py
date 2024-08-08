@@ -233,7 +233,7 @@ class Transformer(Net):
         if self.do_vit_tokenization:
             x = self.patch_embed(x)  # Embed the patches
 
-        B, N, _ = x.shape
+        B, _, D = x.shape
 
         if self.do_classification:
             cls_token = self.cls_token.expand(B, -1, -1)
@@ -254,6 +254,7 @@ class Transformer(Net):
         if skip_tokens is not None:
             xc = x.clone()
             x = x[~skip_tokens]
+            x = x.reshape(B, -1, D)
 
         x = self.dropout(x)
 
