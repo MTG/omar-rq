@@ -89,7 +89,7 @@ class DeepNorm(nn.Module):
         self.layer_norm = nn.LayerNorm(normalized_shape, eps=eps, elementwise_affine=elementwise_affine)
 
     def forward(self, x: torch.Tensor, gx: torch.Tensor):
-        return self.layer_norm(x + self.alpha * gx)
+        return self.layer_norm(self.alpha * x + gx)
 
 
 class TransformerEncoder(nn.Module):
@@ -126,7 +126,6 @@ class TransformerEncoder(nn.Module):
             dropout=dropout,
             context_length=context_length,
         )
-
 
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, int(embed_dim * mlp_ratio)),
