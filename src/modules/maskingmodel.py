@@ -33,6 +33,7 @@ class MaskingModel(L.LightningModule):
         self,
         net: nn.Module,
         lr: float,
+        weight_decay: float,
         representation: nn.Module,
         num_codebooks: int,
         codebook_size: int,
@@ -57,7 +58,9 @@ class MaskingModel(L.LightningModule):
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens
+        self.weight_decay = weight_decay
         self.tokens_coverage = []
+        self.first_coverage = True
 
         if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
             self.sr = representation.sr
@@ -206,15 +209,17 @@ class MaskingModel(L.LightningModule):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
         # log tokens coverage
-        if batch_idx < 1000:
+        if self.first_coverage and batch_idx < 1000:
             self.tokens_coverage += target_tokens.flatten().cpu().tolist()
-        elif batch_idx == 1000:
+        elif self.first_coverage and batch_idx == 1000:
             # Print the histogram you can check it in the wandb dashboard (log section)
             print("Logged histogram image of token counts for the first 1000 steps.")
             print(Counter(self.tokens_coverage))
             self.logger.experiment.log({
                 "histogram": wandb.Histogram(self.tokens_coverage)
             })
+            self.first_coverage = False
+            self.tokens_coverage = []
         self.log('train_loss', loss, prog_bar=True)
         self.log(f'train_acc', accuracies)
         return loss
@@ -227,5 +232,5 @@ class MaskingModel(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         return optimizer
