@@ -96,7 +96,14 @@ class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
     def __init__(
-            self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.1, context_length=1850, use_deepnorm=False, alpha=0.1,
+            self,
+            embed_dim,
+            num_heads,
+            mlp_ratio=4.0,
+            dropout=0.1,
+            context_length=1850,
+            use_deepnorm=False,
+            alpha=0.1,
             beta=0.1
     ):
         super().__init__()
@@ -131,18 +138,15 @@ class TransformerEncoder(nn.Module):
 
         with torch.no_grad():
             # Initialize linear projections of MLP
-            self.mlp[0].weight.mul_(beta)
-            self.mlp[3].weight.mul_(beta)
+            self.mlp[0].weight *= beta
+            self.mlp[3].weight *= beta
             # Initialize only values projection in self.attn
             # Separate weights for q, k, v
-            qkv_weight = self.attn.qkv.weight.view(3, self.attn.d_out, self.attn.qkv.weight.shape[1])
+            qkv_weight = self.attn.qkv.weight.view(3, self.attn.d_out, self.attn.d_in)
             # Apply beta to value weights (third set of weights)
             qkv_weight[2] *= beta
-            self.attn.qkv.weight = nn.Parameter(qkv_weight.view_as(self.attn.qkv.weight))
             # Initialize output projection of attention
-            self.attn.proj.weight.mul_(beta)
-
-
+            self.attn.proj.weight *= beta
 
     def forward(self, x):
         # Apply the first normalization
@@ -195,6 +199,7 @@ class Transformer(Net):
         self.do_vit_tokenization = do_vit_tokenization
         self.do_deepnorm = do_deepnorm
         self.alpha_deepnorm = alpha_deepnorm
+        self.beta_deepnorm = beta_deepnorm
 
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
         if self.do_classification:
@@ -212,7 +217,7 @@ class Transformer(Net):
                     mlp_ratio,
                     dropout,
                     use_deepnorm=self.do_deepnorm,
-                    beta=beta_deepnorm,
+                    beta=self.beta_deepnorm,
                     alpha=self.alpha_deepnorm,
                     context_length=context_length,
                 )
