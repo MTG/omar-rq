@@ -30,51 +30,50 @@ class PatchEmbed(nn.Module):
         x = x.transpose(1, 2)  # (B, N, E)
         return x
 
-
 class MHAPyTorchScaledDotProduct(nn.Module):
-    def __init__(self, d_in, d_out, num_heads, context_length, dropout=0.0, qkv_bias=False):
+    def __init__(
+        self, d_in, d_out, num_heads, context_length, dropout=0.0, qkv_bias=False
+    ):
         super().__init__()
 
-        assert d_out % num_heads == 0, "embed_dim must be divisible by num_heads"
+        assert d_out % num_heads == 0, "embed_dim is indivisible by num_heads"
 
         self.num_heads = num_heads
         self.context_length = context_length
         self.head_dim = d_out // num_heads
         self.d_out = d_out
 
-        self.query_proj = nn.Linear(d_in, d_out, bias=qkv_bias)
-        self.key_proj = nn.Linear(d_in, d_out, bias=qkv_bias)
-        self.value_proj = nn.Linear(d_in, d_out, bias=qkv_bias)
-        self.proj = nn.Linear(d_out, d_out)
-        self.dropout = nn.Dropout(dropout)
+        self.qkv = nn.Linear(d_in, 3 * d_out, bias=qkv_bias)
+        self.proj = nn.Linear(d_in, d_out)
+        self.dropout = dropout
 
     def forward(self, x):
         batch_size, num_tokens, embed_dim = x.shape
 
-        # Project inputs to query, key, and value
-        queries = self.query_proj(x)
-        keys = self.key_proj(x)
-        values = self.value_proj(x)
+        # (b, num_tokens, embed_dim) --> (b, num_tokens, 3 * embed_dim)
+        qkv = self.qkv(x)
 
-        # Reshape to (batch_size, num_tokens, num_heads, head_dim)
-        queries = queries.view(batch_size, num_tokens, self.num_heads, self.head_dim)
-        keys = keys.view(batch_size, num_tokens, self.num_heads, self.head_dim)
-        values = values.view(batch_size, num_tokens, self.num_heads, self.head_dim)
+        # (b, num_tokens, 3 * embed_dim) --> (b, num_tokens, 3, num_heads, head_dim)
+        qkv = qkv.view(batch_size, num_tokens, 3, self.num_heads, self.head_dim)
 
-        # Transpose to (batch_size, num_heads, num_tokens, head_dim)
-        queries = queries.transpose(1, 2)
-        keys = keys.transpose(1, 2)
-        values = values.transpose(1, 2)
+        # (b, num_tokens, 3, num_heads, head_dim) --> (3, b, num_heads, num_tokens, head_dim)
+        qkv = qkv.permute(2, 0, 3, 1, 4)
 
-        # Scaled Dot-Product Attention
-        scores = torch.matmul(queries, keys.transpose(-2, -1)) / (self.head_dim ** 0.5)
-        attn = torch.softmax(scores, dim=-1)
-        attn = self.dropout(attn)
+        # (3, b, num_heads, num_tokens, head_dim) -> 3 times (b, num_heads, num_tokens, head_dim)
+        queries, keys, values = qkv
 
-        context_vec = torch.matmul(attn, values)
+        use_dropout = 0.0 if not self.training else self.dropout
+        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
+            context_vec = nn.functional.scaled_dot_product_attention(
+                queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
+            )
 
-        # Combine heads
-        context_vec = context_vec.transpose(1, 2).contiguous().view(batch_size, num_tokens, self.d_out)
+        # Combine heads, where self.d_out = self.num_heads * self.head_dim
+        context_vec = (
+            context_vec.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, num_tokens, self.d_out)
+        )
 
         context_vec = self.proj(context_vec)
 
@@ -131,11 +130,17 @@ class TransformerEncoder(nn.Module):
         )
 
         with torch.no_grad():
-            self.mlp[0].weight *= beta
-            self.mlp[3].weight *= beta
-
-            self.attn.value_proj.weight *= beta
-            self.attn.proj.weight *= beta
+            # Initialize linear projections of MLP
+            self.mlp[0].weight.mul_(beta)
+            self.mlp[3].weight.mul_(beta)
+            # Initialize only values projection in self.attn
+            # Separate weights for q, k, v
+            qkv_weight = self.attn.qkv.weight.view(3, self.attn.d_out, self.attn.qkv.weight.shape[1])
+            # Apply beta to value weights (third set of weights)
+            qkv_weight[2] *= beta
+            self.attn.qkv.weight = nn.Parameter(qkv_weight.view_as(self.attn.qkv.weight))
+            # Initialize output projection of attention
+            self.attn.proj.weight.mul_(beta)
 
 
 
