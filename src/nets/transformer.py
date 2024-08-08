@@ -203,6 +203,7 @@ class Transformer(Net):
         self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
         if self.do_classification:
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+            self.head = nn.Linear(embed_dim, head_dims)
 
         # Initial positional embeddings (dynamically resized later)
         self.pos_embed = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -223,8 +224,6 @@ class Transformer(Net):
                 for _ in range(depth)
             ]
         )
-        self.norm = nn.LayerNorm(embed_dim)
-        self.head = nn.Linear(embed_dim, head_dims)
 
 
     def forward(self, x, skip_tokens=None):
