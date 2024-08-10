@@ -40,7 +40,7 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
-        plot_tokens: bool = False, # TODO: why is this a class constructor?
+        plot_tokens: bool = False,
     ):
         super(MaskingModel, self).__init__()
 
@@ -55,7 +55,7 @@ class MaskingModel(L.LightningModule):
         self.embedding_layer = nn.Linear(
             self.patch_size[0] * self.patch_size[1], self.net.head.out_features
         )
-        self.linear = nn.Linear(self.net.head.out_features, codebook_size) # TODO: affine or linear
+        self.linear = nn.Linear(self.net.head.out_features, codebook_size)
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens
@@ -69,7 +69,6 @@ class MaskingModel(L.LightningModule):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            # random quantizer # TODO: this should be out this if-else statement
             self.codebook = RandomProjectionQuantizer(
                 input_dim=self.patch_size[0] * self.patch_size[1],
                 codebook_dim=codebook_dim,
@@ -153,7 +152,6 @@ class MaskingModel(L.LightningModule):
 
     def vit_tokenization(self, spectrogram):
         B, F, T = spectrogram.shape
-        # Number of patches # TODO: aren't we padding the spectrogram? should we use the padded spectrogram?
         num_patches_f = F // self.patch_size[0]
         num_patches_t = T // self.patch_size[1]
         # Reshape spectrogram into patches
@@ -192,10 +190,8 @@ class MaskingModel(L.LightningModule):
 
     def random_masking(self, patches):
         B, num_patches, patch_size = patches.shape
-        # assert patch_size == self.patch_size[0] * self.patch_size[1] # TODO: something like this should be here
         mx = patches.clone()
 
-        # TODO: i would set this during __init__ and not here
         len_masking_spec_frames = math.ceil(
             self.mask_seconds * self.sr / self.hop_length
         )
@@ -218,7 +214,7 @@ class MaskingModel(L.LightningModule):
         # Mask with random values
         masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(
             patches.device
-        )  # 0 mean 0.1 std # TODO: 0.1? why?
+        )  # 0 mean 0.1 std
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
         return mx, mask.to(patches.device)

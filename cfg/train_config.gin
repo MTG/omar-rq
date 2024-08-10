@@ -23,7 +23,7 @@ train.params = {
 }
 
 # Choose the dataloader
-build_dev_datamodule.datamodule = @discotube # TODO
+build_dev_datamodule.datamodule = @discotube
 
 # Discogs datamodule parameters
 DiscotubeAudioDataModule.batch_size = 256
@@ -33,12 +33,11 @@ DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt
 
 # Train Dataloader
 AudioDataset.num_frames = 480000 # 30s
-AudioDataset.new_freq = 16000 # TODO: access from model_config
+AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
 AudioDataModule.num_workers = 120
 
-# TODO: these are not used during evaluation
 # data augmentation
 nets.melspectrogram.MelSpectrogram.stretch_factor = 1
 nets.melspectrogram.MelSpectrogram.freq_mask_param = 10

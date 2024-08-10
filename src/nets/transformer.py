@@ -170,7 +170,6 @@ class Transformer(Net):
                 for _ in range(depth)
             ]
         )
-        # TODO: these two should be only case when do_classification is True
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
 

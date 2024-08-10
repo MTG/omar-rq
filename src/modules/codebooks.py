@@ -45,8 +45,6 @@ class RandomProjectionQuantizer(nn.Module):
 
         # L2 normalization
         normalized_x = nn.functional.normalize(x, dim=1, p=2)
-        # TODO: codebook is normalized?
-        # TODO: this can be done in __init__ as they do not get updated
         normalized_codebook = nn.functional.normalize(self.codebook, dim=1, p=2)
 
         # compute distances

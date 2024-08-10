@@ -46,7 +46,7 @@ class MelSpectrogram(torch.nn.Module):
             power=power,
         )
 
-        # During evaluation we do not apply specaugment. (TODO: also during validation?)
+        # During evaluation we do not apply specaugment
         if stretch_factor is None or freq_mask_param is None or time_mask_param is None:
             self.spec_aug = None
         else:
@@ -70,7 +70,6 @@ class MelSpectrogram(torch.nn.Module):
     def znorm(self, input_values: torch.Tensor) -> torch.Tensor:
         return (input_values - (self.mean)) / (self.std)
 
-    # TODO: needs a train or validation mode
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
         # resample the input
         # resampled = self.resample(waveform)
