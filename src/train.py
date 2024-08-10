@@ -1,5 +1,4 @@
 from argparse import ArgumentParser
-from datetime import datetime
 from pathlib import Path
 import traceback
 
@@ -7,8 +6,6 @@ import gin.torch
 import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-
-from torch import nn
 
 from cosineannealingscheduler import CosineAnnealingCallback
 from data import DATASETS

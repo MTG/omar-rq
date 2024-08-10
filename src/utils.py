@@ -44,7 +44,7 @@ def build_module(
         )
     else:
         # Otherwise, create from random initialization
-        print("Creating new model")
+        print("Creating a new model")
         module = module(net=net, representation=representation)
 
     return module, ckpt_path
