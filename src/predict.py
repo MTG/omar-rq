@@ -68,7 +68,7 @@ if __name__ == "__main__":
         )
 
         # Convert the config string to a gin config
-        gin.parse_config(test_config)
+        gin.parse_config(test_config, skip_unknown=True)
 
         # Build the module and datamodule
         module, _ = build_module()

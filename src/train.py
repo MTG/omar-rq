@@ -68,7 +68,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        gin.parse_config_file(args.train_config)
+        gin.parse_config_file(args.train_config, skip_unknown=True)
 
         module, ckpt_path = build_module()
         datamodule = build_dev_datamodule()
