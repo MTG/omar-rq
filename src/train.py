@@ -59,9 +59,8 @@ def train(
 if __name__ == "__main__":
     parser = ArgumentParser("Train SSL models using gin config")
     parser.add_argument(
-        "--train-config",
+        "train_config",
         type=Path,
-        default="cfg/train_config.gin",
         help="Path to the gin config file for training.",
     )
 
