@@ -60,6 +60,7 @@ nets.melspectrogram.MelSpectrogram.time_mask_param = 10
 # MaskingModel parameters
 modules.maskingmodel.MaskingModel.num_codebooks = 1
 modules.maskingmodel.MaskingModel.lr = 1e-4
+modules.maskingmodel.MaskingModel.weight_decay = 1e-2
 modules.maskingmodel.MaskingModel.codebook_size = 8192
 modules.maskingmodel.MaskingModel.codebook_dim = 16
 modules.maskingmodel.MaskingModel.mask_seconds = 0.4
@@ -76,5 +77,7 @@ nets.transformer.Transformer.head_dims = 768
 nets.transformer.Transformer.depth = 12
 nets.transformer.Transformer.num_heads = 12
 nets.transformer.Transformer.mlp_ratio=4.0
-nets.transformer.Transformer.dropout=0.0
+nets.transformer.Transformer.dropout=0.1
 nets.transformer.Transformer.do_vit_tokenization = False
+nets.transformer.Transformer.do_deepnorm = True
+nets.transformer.Transformer.alpha_deepnorm = 0.1 # we can tune this number
