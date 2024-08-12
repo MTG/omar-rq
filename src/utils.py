@@ -31,6 +31,9 @@ def build_module(
     module: L.LightningModule,
     ckpt_path: Path = None,
 ):
+    """Build the module from the provided references. If a checkpoint path is provided,
+    load the checkpoint. Otherwise, create a new model. Returns the checkpoint path so that
+    Lightning Trainer can use it to restore the training."""
 
     # Evaluate the provided references, i.e. convert the strings to the actual objects
     representation = representation()

@@ -25,7 +25,7 @@ class GinConfigSaverCallback(Callback):
         self.train_config_path = train_config_path
 
     def on_train_start(self, trainer, pl_module):
-        """Read the gin config file when the training starts once."""
+        """Initialize the checkpoint directory and the new gin config path."""
 
         # This is where wandb logger saves the checkpoint
         # Needs the training to be started
@@ -43,8 +43,7 @@ class GinConfigSaverCallback(Callback):
         self.new_train_config_path = self.ckpt_dir / self.train_config_path.name
 
     def on_train_epoch_end(self, trainer, pl_module):
-        """Save the gin config file in the checkpoints directory, appending the current
-        checkpoint path."""
+        """Update the gin config and write it next to the latest checkpoint."""
 
         # Create the full path to the latest checkpoint
         ckpt_name = f"epoch={trainer.current_epoch}-step={trainer.global_step}.ckpt"
