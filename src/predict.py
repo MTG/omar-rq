@@ -39,7 +39,7 @@ def evaluate(
 if __name__ == "__main__":
     parser = ArgumentParser("Evaluate SSL models using gin config")
     parser.add_argument(
-        "config_path",
+        "train_config",
         type=Path,
         help="Path to the model config of a trained model.",
     )
@@ -59,16 +59,9 @@ if __name__ == "__main__":
 
     try:
 
-        # Read the test config as a string
-        with open(args.test_config, "r") as f:
-            test_config = f.read()
-        # Append the model config path to the test config
-        test_config += (
-            f"\n\n# Model config\ninclude '{os.path.abspath(args.config_path)}'\n"
-        )
-
+        # TODO: parse multiple gin configs. Or use YAML for test config
         # Convert the config string to a gin config
-        gin.parse_config(test_config, skip_unknown=True)
+        gin.parse_config_file(args.train_config, skip_unknown=True)
 
         # Build the module and datamodule
         module, _ = build_module()
