@@ -53,8 +53,8 @@ class MaskingModel(L.LightningModule):
         self.patch_size = net.patch_size
         self.net = net
         self.representation = representation
-        self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
-        self.linear = nn.Linear(self.net.head.out_features, codebook_size)
+        self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.embed_dim)
+        self.linear = nn.Linear(self.net.embed_dim, codebook_size)
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens

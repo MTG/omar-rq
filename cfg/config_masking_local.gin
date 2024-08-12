@@ -70,7 +70,6 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
 nets.transformer.Transformer.patch_size = (96, 4)
-nets.transformer.Transformer.context_length = 63
 nets.transformer.Transformer.in_chans = 1
 nets.transformer.Transformer.embed_dim = 768
 nets.transformer.Transformer.head_dims = 768
