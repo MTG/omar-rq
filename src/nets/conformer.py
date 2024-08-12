@@ -70,7 +70,7 @@ class ConvBlock(nn.Module):
                 groups=embed_dim,
             ),  # depthwise
             nn.BatchNorm1d(embed_dim, eps=6.1e-5),
-            nn.SiLU(),  # swish activation
+            nn.GELU(),  # swish activation
             nn.Conv1d(
                 in_channels=embed_dim, out_channels=embed_dim, kernel_size=1
             ),  # second pointwise
@@ -107,7 +107,7 @@ class FeedForwardBlock(nn.Module):
         self.module = nn.Sequential(
             nn.LayerNorm(embed_dim, eps=6.1e-5),
             nn.Linear(embed_dim, int(embed_dim * expansion)),  # expand to embed_dim * expansion
-            nn.SiLU(),  # swish activation
+            nn.GELU(),  # swish activation
             nn.Dropout(dropout),
             nn.Linear(int(embed_dim * expansion), embed_dim),  # project back to embed_dim
             nn.Dropout(dropout),
@@ -190,7 +190,7 @@ class ConformerBlock(nn.Module):
         beta=0.1,
     ):
         super(ConformerBlock, self).__init__()
-        self.residual_factor = feed_forward_residual_factor
+        self.feed_forward_residual_factor = feed_forward_residual_factor
         self.use_deepnorm = use_deepnorm
         self.alpha = alpha
         self.beta = beta
@@ -225,7 +225,7 @@ class ConformerBlock(nn.Module):
 
     def forward(self, x):
         # Apply first feedforward block
-        x = x + (self.residual_factor * self.ff1(x))
+        x = x + (self.feed_forward_residual_factor * self.ff1(x))
         # Apply positional encoding
         x = x + self.positional_encoder(x.size(1))
         # Apply attention block with DeepNorm
@@ -237,17 +237,17 @@ class ConformerBlock(nn.Module):
         # Apply convolution block
         x = x + self.conv_block(x)
         # Apply second feedforward block
-        x = x + (self.residual_factor * self.ff2(x))
+        x = x + (self.feed_forward_residual_factor * self.ff2(x))
         # Final normalization
         return self.norm2(x)
 
     # Original conformer forward code
     # def forward(self, x, mask=None):
-    #    x = x + (self.residual_factor * self.ff1(x))
+    #    x = x + (self.feed_forward_residual_factor * self.ff1(x))
     #    x = x + self.positional_encoder(x.size(1))
     #    x = x + self.attention(x, mask=mask)
     #    x = x + self.conv_block(x)
-    #    x = x + (self.residual_factor * self.ff2(x))
+    #    x = x + (self.feed_forward_residual_factor * self.ff2(x))
     # return self.layer_norm(x)
 
 
@@ -323,7 +323,7 @@ class Conformer(nn.Module):
         )
 
     def forward(self, x):
-        # Downsampling (preprocessing) -> projection layer (model masking) -> here
+        # Downsampling (preprocessing) -> patching and projection layer (model masking) -> here
         x = F.dropout(x)
 
         for layer in self.layers:
