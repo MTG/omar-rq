@@ -31,19 +31,18 @@ class PatchEmbed(nn.Module):
         x = x.transpose(1, 2)  # (B, N, E)
         return x
 
-
 class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
     def __init__(
-            self,
-            embed_dim,
-            num_heads,
-            mlp_ratio=4.0,
-            dropout=0.1,
-            use_deepnorm=False,
-            alpha=0.1,
-            beta=0.1
+        self,
+        embed_dim,
+        num_heads,
+        mlp_ratio=4.0,
+        dropout=0.1,
+        use_deepnorm=False,
+        alpha=0.1,
+        beta=0.1,
     ):
         super().__init__()
 

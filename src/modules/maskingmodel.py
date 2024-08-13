@@ -268,10 +268,12 @@ class MaskingModel(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
-        self.log('val_loss', loss, prog_bar=True)
-        self.log(f'val_acc', accuracies)
+        self.log("val_loss", loss, prog_bar=True)
+        self.log(f"val_acc", accuracies)
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.AdamW(
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
         return optimizer
