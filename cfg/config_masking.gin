@@ -10,10 +10,12 @@ train.wandb_params = {
 }
 
 # modules to use
-train.representation = @melspectrogram
-train.module = @maskingmodel
-train.datamodule = @discotube
-train.net = @transformer
+build_module.representation = @nets.melspectrogram.MelSpectrogram
+build_module.module = @modules.maskingmodel.MaskingModel
+build_module.net = @nets.transformer.Transformer
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube
 
 # Lighting trainer parameters
 train.params = {

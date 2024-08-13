@@ -32,9 +32,6 @@ class PatchEmbed(nn.Module):
         return x
 
 
-
-
-
 class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
@@ -121,13 +118,14 @@ class Transformer(Net):
         head_dims,
         depth,
         num_heads,
+        num_patches=1,
         mlp_ratio=4.0,
         dropout=0.1,
         alpha_deepnorm=0.1,
         beta_deepnorm=0.1,
         do_classification=False,
         do_vit_tokenization=False,
-        do_deepnorm=False
+        do_deepnorm=False,
     ):
         super().__init__()
         self.in_chans = in_chans
@@ -144,7 +142,10 @@ class Transformer(Net):
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         # Initial positional embeddings (dynamically resized later)
-        self.pos_embed = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        # During initialization use a dynamic patch size. This value will be
+        # Updated and stored in self.num_patches during the forward pass
+        # It will be written to the gin config file
+        self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches, embed_dim))
         self.dropout = nn.Dropout(dropout)
 
         self.transformer = nn.ModuleList(
@@ -164,7 +165,6 @@ class Transformer(Net):
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, head_dims)
 
-
     def forward(self, x):
         if self.do_vit_tokenization:
             x = self.patch_embed(x)  # Embed the patches
@@ -172,7 +172,7 @@ class Transformer(Net):
 
         if self.do_classification:
             cls_token = self.cls_token.expand(B, -1, -1)
-            x = torch.cat((cls_token, x), dim=1) # Add class token
+            x = torch.cat((cls_token, x), dim=1)  # Add class token
 
         # Ensure positional embeddings cover the entire sequence length
         if x.size(1) > self.pos_embed.size(1):
@@ -181,6 +181,7 @@ class Transformer(Net):
                 1, x.size(1), self.embed_dim, device=self.pos_embed.device
             )
             new_pos_embed[:, : self.pos_embed.size(1)] = self.pos_embed
+            self.num_patches = x.size(1)  # Update the number of patches
             self.pos_embed = nn.Parameter(new_pos_embed)
 
         x = x + self.pos_embed

@@ -13,4 +13,4 @@
 module load anaconda
 source /gpfs/projects/upf97/envs/mtg-bsc-wandb/bin/activate
 
-python3 src/train.py --config cfg/config_masking.gin
+python3 src/train.py cfg/config_masking.gin
