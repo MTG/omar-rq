@@ -30,6 +30,7 @@ class PatchEmbed(nn.Module):
         x = x.transpose(1, 2)  # (B, N, E)
         return x
 
+
 class MHAPyTorchScaledDotProduct(nn.Module):
     def __init__(self, d_in, d_out, num_heads, dropout=0.0, qkv_bias=False):
         super().__init__()
@@ -86,11 +87,19 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 
 class DeepNorm(nn.Module):
     # Code borrowed from https://nn.labml.ai/normalization/deep_norm/index.html
-    def __init__(self, alpha: float, normalized_shape: Union[int, List[int], torch.Size], *,
-                 eps: float = 1e-5, elementwise_affine: bool = True):
+    def __init__(
+        self,
+        alpha: float,
+        normalized_shape: Union[int, List[int], torch.Size],
+        *,
+        eps: float = 1e-5,
+        elementwise_affine: bool = True,
+    ):
         super().__init__()
         self.alpha = alpha
-        self.layer_norm = nn.LayerNorm(normalized_shape, eps=eps, elementwise_affine=elementwise_affine)
+        self.layer_norm = nn.LayerNorm(
+            normalized_shape, eps=eps, elementwise_affine=elementwise_affine
+        )
 
     def forward(self, x: torch.Tensor, gx: torch.Tensor):
         return self.layer_norm(self.alpha * x + gx)
@@ -100,14 +109,14 @@ class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
     def __init__(
-            self,
-            embed_dim,
-            num_heads,
-            mlp_ratio=4.0,
-            dropout=0.1,
-            use_deepnorm=False,
-            alpha=0.1,
-            beta=0.1
+        self,
+        embed_dim,
+        num_heads,
+        mlp_ratio=4.0,
+        dropout=0.1,
+        use_deepnorm=False,
+        alpha=0.1,
+        beta=0.1,
     ):
         super().__init__()
 

@@ -3,7 +3,6 @@ import torch
 from torch import nn, einsum
 
 
-
 class RandomProjectionQuantizer(nn.Module):
     """
     Random projection and codebook lookup module
@@ -12,6 +11,7 @@ class RandomProjectionQuantizer(nn.Module):
      https://github.com/lucidrains/vector-quantize-pytorch/blob/master/vector_quantize_pytorch/random_projection_quantizer.py
     But I did normalization using pre-computed global mean & variance instead of using layer norm.
     """
+
     def __init__(
         self,
         input_dim,
