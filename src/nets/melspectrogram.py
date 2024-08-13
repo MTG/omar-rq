@@ -74,7 +74,8 @@ class MelSpectrogram(torch.nn.Module):
         spec = self.spec(waveform)
 
         # apply SpecAugment
-        spec = self.spec_aug(spec)
+        if self.training:
+            spec = self.spec_aug(spec)
 
         # convert to mel-scale
         mel = self.mel_scale(spec)
