@@ -8,11 +8,12 @@ train.wandb_params = {
 }
 
 # modules to use
-train.representation = @melspectrogram
-train.module = @maskingmodel
-train.datamodule = @discotube
-train.net = @transformer
+build_module.representation = @nets.melspectrogram.MelSpectrogram
+build_module.module = @modules.maskingmodel.MaskingModel
+build_module.net = @nets.transformer.Transformer
 
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
@@ -70,7 +71,6 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
 nets.transformer.Transformer.patch_size = (96, 4)
-nets.transformer.Transformer.context_length = 63
 nets.transformer.Transformer.in_chans = 1
 nets.transformer.Transformer.embed_dim = 768
 nets.transformer.Transformer.head_dims = 768
