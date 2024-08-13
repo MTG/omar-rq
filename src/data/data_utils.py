@@ -70,15 +70,33 @@ class AudioDataset(Dataset):
             if n_samples < self.num_frames:
                 offset_floats = 0
                 offset_bytes = 0
-                mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, n_samples))
+                mmap = numpy.memmap(
+                    file_path,
+                    offset=offset_bytes,
+                    dtype="float16",
+                    mode="r",
+                    shape=(1, n_samples),
+                )
                 audio = numpy.array(mmap)
-                audio = numpy.pad(audio, ((0, 0), (0, self.num_frames - audio.shape[1])), mode="constant")
+                audio = numpy.pad(
+                    audio,
+                    ((0, 0), (0, self.num_frames - audio.shape[1])),
+                    mode="constant",
+                )
                 del mmap
 
             else:
-                offset_floats = torch.randint(0, n_samples - self.num_frames, (1,)).item()
+                offset_floats = torch.randint(
+                    0, n_samples - self.num_frames, (1,)
+                ).item()
                 offset_bytes = offset_floats * 2  # 2 bytes per float
-                mmap = numpy.memmap(file_path, offset=offset_bytes, dtype='float16', mode='r', shape=(1, self.num_frames))
+                mmap = numpy.memmap(
+                    file_path,
+                    offset=offset_bytes,
+                    dtype="float16",
+                    mode="r",
+                    shape=(1, self.num_frames),
+                )
                 audio = numpy.array(mmap)
                 del mmap
 
@@ -135,12 +153,18 @@ class AudioDataModule(L.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(
-            self.dataset_train, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True,
+            self.dataset_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.dataset_val, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True,
+            self.dataset_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
 
 
@@ -161,14 +185,14 @@ class MultiViewAudioDataset(AudioDataset):
             # compute the offsets for the two views
             offsets = self.get_views_offset(n_samples)
 
-            #audio_full, sr = torchaudio.load(file_path)
+            # audio_full, sr = torchaudio.load(file_path)
             # sr = 44100
             # audio_full = torch.randn(1, n_samples)
 
             views = dict()
             for i, offset in enumerate(offsets):
                 audio, sr = self.load_audio(file_path, frame_offset=offset)
-                #audio = audio_full[:, offset : offset + self.num_frames]
+                # audio = audio_full[:, offset : offset + self.num_frames]
 
                 # downmix to mono if necessary
                 if audio.shape[0] > 1 and self.mono:
