@@ -15,10 +15,7 @@ class GinConfigSaverCallback(Callback):
     solution."""
 
     def __init__(self, train_config_path: Path):
-        """Initialize the callback with the path to the training gin config file.
-        This config file must have the model_config.gin path in the 2nd line of
-        the file.
-        """
+        """Initialize the callback with the path to the training gin config file."""
 
         super().__init__()
 
