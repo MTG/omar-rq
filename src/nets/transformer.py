@@ -128,6 +128,7 @@ class Transformer(Net):
         self.in_chans = in_chans
         self.patch_size = patch_size
         self.embed_dim = embed_dim
+        self.num_patches = num_patches
         self.do_classification = do_classification
         self.do_vit_tokenization = do_vit_tokenization
         self.do_deepnorm = do_deepnorm
@@ -210,7 +211,7 @@ class Transformer(Net):
     #         "head_dims": 500,
     #     },
     #     "36_layers": {
-    #         "embed_dim": 1200,f
+    #         "embed_dim": 1200,
     #         "depth": 36,
     #         "num_heads": 20,
     #         "head_dims": 500,
