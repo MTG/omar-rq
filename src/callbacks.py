@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from pytorch_lightning.callbacks import Callback
+from lightning.pytorch.utilities import rank_zero_only
 
 import gin.torch
 
@@ -24,6 +25,7 @@ class GinConfigSaverCallback(Callback):
         # Store the path to the gin config file
         self.train_config_path = train_config_path
 
+    @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """Initialize the checkpoint directory and the new gin config path."""
 
@@ -42,6 +44,7 @@ class GinConfigSaverCallback(Callback):
         # The training gin config will be saved here
         self.new_train_config_path = self.ckpt_dir / self.train_config_path.name
 
+    @rank_zero_only
     def on_train_epoch_end(self, trainer, pl_module):
         """Update the gin config and write it next to the latest checkpoint."""
 
