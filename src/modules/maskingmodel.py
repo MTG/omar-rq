@@ -54,7 +54,7 @@ class MaskingModel(L.LightningModule):
         self.net = net
         self.representation = representation
         self.embedding_layer = nn.Linear(
-          self.patch_size[0]*self.patch_size[1], self.net.embed_dim
+            self.patch_size[0] * self.patch_size[1], self.net.embed_dim
         )
         self.linear = nn.Linear(self.net.embed_dim, codebook_size)
         self.lr = lr

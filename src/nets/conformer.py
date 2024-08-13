@@ -106,10 +106,14 @@ class FeedForwardBlock(nn.Module):
         super(FeedForwardBlock, self).__init__()
         self.module = nn.Sequential(
             nn.LayerNorm(embed_dim, eps=6.1e-5),
-            nn.Linear(embed_dim, int(embed_dim * expansion)),  # expand to embed_dim * expansion
+            nn.Linear(
+                embed_dim, int(embed_dim * expansion)
+            ),  # expand to embed_dim * expansion
             nn.GELU(),  # swish activation
             nn.Dropout(dropout),
-            nn.Linear(int(embed_dim * expansion), embed_dim),  # project back to embed_dim
+            nn.Linear(
+                int(embed_dim * expansion), embed_dim
+            ),  # project back to embed_dim
             nn.Dropout(dropout),
         )
 
@@ -217,7 +221,9 @@ class ConformerBlock(nn.Module):
             self.ff2.module[4].weight *= beta
             # Initialize only values projection in self.attn
             # Separate weights for q, k, v
-            qkv_weight = self.attention.qkv.weight.view(3, self.attention.d_out, self.attention.d_in)
+            qkv_weight = self.attention.qkv.weight.view(
+                3, self.attention.d_out, self.attention.d_in
+            )
             # Apply beta to value weights (third set of weights)
             qkv_weight[2] *= beta
             # Initialize output projection of attention

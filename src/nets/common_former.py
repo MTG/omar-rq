@@ -8,9 +8,7 @@ from .net import Net
 
 
 class MHAPyTorchScaledDotProduct(nn.Module):
-    def __init__(
-        self, d_in, d_out, num_heads, dropout=0.0, qkv_bias=False
-    ):
+    def __init__(self, d_in, d_out, num_heads, dropout=0.0, qkv_bias=False):
         super().__init__()
 
         assert d_out % num_heads == 0, "embed_dim is indivisible by num_heads"
@@ -40,9 +38,16 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         queries, keys, values = qkv
 
         use_dropout = 0.0 if not self.training else self.dropout
-        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
+        with torch.backends.cuda.sdp_kernel(
+            enable_flash=True, enable_math=False, enable_mem_efficient=False
+        ):
             context_vec = nn.functional.scaled_dot_product_attention(
-                queries, keys, values, attn_mask=None, dropout_p=use_dropout, is_causal=True
+                queries,
+                keys,
+                values,
+                attn_mask=None,
+                dropout_p=use_dropout,
+                is_causal=True,
             )
 
         # Combine heads, where self.d_out = self.num_heads * self.head_dim
@@ -59,11 +64,19 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 
 class DeepNorm(nn.Module):
     # Code borrowed from https://nn.labml.ai/normalization/deep_norm/index.html
-    def __init__(self, alpha: float, normalized_shape: Union[int, List[int], torch.Size], *,
-                 eps: float = 1e-5, elementwise_affine: bool = True):
+    def __init__(
+        self,
+        alpha: float,
+        normalized_shape: Union[int, List[int], torch.Size],
+        *,
+        eps: float = 1e-5,
+        elementwise_affine: bool = True,
+    ):
         super().__init__()
         self.alpha = alpha
-        self.layer_norm = nn.LayerNorm(normalized_shape, eps=eps, elementwise_affine=elementwise_affine)
+        self.layer_norm = nn.LayerNorm(
+            normalized_shape, eps=eps, elementwise_affine=elementwise_affine
+        )
 
     def forward(self, x: torch.Tensor, gx: torch.Tensor):
         return self.layer_norm(self.alpha * x + gx)

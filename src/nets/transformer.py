@@ -31,6 +31,7 @@ class PatchEmbed(nn.Module):
         x = x.transpose(1, 2)  # (B, N, E)
         return x
 
+
 class TransformerEncoder(nn.Module):
     """Transformer Encoder Block with Multihead Attention and optional deepnorm"""
 
@@ -58,10 +59,7 @@ class TransformerEncoder(nn.Module):
             self.norm2 = nn.LayerNorm(embed_dim)
 
         self.attn = MHAPyTorchScaledDotProduct(
-            embed_dim,
-            embed_dim,
-            num_heads,
-            dropout=dropout
+            embed_dim, embed_dim, num_heads, dropout=dropout
         )
 
         self.mlp = nn.Sequential(
