@@ -74,10 +74,10 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
 nets.conformer.Conformer.patch_size = (96, 4)
-nets.conformer.Conformer.embed_dim = 768
+nets.conformer.Conformer.embed_dim = 512
 nets.conformer.Conformer.depth = 12
-nets.conformer.Conformer.conv_kernel_size = 15
-nets.conformer.Conformer.num_heads = 12
+nets.conformer.Conformer.conv_kernel_size = 5
+nets.conformer.Conformer.num_heads = 8
 nets.conformer.Conformer.mlp_ratio = 4.0
 nets.conformer.Conformer.mlp_residual_factor = 4.0
 nets.conformer.Conformer.dropout = 0.1

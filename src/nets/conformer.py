@@ -274,7 +274,6 @@ class ConformerBlock(nn.Module):
         feed_forward_residual_factor=0.5,
         feed_forward_expansion_factor=4,
         num_heads=4,
-        positional_encoder=PositionalEncoder(144),
         dropout=0.1,
         use_deepnorm=False,
         alpha=0.1,
@@ -304,7 +303,6 @@ class ConformerBlock(nn.Module):
         else:
             self.norm1 = nn.LayerNorm(embed_dim)
             self.norm2 = nn.LayerNorm(embed_dim)
-        self.positional_encoder = positional_encoder
 
         with torch.no_grad():
             # Initialize linear projections of MLP
@@ -325,8 +323,6 @@ class ConformerBlock(nn.Module):
     def forward(self, x):
         # Apply first feedforward block
         x = x + (self.feed_forward_residual_factor * self.ff1(x))
-        # Apply positional encoding
-        x = x + self.positional_encoder(x.size(1))
         # Apply attention block with DeepNorm
         if self.use_deepnorm:
             gx = self.attention(x)
@@ -404,7 +400,6 @@ class Conformer(nn.Module):
 
         self.dropout = dropout
         # define global positional encoder to limit model parameters
-        self.positional_encoder = PositionalEncoder(embed_dim)
         self.layers = nn.ModuleList(
             [
                 ConformerBlock(
@@ -413,7 +408,6 @@ class Conformer(nn.Module):
                     feed_forward_expansion_factor=self.feed_forward_expansion_factor,
                     feed_forward_residual_factor=self.feed_forward_residual_factor,
                     num_heads=self.num_heads,
-                    positional_encoder=self.positional_encoder,
                     dropout=self.dropout,
                     use_deepnorm=self.use_deepnorm,
                     alpha=self.alpha_deepnorm,
