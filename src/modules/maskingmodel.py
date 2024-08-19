@@ -272,7 +272,11 @@ class MaskingModel(L.LightningModule):
         self.log(f"val_acc", accuracies)
         return loss
 
-    # TODO: predict_step?
+    # TODO: how to control the embedding layer in Lightning?
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, _ = batch
+        return self.extract_embeddings(x.squeeze(0))
+
     def extract_embeddings(
         self,
         audio,
@@ -326,43 +330,30 @@ class MaskingModel(L.LightningModule):
         #         assert abs(l) < len(self.net), "Invalid layer index."
         assert layer == [-1], "Only last layer is supported for now."
 
-        print(f"Audio {audio.shape}")
-
         # Compute the melspectrogram
         melspec = self.representation(audio)  # (F, Tm)
 
-        print(f"MelSpec {melspec.shape}")
-
         # Chunk the melspectrogram using the models context length
         chunk_len = self.patch_size[1] * self.net.num_patches
-        # melspec = melspec.unfold(
-        #     1, chunk_len, chunk_len
-        # )  # (B,F,Tc)  # TODO: correct? # discard or pad last chunk
 
-        # TODO: discard last or pad? Maybe we can discard if there is at least one chunk
+        # NOTE: this will pad the melspectogram even if it is
+        # very close to the context length
         if melspec.shape[1] % chunk_len != 0:
             # Pad the melspectrogram to fit the context length
             pad_len = chunk_len - melspec.shape[1] % chunk_len
             melspec = torch.nn.functional.pad(
                 melspec, (0, pad_len), mode="constant", value=0
             )
-        print(f"Padded MelSpec {melspec.shape}")
 
         # Chunk the melspectrogram
         melspec_chunks = torch.split(melspec, chunk_len, dim=1)
         melspec = torch.stack(melspec_chunks, dim=0)
-        print(f"Chunked MelSpec {melspec.shape} {melspec.dtype}")
 
         # Embed the melspectrogram
         x, _ = self.vit_tokenization(melspec)  # (B, N, P1*P2)
-        print(f"Tokens {x.shape} {x.dtype}")
         x = self.embedding_layer(x)  # (B, N, Cin)
-        print(f"Pre-Embeddings {x.shape} {x.dtype}")
         x = self.net(x)  # (B, N, Cout) # TODO: support multiple layers
-        print(f"Embeddings {x.shape} {x.dtype}")
         x = x.unsqueeze(0)  # (L, B, N, Cout) # TODO: support multiple layers
-
-        print(f"Embeddings {x.shape}")
 
         # Aggregate each chunk in time
         if level == "clip":
@@ -371,12 +362,9 @@ class MaskingModel(L.LightningModule):
                 x = x.mean(dim=2, keepdim=True)
             elif time_aggregation == "max":
                 x = x.max(dim=2, keepdim=True)
-        print(f"Time Aggregated {x.shape}")
 
         # Aggregate the chunks
         x = x.mean(dim=1, keepdim=False)  # (L, N, Cout)
-
-        print(f"Chunk Aggregated {x.shape}")
 
         # Aggregate across layers
         if layer_aggregation == "mean":
@@ -384,7 +372,6 @@ class MaskingModel(L.LightningModule):
         elif layer_aggregation == "max":
             return x.max(dim=0, keepdim=True)
 
-        print(f"Layer Aggregated {x.shape}")
         return x
 
     def configure_optimizers(self):

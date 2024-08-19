@@ -47,6 +47,7 @@ class AudioEmbeddingDataset(Dataset):
         if sr != self.new_freq:
             audio = self.resample(audio)  # (C, T')
 
+        # TODO: PABLO why don't we fix mono? The rest of the code is not ready for 2 channel audio
         # downmix to mono if necessary
         if audio.shape[0] > 1 and self.mono:
             audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
@@ -62,3 +63,43 @@ class AudioEmbeddingDataset(Dataset):
     def collate_fn(items):
         # TODO: Find a better way to do this
         return [item[0] for item in items][0], [item[1] for item in items][0]
+
+
+class AudioEmbeddingDataModule(L.LightningDataModule):
+    def __init__(
+        self,
+        data_dir: Path,
+        file_format: str,
+        orig_freq: int,
+        new_freq: int,
+        mono: bool,
+        half_precision: bool,
+    ):
+        super().__init__()
+
+        self.data_dir = data_dir
+        self.file_format = file_format
+        self.orig_freq = orig_freq
+        self.new_freq = new_freq
+        self.mono = mono
+        self.half_precision = half_precision
+
+    def setup(self, stage: str) -> None:
+        if stage == "predict":
+            self.dataset = AudioEmbeddingDataset(
+                data_dir=self.data_dir,
+                file_format=self.file_format,
+                orig_freq=self.orig_freq,
+                new_freq=self.new_freq,
+                mono=self.mono,
+                half_precision=self.half_precision,
+            )
+
+    def predict_dataloader(self):
+        return DataLoader(
+            self.dataset,
+            batch_size=1,
+            shuffle=False,
+            num_workers=10,
+            collate_fn=AudioEmbeddingDataset.collate_fn,
+        )
