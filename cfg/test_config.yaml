@@ -1,0 +1,6 @@
+data_dir: /gpfs/projects/upf97/magnatagatune
+file_format: mp3
+orig_freq: 16000
+new_freq: 16000
+mono: True
+half_precision: True
