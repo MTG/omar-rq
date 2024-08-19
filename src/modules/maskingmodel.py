@@ -268,10 +268,127 @@ class MaskingModel(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
-        self.log('val_loss', loss, prog_bar=True)
-        self.log(f'val_acc', accuracies)
+        self.log("val_loss", loss, prog_bar=True)
+        self.log(f"val_acc", accuracies)
         return loss
 
+    # TODO: predict_step?
+    def extract_embeddings(
+        self,
+        audio,
+        layer=[-1],
+        layer_aggregation="none",
+        level="frame",
+        time_aggregation="none",
+    ):
+        """Extract audio embeddings using the model.
+
+        Parameters:
+            audio (torch.Tensor): 1D audio tensor.
+            layer (list): List of layer indices to extract embeddings from.
+            layer_aggregation (str): "mean", "max", or "none".
+                In the case of 'none', each specified layer's output is returned.
+            level (str): "clip" or "frame". Clip-level or frame-level extraction.
+            time_aggregation (str): "mean", "max", or "none".
+                In the case of 'none', each frame's output is returned.
+
+        Output:
+            torch.Tensor: Extracted embeddings.
+                Even in the case of aggregation or single layer embeddings,
+                the output tensor will have the same shape (L, T, C,)
+                where L = len(layer), T = 1 or not depending on time_aggregation,
+                C = model output dimension.
+                NOTE: if the audio is longer than the net's context length,
+                the melspectrogram will be cut to chunks of the context length.
+                The embeddings will be averaged across the chunks.
+
+        TODO: what if in Frequency axis we need to aggregate?
+
+        """
+
+        assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
+        assert level in {"clip", "frame"}, "Clip- or frame-level extraction only."
+        assert time_aggregation in {"mean", "max", "none"}, "Invalid time aggregation."
+        assert layer_aggregation in {
+            "mean",
+            "max",
+            "none",
+        }, "Invalid layer aggregation."
+        if level == "clip":
+            assert (
+                time_aggregation != "none"
+            ), "Time aggregation must be applied at clip level."
+        assert isinstance(layer, list), "Layer must be a list."
+        # for l in layer:
+        #     if l > 0:
+        #         assert l < len(self.net), "Invalid layer index."
+        #     else:
+        #         assert abs(l) < len(self.net), "Invalid layer index."
+        assert layer == [-1], "Only last layer is supported for now."
+
+        print(f"Audio {audio.shape}")
+
+        # Compute the melspectrogram
+        melspec = self.representation(audio)  # (F, Tm)
+
+        print(f"MelSpec {melspec.shape}")
+
+        # Chunk the melspectrogram using the models context length
+        chunk_len = self.patch_size[1] * self.net.num_patches
+        # melspec = melspec.unfold(
+        #     1, chunk_len, chunk_len
+        # )  # (B,F,Tc)  # TODO: correct? # discard or pad last chunk
+
+        # TODO: discard last or pad? Maybe we can discard if there is at least one chunk
+        if melspec.shape[1] % chunk_len != 0:
+            # Pad the melspectrogram to fit the context length
+            pad_len = chunk_len - melspec.shape[1] % chunk_len
+            melspec = torch.nn.functional.pad(
+                melspec, (0, pad_len), mode="constant", value=0
+            )
+        print(f"Padded MelSpec {melspec.shape}")
+
+        # Chunk the melspectrogram
+        melspec_chunks = torch.split(melspec, chunk_len, dim=1)
+        melspec = torch.stack(melspec_chunks, dim=0)
+        print(f"Chunked MelSpec {melspec.shape} {melspec.dtype}")
+
+        # Embed the melspectrogram
+        x, _ = self.vit_tokenization(melspec)  # (B, N, P1*P2)
+        print(f"Tokens {x.shape} {x.dtype}")
+        x = self.embedding_layer(x)  # (B, N, Cin)
+        print(f"Pre-Embeddings {x.shape} {x.dtype}")
+        x = self.net(x)  # (B, N, Cout) # TODO: support multiple layers
+        print(f"Embeddings {x.shape} {x.dtype}")
+        x = x.unsqueeze(0)  # (L, B, N, Cout) # TODO: support multiple layers
+
+        print(f"Embeddings {x.shape}")
+
+        # Aggregate each chunk in time
+        if level == "clip":
+            # (L, B, N, Cout) -> (L, B, N, Cout)
+            if time_aggregation == "mean":
+                x = x.mean(dim=2, keepdim=True)
+            elif time_aggregation == "max":
+                x = x.max(dim=2, keepdim=True)
+        print(f"Time Aggregated {x.shape}")
+
+        # Aggregate the chunks
+        x = x.mean(dim=1, keepdim=False)  # (L, N, Cout)
+
+        print(f"Chunk Aggregated {x.shape}")
+
+        # Aggregate across layers
+        if layer_aggregation == "mean":
+            return x.mean(dim=0, keepdim=True)
+        elif layer_aggregation == "max":
+            return x.max(dim=0, keepdim=True)
+
+        print(f"Layer Aggregated {x.shape}")
+        return x
+
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.AdamW(
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
         return optimizer
