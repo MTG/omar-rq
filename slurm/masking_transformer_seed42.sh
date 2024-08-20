@@ -9,9 +9,9 @@
 #SBATCH --time=72:00:00
 #SBATCH --output=debug_%j_output.txt
 #SBATCH --mail-type=all
-#SBATCH --mail-user=pedro.ramoneda@upf.edu
+#SBATCH --mail-user=pablo.alonso@upf.edu
 
 module load anaconda
-source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
+source /gpfs/projects/upf97/envs/mtg-bsc-wandb/bin/activate
 
-python3 src/train.py cfg/config_masking.gin
+python3 src/train.py cfg/config_masking_transformer_seed42_resumed.gin

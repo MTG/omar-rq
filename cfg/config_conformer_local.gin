@@ -12,15 +12,16 @@ train.wandb_params = {
 # modules to use
 build_module.representation = @nets.melspectrogram.MelSpectrogram
 build_module.module = @modules.maskingmodel.MaskingModel
-build_module.net = @nets.transformer.Transformer
+build_module.net = @nets.conformer.Conformer
 
 # Choose the devalopment dataloader
 build_dev_datamodule.datamodule = @discotube
 
+
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 4,
+    "devices": 1,
     "max_steps": 400000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
@@ -29,17 +30,17 @@ train.params = {
 }
 
 # Dataloader
-AudioDataset.num_frames = 480000 # 30s
+AudioDataset.num_frames = 16000 # 30s
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 80
+AudioDataModule.num_workers = 0
 
 # Discogs datamodule parameters
-DiscotubeAudioDataModule.batch_size = 256
-DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
-DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
-DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
+DiscotubeAudioDataModule.batch_size = 1
+DiscotubeAudioDataModule.data_dir = "data/local"
+DiscotubeAudioDataModule.filelist_train = "data/local/train_mmap.txt"
+DiscotubeAudioDataModule.filelist_val = "data/local/test_mmap.txt"
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 30000
@@ -73,15 +74,15 @@ modules.maskingmodel.MaskingModel.seed = 42
 modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
-nets.transformer.Transformer.patch_size = (96, 4)
-nets.transformer.Transformer.in_chans = 1
-nets.transformer.Transformer.embed_dim = 768
-nets.transformer.Transformer.head_dims = 768
-nets.transformer.Transformer.depth = 12
-nets.transformer.Transformer.num_heads = 12
-nets.transformer.Transformer.mlp_ratio=4.0
-nets.transformer.Transformer.dropout=0.1
-nets.transformer.Transformer.do_vit_tokenization = False
-nets.transformer.Transformer.do_deepnorm = True
-nets.transformer.Transformer.alpha_deepnorm = 2.21 # we can tune this number
-nets.transformer.Transformer.beta_deepnorm = 0.0026 # we can tune this number
+nets.conformer.Conformer.patch_size = (96, 4)
+nets.conformer.Conformer.embed_dim = 512
+nets.conformer.Conformer.depth = 12
+nets.conformer.Conformer.conv_kernel_size = 5
+nets.conformer.Conformer.num_heads = 8
+nets.conformer.Conformer.mlp_ratio = 4.0
+nets.conformer.Conformer.mlp_residual_factor = 4.0
+nets.conformer.Conformer.dropout = 0.1
+nets.conformer.Conformer.use_deepnorm = True
+nets.conformer.Conformer.alpha_deepnorm = 2.21 # we can tune this number
+nets.conformer.Conformer.beta_deepnorm = 0.0026 # we can tune this number
+nets.conformer.Conformer.use_rope = True

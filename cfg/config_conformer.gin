@@ -1,7 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "masking_transformer_small_fixed_dn_42",
+    "name": "mask_conformer_rope",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -12,7 +12,7 @@ train.wandb_params = {
 # modules to use
 build_module.representation = @nets.melspectrogram.MelSpectrogram
 build_module.module = @modules.maskingmodel.MaskingModel
-build_module.net = @nets.transformer.Transformer
+build_module.net = @nets.conformer.Conformer
 
 # Choose the devalopment dataloader
 build_dev_datamodule.datamodule = @discotube
@@ -36,7 +36,7 @@ AudioDataset.half_precision = True
 AudioDataModule.num_workers = 80
 
 # Discogs datamodule parameters
-DiscotubeAudioDataModule.batch_size = 256
+DiscotubeAudioDataModule.batch_size = 128
 DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
 DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
 DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
@@ -69,19 +69,19 @@ modules.maskingmodel.MaskingModel.codebook_size = 8192
 modules.maskingmodel.MaskingModel.codebook_dim = 16
 modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6
-modules.maskingmodel.MaskingModel.seed = 42
+modules.maskingmodel.MaskingModel.seed = 0
 modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
-nets.transformer.Transformer.patch_size = (96, 4)
-nets.transformer.Transformer.in_chans = 1
-nets.transformer.Transformer.embed_dim = 768
-nets.transformer.Transformer.head_dims = 768
-nets.transformer.Transformer.depth = 12
-nets.transformer.Transformer.num_heads = 12
-nets.transformer.Transformer.mlp_ratio=4.0
-nets.transformer.Transformer.dropout=0.1
-nets.transformer.Transformer.do_vit_tokenization = False
-nets.transformer.Transformer.do_deepnorm = True
-nets.transformer.Transformer.alpha_deepnorm = 2.21 # we can tune this number
-nets.transformer.Transformer.beta_deepnorm = 0.0026 # we can tune this number
+nets.conformer.Conformer.patch_size = (96, 4)
+nets.conformer.Conformer.embed_dim = 512
+nets.conformer.Conformer.depth = 12
+nets.conformer.Conformer.conv_kernel_size = 5
+nets.conformer.Conformer.num_heads = 8
+nets.conformer.Conformer.mlp_ratio = 4.0
+nets.conformer.Conformer.mlp_residual_factor = 4.0
+nets.conformer.Conformer.dropout = 0.1
+nets.conformer.Conformer.use_deepnorm = True
+nets.conformer.Conformer.alpha_deepnorm = 2.21 # we can tune this number
+nets.conformer.Conformer.beta_deepnorm = 0.0026 # we can tune this number
+nets.conformer.Conformer.use_rope = True

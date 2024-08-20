@@ -1,7 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "masking_transformer_small_fixed_dn_42",
+    "name": "masking_transformer_small_dn_seed42_resumed",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -13,7 +13,7 @@ train.wandb_params = {
 build_module.representation = @nets.melspectrogram.MelSpectrogram
 build_module.module = @modules.maskingmodel.MaskingModel
 build_module.net = @nets.transformer.Transformer
-
+build_module.ckpt_path = "/gpfs/projects/upf97/logs/mtg-ssl/k04ucd9w/checkpoints/epoch=19-step=101900.ckpt"
 # Choose the devalopment dataloader
 build_dev_datamodule.datamodule = @discotube
 
@@ -85,3 +85,4 @@ nets.transformer.Transformer.do_vit_tokenization = False
 nets.transformer.Transformer.do_deepnorm = True
 nets.transformer.Transformer.alpha_deepnorm = 2.21 # we can tune this number
 nets.transformer.Transformer.beta_deepnorm = 0.0026 # we can tune this number
+nets.transformer.Transformer.num_patches = 469
