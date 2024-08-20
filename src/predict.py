@@ -1,21 +1,16 @@
-import os
 import yaml
 from argparse import ArgumentParser
 from pathlib import Path
 import traceback
 
-import numpy as np
-
-import torch
 import gin.torch
 import pytorch_lightning as L
-from torch.utils.data import DataLoader
 
 
 from data import DATASETS
 from modules import MODULES
 from nets import NETS
-from utils import gin_config_to_readable_dictionary, build_module
+from utils import build_module
 from callbacks import EmbeddingWriter
 from eval.dataset import AudioEmbeddingDataModule
 
@@ -58,16 +53,17 @@ if __name__ == "__main__":
         with open(args.test_config, "r") as f:
             test_config = yaml.safe_load(f)
 
-        # TODO: parse multiple gin configs. Or use YAML for test config
-        # Convert the config string to a gin config
-        gin.parse_config_file(args.train_config, skip_unknown=True)
-
+        # Writer callback
         callbacks = [EmbeddingWriter(args.output_dir)]
 
-        # Get the precision for model initialization
+        # Need to use a trainer for model initialization
         trainer = L.Trainer(
             precision=test_config["model"]["precision"], callbacks=callbacks
         )
+
+        # TODO: parse multiple gin configs. Or use YAML for test config
+        # Convert the config string to a gin config
+        gin.parse_config_file(args.train_config, skip_unknown=True)
 
         # Build the module and load the weights
         module, _ = build_module(trainer=trainer)
@@ -80,7 +76,6 @@ if __name__ == "__main__":
         trainer.predict(
             module,
             data_module,
-            # **params,
         )
 
         print("Embedding extraction completed successfully.")
