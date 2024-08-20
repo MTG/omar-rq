@@ -37,13 +37,6 @@ if __name__ == "__main__":
         type=Path,
         help="Path to the config file of the downstream task's dataset.",
     )
-    parser.add_argument(
-        "--output-dir",
-        "-o",
-        type=Path,
-        default="./embeddings/",
-        help="Path to the directory where the evaluation results will be stored.",
-    )
 
     args = parser.parse_args()
 
@@ -60,12 +53,12 @@ if __name__ == "__main__":
         # Set the output directory with model name and dataset name
         ckpt_path = Path(gin.query_parameter("build_module.ckpt_path"))
         model_version_name = ckpt_path.parent.parent.name
-        args.output_dir = (
-            args.output_dir / model_version_name / test_config["dataset_name"]
+        output_dir = (
+            test_config["output_dir"] / model_version_name / test_config["dataset_name"]
         )
 
         # Writer callback
-        callbacks = [EmbeddingWriter(args.output_dir)]
+        callbacks = [EmbeddingWriter(output_dir)]
 
         # Need to use a trainer for model initialization
         trainer = L.Trainer(callbacks=callbacks, **test_config["device"])
