@@ -29,10 +29,6 @@ class EmbeddingWriter(BasePredictionWriter):
         _output_dir.mkdir(parents=True, exist_ok=True)
         output_path = _output_dir / f"{audio_name}.pt"
 
-        # If the prediction is None, write a file with "None"
-        if prediction is None:
-            with open(str(output_path) + ".txt", "w") as f:
-                f.write("None")
-        else:
-            # If the prediction is a tensor, write it to a file
+        # If the prediction is a tensor, write it to a file
+        if prediction is not None:
             torch.save(prediction, output_path)
