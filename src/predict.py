@@ -1,4 +1,4 @@
-import os
+import yaml
 from argparse import ArgumentParser
 from pathlib import Path
 import traceback
@@ -10,7 +10,9 @@ import pytorch_lightning as L
 from data import DATASETS
 from modules import MODULES
 from nets import NETS
-from utils import gin_config_to_readable_dictionary, build_module
+from utils import build_module
+from eval.callbacks import EmbeddingWriter
+from eval.dataset import AudioEmbeddingDataModule
 
 # Register all modules, datasets and networs with gin
 for module_name, module in MODULES.items():
@@ -23,19 +25,6 @@ for net_name, net in NETS.items():
     gin.external_configurable(net, net_name)
 
 
-# @gin.configurable
-def evaluate(
-    module: L.LightningModule,
-    # datamodule: L.LightningDataModule,
-    # params: dict,
-) -> None:
-    """Evaluate a trained model using the given module, datamodule and netitecture. Loads the
-    weights from the checkpoint and evaluates the model on the test set."""
-
-    # disable randomness, dropout, etc...
-    module.eval()
-
-
 if __name__ == "__main__":
     parser = ArgumentParser("Evaluate SSL models using gin config")
     parser.add_argument(
@@ -44,34 +33,52 @@ if __name__ == "__main__":
         help="Path to the model config of a trained model.",
     )
     parser.add_argument(
-        "--test-config",
+        "predict_config",
         type=Path,
-        default="cfg/test_config.gin",
-        help="Path to the gin config file for testing.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        help="Path to the directory where the evaluation results will be stored.",
+        help="Path to the config file of the downstream task's dataset.",
     )
 
     args = parser.parse_args()
 
     try:
 
+        # Load the test config
+        with open(args.predict_config, "r") as f:
+            predict_config = yaml.safe_load(f)
+
         # TODO: parse multiple gin configs. Or use YAML for test config
         # Convert the config string to a gin config
         gin.parse_config_file(args.train_config, skip_unknown=True)
 
-        # Build the module and datamodule
-        module, _ = build_module()
-        # datamodule = build_test_datamodule()
+        # Set the output directory with model name and dataset name
+        ckpt_path = Path(gin.query_parameter("build_module.ckpt_path"))
+        model_version_name = ckpt_path.parent.parent.name
+        output_dir = (
+            Path(predict_config["output_dir"])
+            / model_version_name
+            / predict_config["dataset_name"]
+        )
+
+        # Writer callback
+        callbacks = [EmbeddingWriter(output_dir)]
+
+        # Need to use a trainer for model initialization
+        trainer = L.Trainer(callbacks=callbacks, **predict_config["device"])
+
+        # Build the module and load the weights
+        module, _ = build_module(trainer=trainer)
 
         gin.finalize()
 
-        evaluate(module)
+        # Get the data module
+        data_module = AudioEmbeddingDataModule(**predict_config["audio"])
+
+        trainer.predict(
+            module,
+            data_module,
+        )
+
+        print("Embedding extraction completed successfully.")
 
     except Exception:
         traceback.print_exc()
-
-    print("Evaluation completed successfully.")

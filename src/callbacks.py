@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import gin.torch
 from pytorch_lightning.callbacks import Callback
 from lightning.pytorch.utilities import rank_zero_only
 

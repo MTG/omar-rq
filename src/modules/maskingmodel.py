@@ -272,6 +272,71 @@ class MaskingModel(L.LightningModule):
         self.log(f"val_acc", accuracies)
         return loss
 
+    # TODO: how to control the embedding layer in Lightning?
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, _ = batch
+        # If the input is all zeros, return None to give signal
+        if x is None:
+            return None
+        return self.extract_embeddings(x.squeeze(0))
+
+    def extract_embeddings(
+        self,
+        audio,
+        layer=[-1],
+    ):
+        """Extract audio embeddings using the model.
+
+        Parameters:
+            audio (torch.Tensor): 1D audio tensor.
+            layer (list): List of layer indices to extract embeddings from.
+
+        Output:
+            torch.Tensor: Extracted embeddings.
+                Even in the case of aggregation or single layer embeddings,
+                the output tensor will have the same shape (L, B, T, C,)
+                where L = len(layer), B is the number of chunks
+                T is the number of melspec frames the model can accomodate
+                C = model output dimension. No aggregation is applied.
+
+        """
+
+        assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
+        assert isinstance(layer, list), "Layer must be a list."
+        assert layer == [-1], "Only last layer is supported for now."
+
+        # Compute the representation
+        x = self.representation(audio)  # (F, Tm)
+
+        # TODO: what if in Frequency axis we need to aggregate?
+        assert x.size()[0] == self.patch_size[0], (
+            f"Frequency patching is not implemented yet!"
+            f"Expected {self.patch_size[0]} but got {x.shape[0]}"
+        )
+
+        # Chunk the representation using the model's context length
+        chunk_len = self.patch_size[1] * self.net.num_patches
+
+        # NOTE: this will pad the representation even if it is
+        # very close to the context length
+        if x.shape[1] % chunk_len != 0:
+            # Pad the representation to fit the context length
+            pad_len = chunk_len - x.shape[1] % chunk_len
+            x = torch.nn.functional.pad(x, (0, pad_len), mode="constant", value=0)
+
+        # Chunk the representation and batch it
+        x_chunks = torch.split(x, chunk_len, dim=1)
+        x_chunks = torch.stack(x_chunks, dim=0)
+
+        # Embed the representation
+        x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
+        x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
+        # TODO: support multiple layers
+        x_chunks = self.net(x_chunks)  # (B, N, Cout)
+        x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
+
+        return x_chunks
+
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
             self.parameters(), lr=self.lr, weight_decay=self.weight_decay
