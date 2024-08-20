@@ -276,7 +276,7 @@ class MaskingModel(L.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, _ = batch
         # If the input is all zeros, return None to give signal
-        if torch.all(x == 0):
+        if x is None:
             return None
         return self.extract_embeddings(x.squeeze(0))
 
