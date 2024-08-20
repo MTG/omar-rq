@@ -33,7 +33,7 @@ if __name__ == "__main__":
         help="Path to the model config of a trained model.",
     )
     parser.add_argument(
-        "test_config",
+        "predict_config",
         type=Path,
         help="Path to the config file of the downstream task's dataset.",
     )
@@ -43,8 +43,8 @@ if __name__ == "__main__":
     try:
 
         # Load the test config
-        with open(args.test_config, "r") as f:
-            test_config = yaml.safe_load(f)
+        with open(args.predict_config, "r") as f:
+            predict_config = yaml.safe_load(f)
 
         # TODO: parse multiple gin configs. Or use YAML for test config
         # Convert the config string to a gin config
@@ -54,14 +54,16 @@ if __name__ == "__main__":
         ckpt_path = Path(gin.query_parameter("build_module.ckpt_path"))
         model_version_name = ckpt_path.parent.parent.name
         output_dir = (
-            test_config["output_dir"] / model_version_name / test_config["dataset_name"]
+            Path(predict_config["output_dir"])
+            / model_version_name
+            / predict_config["dataset_name"]
         )
 
         # Writer callback
         callbacks = [EmbeddingWriter(output_dir)]
 
         # Need to use a trainer for model initialization
-        trainer = L.Trainer(callbacks=callbacks, **test_config["device"])
+        trainer = L.Trainer(callbacks=callbacks, **predict_config["device"])
 
         # Build the module and load the weights
         module, _ = build_module(trainer=trainer)
@@ -69,7 +71,7 @@ if __name__ == "__main__":
         gin.finalize()
 
         # Get the data module
-        data_module = AudioEmbeddingDataModule(**test_config["audio"])
+        data_module = AudioEmbeddingDataModule(**predict_config["audio"])
 
         trainer.predict(
             module,
