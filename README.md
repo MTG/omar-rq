@@ -30,7 +30,7 @@ Let's say you have a Conda environment called `mtg-bsc` and you want to use this
 1. Transfer this packed environment to the cluster
 
     ```bash
-    scp ess.tar.gz <USERID>@transfer1.bsc.es:~/
+    scp mtg-bsc.tar.gz <USERID>@transfer1.bsc.es:~/
     ```
 
 1. Load the environment at BSC.

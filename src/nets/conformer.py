@@ -5,7 +5,94 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
-from .common_former import MHAPyTorchScaledDotProduct, DeepNorm
+from .common_former import DeepNorm
+from .rope import RotaryEmbedding
+
+
+class MHAPyTorchScaledDotProduct(nn.Module):
+    def __init__(
+        self,
+        d_in,
+        d_out,
+        num_heads,
+        dropout=0.0,
+        qkv_bias=False,
+        use_rope=False,
+        max_len=10000,
+    ):
+        super().__init__()
+
+        assert d_out % num_heads == 0, "embed_dim is indivisible by num_heads"
+
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads
+        self.d_out = d_out
+        self.d_in = d_in
+        self.use_rope = use_rope
+        self.rope_dim = self.head_dim
+
+        self.qkv = nn.Linear(d_in, 3 * d_out, bias=qkv_bias)
+        self.proj = nn.Linear(d_in, d_out)
+        self.dropout = dropout
+
+        # Initialize positional encodings or rotary embeddings
+        if self.use_rope:
+            self.rotary_emb = RotaryEmbedding(dim=self.rope_dim)
+        else:
+            self.positional_encoder = PositionalEncoder(
+                embed_dim=d_out, max_len=max_len
+            )
+
+    def forward(self, x):
+        batch_size, num_tokens, embed_dim = x.shape
+
+        # (b, num_tokens, embed_dim) --> (b, num_tokens, 3 * embed_dim)
+        qkv = self.qkv(x)
+
+        # (b, num_tokens, 3 * embed_dim) --> (b, num_tokens, 3, num_heads, head_dim)
+        qkv = qkv.view(batch_size, num_tokens, 3, self.num_heads, self.head_dim)
+
+        # (b, num_tokens, 3, num_heads, head_dim) --> (3, b, num_heads, num_tokens, head_dim)
+        qkv = qkv.permute(2, 0, 3, 1, 4)
+
+        # (3, b, num_heads, num_tokens, head_dim) -> 3 times (b, num_heads, num_tokens, head_dim)
+        queries, keys, values = qkv
+
+        if self.use_rope:
+            # Apply rotary embeddings to queries and keys in each attention layer
+            queries = self.rotary_emb.rotate_queries_or_keys(queries)
+            keys = self.rotary_emb.rotate_queries_or_keys(keys)
+        else:
+            # Apply sinusoidal positional encodings to queries and keys
+            pos_encodings = (
+                self.positional_encoder(num_tokens).unsqueeze(0).unsqueeze(1)
+            )
+            queries += pos_encodings
+            keys += pos_encodings
+
+        use_dropout = 0.0 if not self.training else self.dropout
+        with torch.backends.cuda.sdp_kernel(
+            enable_flash=True, enable_math=False, enable_mem_efficient=False
+        ):
+            context_vec = nn.functional.scaled_dot_product_attention(
+                queries,
+                keys,
+                values,
+                attn_mask=None,
+                dropout_p=use_dropout,
+                is_causal=True,
+            )
+
+        # Combine heads, where self.d_out = self.num_heads * self.head_dim
+        context_vec = (
+            context_vec.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, num_tokens, self.d_out)
+        )
+
+        context_vec = self.proj(context_vec)
+
+        return context_vec
 
 
 class PositionalEncoder(nn.Module):
@@ -187,21 +274,26 @@ class ConformerBlock(nn.Module):
         feed_forward_residual_factor=0.5,
         feed_forward_expansion_factor=4,
         num_heads=4,
-        positional_encoder=PositionalEncoder(144),
         dropout=0.1,
         use_deepnorm=False,
         alpha=0.1,
         beta=0.1,
+        use_rope=False,
     ):
         super(ConformerBlock, self).__init__()
         self.feed_forward_residual_factor = feed_forward_residual_factor
         self.use_deepnorm = use_deepnorm
         self.alpha = alpha
         self.beta = beta
+        self.use_rope = use_rope
 
         self.ff1 = FeedForwardBlock(embed_dim, feed_forward_expansion_factor, dropout)
         self.attention = MHAPyTorchScaledDotProduct(
-            d_in=embed_dim, d_out=embed_dim, num_heads=num_heads, dropout=dropout
+            d_in=embed_dim,
+            d_out=embed_dim,
+            num_heads=num_heads,
+            dropout=dropout,
+            use_rope=use_rope,
         )
         self.conv_block = ConvBlock(embed_dim, conv_kernel_size, dropout)
         self.ff2 = FeedForwardBlock(embed_dim, feed_forward_expansion_factor, dropout)
@@ -211,7 +303,6 @@ class ConformerBlock(nn.Module):
         else:
             self.norm1 = nn.LayerNorm(embed_dim)
             self.norm2 = nn.LayerNorm(embed_dim)
-        self.positional_encoder = positional_encoder
 
         with torch.no_grad():
             # Initialize linear projections of MLP
@@ -232,8 +323,6 @@ class ConformerBlock(nn.Module):
     def forward(self, x):
         # Apply first feedforward block
         x = x + (self.feed_forward_residual_factor * self.ff1(x))
-        # Apply positional encoding
-        x = x + self.positional_encoder(x.size(1))
         # Apply attention block with DeepNorm
         if self.use_deepnorm:
             gx = self.attention(x)
@@ -293,6 +382,7 @@ class Conformer(nn.Module):
         alpha_deepnorm: float,
         beta_deepnorm: float,
         use_deepnorm: bool,
+        use_rope: bool,
     ):
         super(Conformer, self).__init__()
         self.patch_size = patch_size
@@ -306,10 +396,10 @@ class Conformer(nn.Module):
         self.alpha_deepnorm = alpha_deepnorm
         self.beta_deepnorm = beta_deepnorm
         self.use_deepnorm = use_deepnorm
+        self.use_rope = use_rope
 
         self.dropout = dropout
         # define global positional encoder to limit model parameters
-        self.positional_encoder = PositionalEncoder(embed_dim)
         self.layers = nn.ModuleList(
             [
                 ConformerBlock(
@@ -318,11 +408,11 @@ class Conformer(nn.Module):
                     feed_forward_expansion_factor=self.feed_forward_expansion_factor,
                     feed_forward_residual_factor=self.feed_forward_residual_factor,
                     num_heads=self.num_heads,
-                    positional_encoder=self.positional_encoder,
                     dropout=self.dropout,
                     use_deepnorm=self.use_deepnorm,
                     alpha=self.alpha_deepnorm,
                     beta=self.beta_deepnorm,
+                    use_rope=self.use_rope,
                 )
                 for _ in range(depth)
             ]
