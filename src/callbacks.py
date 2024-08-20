@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
 
-import torch
 import gin.torch
-from pytorch_lightning.callbacks import Callback, BasePredictionWriter
+from pytorch_lightning.callbacks import Callback
 
 from nets.transformer import Transformer
 
@@ -70,37 +69,3 @@ class GinConfigSaverCallback(Callback):
         # we want to write are not *operative*
         with open(self.new_train_config_path, "w") as f:
             f.write(gin.config_str())
-
-
-class EmbeddingWriter(BasePredictionWriter):
-
-    def __init__(self, output_dir: Path, write_interval: str = "batch"):
-        super().__init__(write_interval)
-        self.output_dir = output_dir
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-    def write_on_batch_end(
-        self,
-        trainer,
-        pl_module,
-        prediction,
-        batch_indices,
-        batch,
-        batch_idx,
-        dataloader_idx,
-    ):
-
-        # Get the audio and audio path
-        _, audio_path = batch
-        audio_name = audio_path.stem
-        _output_dir = self.output_dir / audio_name[:3]
-        _output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = _output_dir / f"{audio_name}.pt"
-
-        # If the prediction is None, write a file with "None"
-        if prediction is None:
-            with open(str(output_path) + ".txt", "w") as f:
-                f.write("None")
-        else:
-            # If the prediction is a tensor, write it to a file
-            torch.save(prediction, output_path)
