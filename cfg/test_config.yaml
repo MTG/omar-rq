@@ -7,6 +7,9 @@ audio:
   new_freq: 16000
   mono: True
   half_precision: True
+  num_workers: 20
 
-model:
+device:
+  accelerator: gpu
+  devices: 1
   precision: bf16-mixed

@@ -68,9 +68,7 @@ if __name__ == "__main__":
         callbacks = [EmbeddingWriter(args.output_dir)]
 
         # Need to use a trainer for model initialization
-        trainer = L.Trainer(
-            precision=test_config["model"]["precision"], callbacks=callbacks
-        )
+        trainer = L.Trainer(callbacks=callbacks, **test_config["device"])
 
         # Build the module and load the weights
         module, _ = build_module(trainer=trainer)

@@ -79,6 +79,7 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         new_freq: int,
         mono: bool,
         half_precision: bool,
+        num_workers: int,
     ):
         super().__init__()
 
@@ -88,6 +89,7 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self.new_freq = new_freq
         self.mono = mono
         self.half_precision = half_precision
+        self.num_workers = num_workers
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
@@ -105,6 +107,6 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
             self.dataset,
             batch_size=1,
             shuffle=False,
-            num_workers=10,
+            num_workers=self.num_workers,
             collate_fn=AudioEmbeddingDataset.collate_fn,
         )
