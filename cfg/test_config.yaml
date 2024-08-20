@@ -1,3 +1,5 @@
+dataset_name: magnatagatune
+
 audio:
   data_dir: /gpfs/projects/upf97/magnatagatune
   file_format: mp3

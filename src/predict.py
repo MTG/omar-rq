@@ -53,6 +53,17 @@ if __name__ == "__main__":
         with open(args.test_config, "r") as f:
             test_config = yaml.safe_load(f)
 
+        # TODO: parse multiple gin configs. Or use YAML for test config
+        # Convert the config string to a gin config
+        gin.parse_config_file(args.train_config, skip_unknown=True)
+
+        # Set the output directory with model name and dataset name
+        ckpt_path = Path(gin.query_parameter("build_module.ckpt_path"))
+        model_version_name = ckpt_path.parent.parent.name
+        args.output_dir = (
+            args.output_dir / model_version_name / test_config["dataset_name"]
+        )
+
         # Writer callback
         callbacks = [EmbeddingWriter(args.output_dir)]
 
@@ -60,10 +71,6 @@ if __name__ == "__main__":
         trainer = L.Trainer(
             precision=test_config["model"]["precision"], callbacks=callbacks
         )
-
-        # TODO: parse multiple gin configs. Or use YAML for test config
-        # Convert the config string to a gin config
-        gin.parse_config_file(args.train_config, skip_unknown=True)
 
         # Build the module and load the weights
         module, _ = build_module(trainer=trainer)

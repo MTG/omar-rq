@@ -9,6 +9,7 @@ class EmbeddingWriter(BasePredictionWriter):
         super().__init__(write_interval)
         self.output_dir = output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Output directory: {output_dir}")
 
     def write_on_batch_end(
         self,
