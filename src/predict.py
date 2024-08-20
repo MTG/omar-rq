@@ -54,27 +54,28 @@ if __name__ == "__main__":
 
     try:
 
-        callbacks = [EmbeddingWriter(args.output_dir)]
+        # Load the test config
+        with open(args.test_config, "r") as f:
+            test_config = yaml.safe_load(f)
 
         # TODO: parse multiple gin configs. Or use YAML for test config
         # Convert the config string to a gin config
         gin.parse_config_file(args.train_config, skip_unknown=True)
 
+        callbacks = [EmbeddingWriter(args.output_dir)]
+
         # Get the precision for model initialization
-        # precision = gin.query_parameter("train.params.precision") # TODO: get precision from config
-        trainer = L.Trainer(precision="bf16-mixed", callbacks=callbacks)
+        trainer = L.Trainer(
+            precision=test_config["model"]["precision"], callbacks=callbacks
+        )
 
         # Build the module and load the weights
         module, _ = build_module(trainer=trainer)
 
         gin.finalize()
 
-        # Load the test config
-        with open(args.test_config, "r") as f:
-            test_config = yaml.safe_load(f)
-
         # Get the data module
-        data_module = AudioEmbeddingDataModule(**test_config)
+        data_module = AudioEmbeddingDataModule(**test_config["audio"])
 
         trainer.predict(
             module,
