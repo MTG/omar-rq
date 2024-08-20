@@ -305,38 +305,37 @@ class MaskingModel(L.LightningModule):
         assert isinstance(layer, list), "Layer must be a list."
         assert layer == [-1], "Only last layer is supported for now."
 
-        # Compute the melspectrogram
-        melspec = self.representation(audio)  # (F, Tm)
+        # Compute the representation
+        x = self.representation(audio)  # (F, Tm)
 
         # TODO: what if in Frequency axis we need to aggregate?
-        assert melspec.size()[0] == self.patch_size[0], (
-            f"Frequency patchin is not implemented yet!"
-            f"Expected {self.patch_size[0]} but got {melspec.shape[0]}"
+        assert x.size()[0] == self.patch_size[0], (
+            f"Frequency patching is not implemented yet!"
+            f"Expected {self.patch_size[0]} but got {x.shape[0]}"
         )
 
-        # Chunk the melspectrogram using the models context length
+        # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
 
-        # NOTE: this will pad the melspectogram even if it is
+        # NOTE: this will pad the representation even if it is
         # very close to the context length
-        if melspec.shape[1] % chunk_len != 0:
-            # Pad the melspectrogram to fit the context length
-            pad_len = chunk_len - melspec.shape[1] % chunk_len
-            melspec = torch.nn.functional.pad(
-                melspec, (0, pad_len), mode="constant", value=0
-            )
+        if x.shape[1] % chunk_len != 0:
+            # Pad the representation to fit the context length
+            pad_len = chunk_len - x.shape[1] % chunk_len
+            x = torch.nn.functional.pad(x, (0, pad_len), mode="constant", value=0)
 
-        # Chunk the melspectrogram
-        melspec_chunks = torch.split(melspec, chunk_len, dim=1)
-        melspec = torch.stack(melspec_chunks, dim=0)
+        # Chunk the representation and batch it
+        x_chunks = torch.split(x, chunk_len, dim=1)
+        x_chunks = torch.stack(x_chunks, dim=0)
 
-        # Embed the melspectrogram
-        x, _ = self.vit_tokenization(melspec)  # (B, N, P1*P2)
-        x = self.embedding_layer(x)  # (B, N, Cin)
-        x = self.net(x)  # (B, N, Cout) # TODO: support multiple layers
-        x = x.unsqueeze(0)  # (L, B, N, Cout) # TODO: support multiple layers
+        # Embed the representation
+        x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
+        x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
+        # TODO: support multiple layers
+        x_chunks = self.net(x_chunks)  # (B, N, Cout)
+        x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
 
-        return x
+        return x_chunks
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
