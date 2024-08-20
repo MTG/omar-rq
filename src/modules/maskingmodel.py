@@ -281,53 +281,27 @@ class MaskingModel(L.LightningModule):
         self,
         audio,
         layer=[-1],
-        layer_aggregation="none",
-        level="frame",
-        time_aggregation="none",
     ):
         """Extract audio embeddings using the model.
 
         Parameters:
             audio (torch.Tensor): 1D audio tensor.
             layer (list): List of layer indices to extract embeddings from.
-            layer_aggregation (str): "mean", "max", or "none".
-                In the case of 'none', each specified layer's output is returned.
-            level (str): "clip" or "frame". Clip-level or frame-level extraction.
-            time_aggregation (str): "mean", "max", or "none".
-                In the case of 'none', each frame's output is returned.
 
         Output:
             torch.Tensor: Extracted embeddings.
                 Even in the case of aggregation or single layer embeddings,
-                the output tensor will have the same shape (L, T, C,)
-                where L = len(layer), T = 1 or not depending on time_aggregation,
-                C = model output dimension.
-                NOTE: if the audio is longer than the net's context length,
-                the melspectrogram will be cut to chunks of the context length.
-                The embeddings will be averaged across the chunks.
+                the output tensor will have the same shape (L, B, T, C,)
+                where L = len(layer), B is the number of chunks
+                T is the number of melspec frames the model can accomodate
+                C = model output dimension. No aggregation is applied.
 
         TODO: what if in Frequency axis we need to aggregate?
 
         """
 
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
-        assert level in {"clip", "frame"}, "Clip- or frame-level extraction only."
-        assert time_aggregation in {"mean", "max", "none"}, "Invalid time aggregation."
-        assert layer_aggregation in {
-            "mean",
-            "max",
-            "none",
-        }, "Invalid layer aggregation."
-        if level == "clip":
-            assert (
-                time_aggregation != "none"
-            ), "Time aggregation must be applied at clip level."
         assert isinstance(layer, list), "Layer must be a list."
-        # for l in layer:
-        #     if l > 0:
-        #         assert l < len(self.net), "Invalid layer index."
-        #     else:
-        #         assert abs(l) < len(self.net), "Invalid layer index."
         assert layer == [-1], "Only last layer is supported for now."
 
         # Compute the melspectrogram
@@ -354,23 +328,6 @@ class MaskingModel(L.LightningModule):
         x = self.embedding_layer(x)  # (B, N, Cin)
         x = self.net(x)  # (B, N, Cout) # TODO: support multiple layers
         x = x.unsqueeze(0)  # (L, B, N, Cout) # TODO: support multiple layers
-
-        # Aggregate each chunk in time
-        if level == "clip":
-            # (L, B, N, Cout) -> (L, B, N, Cout)
-            if time_aggregation == "mean":
-                x = x.mean(dim=2, keepdim=True)
-            elif time_aggregation == "max":
-                x = x.max(dim=2, keepdim=True)
-
-        # Aggregate the chunks
-        x = x.mean(dim=1, keepdim=False)  # (L, N, Cout)
-
-        # Aggregate across layers
-        if layer_aggregation == "mean":
-            return x.mean(dim=0, keepdim=True)
-        elif layer_aggregation == "max":
-            return x.max(dim=0, keepdim=True)
 
         return x
 
