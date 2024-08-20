@@ -41,23 +41,28 @@ class AudioEmbeddingDataset(Dataset):
         file_path = self.data_dir / self.filelist[idx]
 
         # load audio
-        audio, sr = torchaudio.load(file_path)  # (C, T)
+        try:
+            audio, sr = torchaudio.load(file_path)  # (C, T)
 
-        # resample if necessary
-        if sr != self.new_freq:
-            audio = self.resample(audio)  # (C, T')
+            # resample if necessary
+            if sr != self.new_freq:
+                audio = self.resample(audio)  # (C, T')
 
-        # TODO: PABLO why don't we fix mono? The rest of the code is not ready for 2 channel audio
-        # downmix to mono if necessary
-        if audio.shape[0] > 1 and self.mono:
-            audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
+            # TODO: PABLO why don't we fix mono? The rest of the code is not ready for 2 channel audio
+            # downmix to mono if necessary
+            if audio.shape[0] > 1 and self.mono:
+                audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
+
+        except Exception:
+            print(f"Error loading file {file_path}")
+            audio = torch.zeros((1, self.new_freq * 1))  # Send 1 sec of silence
 
         # TODO: On CPU created problems with half precision
         # work with 16-bit precission
         if self.half_precision:
             audio = audio.half()
 
-        return audio, file_path
+            return audio, file_path
 
     @staticmethod
     def collate_fn(items):

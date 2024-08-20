@@ -275,6 +275,9 @@ class MaskingModel(L.LightningModule):
     # TODO: how to control the embedding layer in Lightning?
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, _ = batch
+        # If the input is all zeros, return None to give signal
+        if torch.all(x == 0):
+            return None
         return self.extract_embeddings(x.squeeze(0))
 
     def extract_embeddings(
