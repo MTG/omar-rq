@@ -296,8 +296,6 @@ class MaskingModel(L.LightningModule):
                 T is the number of melspec frames the model can accomodate
                 C = model output dimension. No aggregation is applied.
 
-        TODO: what if in Frequency axis we need to aggregate?
-
         """
 
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
@@ -306,6 +304,12 @@ class MaskingModel(L.LightningModule):
 
         # Compute the melspectrogram
         melspec = self.representation(audio)  # (F, Tm)
+
+        # TODO: what if in Frequency axis we need to aggregate?
+        assert melspec.size()[0] == self.patch_size[0], (
+            f"Frequency patchin is not implemented yet!"
+            f"Expected {self.patch_size[0]} but got {melspec.shape[0]}"
+        )
 
         # Chunk the melspectrogram using the models context length
         chunk_len = self.patch_size[1] * self.net.num_patches
