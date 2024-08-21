@@ -174,7 +174,7 @@ class MaskingModel(L.LightningModule):
         # Return patches and tokens
         tokens = []
         for i in range(self.num_codebooks):
-            tokens.append(self.__getattr__(f"quantizer_{i}")(patches))
+            tokens.append(self.__getattr__(f"quantizer_{i}")(patches).unsqueeze(0))
         tokens = torch.cat(tokens, dim=0)
         if self.plot_tokens:
             self.plot_spectrogram_with_tokens(
@@ -229,7 +229,7 @@ class MaskingModel(L.LightningModule):
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
         # tensor 1 x N repeat to 16 x N
-        mask = mask.repeat(self.num_codebooks, 1)
+        mask = mask.repeat(self.num_codebooks, 1, 1)
         return mx, mask.to(patches.device)
 
     def get_loss(self, logits, target_tokens, mask):
@@ -245,6 +245,7 @@ class MaskingModel(L.LightningModule):
 
     def forward(self, x):
         x = self.representation(x[0])
+        B = x.shape[0]
         # get target feature tokens
         x, target_tokens = self.vit_tokenization(x)  # B x t x (16 x 4)
         # masking
@@ -252,7 +253,7 @@ class MaskingModel(L.LightningModule):
         x = self.embedding_layer(x)
         x = self.net(x)
         logits = self.linear(x)
-        logits = logits.view(self.num_codebooks, -1, self.codebook_size)
+        logits = logits.view(self.num_codebooks, B, -1, self.codebook_size)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
         return logits, losses, accuracies, target_tokens
