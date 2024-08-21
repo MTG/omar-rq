@@ -56,7 +56,7 @@ class MaskingModel(L.LightningModule):
         self.embedding_layer = nn.Linear(
             self.patch_size[0] * self.patch_size[1], self.net.embed_dim
         )
-        self.linear = nn.Linear(self.net.embed_dim, codebook_size)
+        self.linear = nn.Linear(self.net.embed_dim, codebook_size * num_codebooks)
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens
@@ -72,12 +72,14 @@ class MaskingModel(L.LightningModule):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            self.codebook = RandomProjectionQuantizer(
-                input_dim=self.patch_size[0] * self.patch_size[1],
-                codebook_dim=codebook_dim,
-                codebook_size=codebook_size,
-                seed=self.seed,
-            )
+            for i in range(num_codebooks):
+                setattr(
+                    self,
+                    f"quantizer_{i}",
+                    RandomProjectionQuantizer(
+                        self.patch_size[0] * self.patch_size[1], codebook_dim, codebook_size, seed=seed + i
+                    ),
+                )
         else:
             raise NotImplementedError(
                 f"Representation {type(self.representation)} is supported"
@@ -167,13 +169,16 @@ class MaskingModel(L.LightningModule):
         # Flatten patches to tokens
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
         # Return patches and tokens
-        tokens = self.codebook(patches)
+        tokens = []
+        for i in range(self.num_codebooks):
+            tokens.append(self.__getattr__(f"quantizer_{i}")(patches))
+        tokens = torch.cat(tokens, dim=0)
         if self.plot_tokens:
             self.plot_spectrogram_with_tokens(
                 spectrogram[0].detach().cpu(),
                 num_patches_f,
                 num_patches_t,
-                tokens[0].detach().cpu(),
+                tokens[0][0].detach().cpu(),
             )
         return patches, tokens
 
@@ -220,6 +225,8 @@ class MaskingModel(L.LightningModule):
         )  # 0 mean 0.1 std
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
+        # tensor 1 x N repeat to 16 x N
+        mask = mask.repeat(self.num_codebooks, 1)
         return mx, mask.to(patches.device)
 
     def get_loss(self, logits, target_tokens, mask):
@@ -242,6 +249,7 @@ class MaskingModel(L.LightningModule):
         x = self.embedding_layer(x)
         x = self.net(x)
         logits = self.linear(x)
+        logits = logits.view(self.num_codebooks, -1, self.codebook_size)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
         return logits, losses, accuracies, target_tokens
@@ -251,7 +259,7 @@ class MaskingModel(L.LightningModule):
         logits, loss, accuracies, target_tokens = self.forward(x)
         # log tokens coverage
         if self.first_coverage and batch_idx < 1000:
-            self.tokens_coverage += target_tokens.flatten().cpu().tolist()
+            self.tokens_coverage += target_tokens[0].flatten().cpu().tolist()
         elif self.first_coverage and batch_idx == 1000:
             # Print the histogram you can check it in the wandb dashboard (log section)
             print("Logged histogram image of token counts for the first 1000 steps.")
