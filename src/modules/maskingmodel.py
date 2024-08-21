@@ -77,7 +77,10 @@ class MaskingModel(L.LightningModule):
                     self,
                     f"quantizer_{i}",
                     RandomProjectionQuantizer(
-                        self.patch_size[0] * self.patch_size[1], codebook_dim, codebook_size, seed=seed + i
+                        self.patch_size[0] * self.patch_size[1],
+                        codebook_dim,
+                        codebook_size,
+                        seed=seed + i,
                     ),
                 )
         else:
