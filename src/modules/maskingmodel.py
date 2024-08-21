@@ -72,17 +72,15 @@ class MaskingModel(L.LightningModule):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            for i in range(num_codebooks):
-                setattr(
-                    self,
-                    f"quantizer_{i}",
-                    RandomProjectionQuantizer(
-                        self.patch_size[0] * self.patch_size[1],
-                        codebook_dim,
-                        codebook_size,
-                        seed=seed + i,
-                    ),
-                )
+            # Create a ModuleList to hold the quantizers
+            self.quantizers = nn.ModuleList([
+                RandomProjectionQuantizer(
+                    self.patch_size[0] * self.patch_size[1],
+                    codebook_dim,
+                    codebook_size,
+                    seed=seed + i,
+                ) for i in range(num_codebooks)
+            ])
         else:
             raise NotImplementedError(
                 f"Representation {type(self.representation)} is supported"
@@ -172,10 +170,7 @@ class MaskingModel(L.LightningModule):
         # Flatten patches to tokens
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
         # Return patches and tokens
-        tokens = []
-        for i in range(self.num_codebooks):
-            tokens.append(self.__getattr__(f"quantizer_{i}")(patches).unsqueeze(0))
-        tokens = torch.cat(tokens, dim=0)
+        tokens = torch.stack([quantizer(patches) for quantizer in self.quantizers])
         if self.plot_tokens:
             self.plot_spectrogram_with_tokens(
                 spectrogram[0].detach().cpu(),
