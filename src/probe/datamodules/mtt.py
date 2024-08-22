@@ -114,7 +114,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.max(dim=1)  # (N, F)
             # If training, get a random chunk
             if self.mode == "train":
-                embeddings = embeddings[torch.randint(0, N, (1,))]  # (1, F)
+                embeddings = embeddings[torch.randint(0, N, (1,)).item()]  # (F, )
         else:
             if self.time_aggregation == "mean":
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
@@ -122,29 +122,16 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.max(dim=(0, 1)).unsqueeze(0)  # (1, F)
 
         # Load labels
-        labels = self.labels[idx]
+        labels = self.labels[idx]  # (C, )
 
         return embeddings, labels
 
-    @staticmethod
-    def collate_fn_train(items):
-        """Collate function to pack embeddings and labels for training."""
-        embeddings, labels = zip(*items)
-        embeddings = torch.cat(embeddings)
-        labels = torch.stack(labels)
-        return embeddings, labels
 
-    @staticmethod
-    def collate_fn_val_test(items):
-        """Collate function to pack embeddings and labels for validation and testing."""
-        embeddings, labels = zip(*items)
-        assert (
-            len(embeddings) == 1
-        ), "Validation and testing should have one track at a time."
-        assert (
-            len(labels) == 1
-        ), "Validation and testing should have one track at a time."
-        return embeddings[0], labels[0].unsqueeze(0)
+def collate_fn_val_test(items):
+    """Collate function to pack embeddings and labels for validation and testing."""
+    assert len(items) == 1, "Validation and testing should have one track at a time."
+    embeddings, labels = zip(*items)
+    return embeddings[0], labels[0].unsqueeze(0)
 
 
 class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
@@ -215,7 +202,6 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
-            collate_fn=self.train_dataset.collate_fn_train,
             multiprocessing_context="spawn",  # TODO?
             persistent_workers=True,
             # pin_memory=True,
@@ -227,7 +213,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             batch_size=1,  # TODO??
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=self.val_dataset.collate_fn_val_test,
+            collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
             persistent_workers=True,
             # pin_memory=True,
@@ -239,7 +225,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             batch_size=1,  # TODO??
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=self.test_dataset.collate_fn_val_test,
+            collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
             persistent_workers=True,
             # pin_memory=True,
