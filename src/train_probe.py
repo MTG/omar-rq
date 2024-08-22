@@ -7,6 +7,8 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
+# import torch.multiprocessing as mp
+
 from utils import gin_config_to_readable_dictionary
 from callbacks import GinConfigSaverCallback
 from probe.modules.module import MTTProbe
@@ -44,7 +46,14 @@ from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 #     trainer.test(model=module, datamodule=datamodule)
 
 
+# TODO fix seed
+# TODO use a function
+# TODO use gin
+# TODO use wandb
+
 if __name__ == "__main__":
+
+    # mp.set_start_method("spawn")
 
     parser = ArgumentParser()
     parser.add_argument(
@@ -60,38 +69,46 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    trainer = Trainer(
-        accelerator="gpu",
-        devices=1,
-        # max_steps=10,
-        limit_train_batches=5,
-        limit_val_batches=10,
-        max_epochs=2,
-        # strategy="ddp_find_unused_parameters_true",
-        # precision="bf16-mixed",
-        num_sanity_val_steps=0,
-    )
+    print("START")
 
     datamodule = MTTEmbeddingLoadingDataModule(
-        Path("/gpfs/projects/upf97/embeddings/cy1uafdv/magnatagatune/"),
+        Path("/gpfs/scratch/upf97/embeddings/cy1uafdv/magnatagatune/"),
         Path(
             "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/annotations_final.csv"
         ),
         Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt"),
         Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/validation.txt"),
         Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt"),
-        64,
-        0,
+        256,
+        20,
         "mean",
         "chunk",
         "mean",
     )
+    print("Before MODEL")
+
     module = MTTProbe(None, 768, 188)
-    # len(datamodule.train_dataset.labels[0])
+
+    print("TRAINER BUILT")
+
+    trainer = Trainer(
+        accelerator="gpu",
+        devices=1,
+        # max_steps=10,
+        log_every_n_steps=10,
+        # limit_train_batches=2,
+        # limit_val_batches=2,
+        max_epochs=20,
+        num_sanity_val_steps=0,
+    )
+
+    print("FITTING")
 
     trainer.fit(model=module, datamodule=datamodule)
 
-    trainer.test(model=module, datamodule=datamodule)
+    print("TESTING")
+
+    trainer.test(datamodule=datamodule, ckpt_path="best")
 
     # try:
     #     gin.parse_config_file(args.gin_config)
