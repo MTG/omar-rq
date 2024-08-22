@@ -177,7 +177,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
 
     def setup(self, stage: str):
         if stage == "fit":
-            print("Setting up Train dataset...")
+            print("\nSetting up Train dataset...")
             self.train_dataset = MTTEmbeddingLoadingDataset(
                 self.embeddings_dir,
                 self.gt_path,
@@ -187,7 +187,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.time_aggregation,
                 mode="train",
             )
-            print("Setting up Validation dataset...")
+            print("\nSetting up Validation dataset...")
             self.val_dataset = MTTEmbeddingLoadingDataset(
                 self.embeddings_dir,
                 self.gt_path,
