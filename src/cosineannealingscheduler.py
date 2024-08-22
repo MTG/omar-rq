@@ -40,9 +40,18 @@ class CosineAnnealingCallback(Callback):
         self.eta_min = eta_min
 
     def on_train_start(self, trainer, pl_module):
+        last_epoch = -1
+        # If resuming from a checkpoint, set last_epoch to the global_step
+        if trainer.global_step > 0:
+            last_epoch = trainer.global_step
+
         optimizer = trainer.optimizers[0]
         self.scheduler = CosineAnnealingWithWarmup(
-            optimizer, self.total_steps, self.warmup_steps, self.eta_min
+            optimizer,
+            self.total_steps,
+            self.warmup_steps,
+            self.eta_min,
+            last_epoch=last_epoch,
         )
 
     def on_train_batch_end(self, trainer, pl_module, *args, **kwargs):
