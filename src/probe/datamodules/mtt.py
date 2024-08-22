@@ -219,6 +219,9 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             collate_fn=self.train_dataset.collate_fn_train,
+            multiprocessing_context="spawn",  # TODO?
+            persistent_workers=True,
+            # pin_memory=True,
         )
 
     def val_dataloader(self):
@@ -228,6 +231,9 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=self.val_dataset.collate_fn_val_test,
+            multiprocessing_context="spawn",  # TODO?
+            persistent_workers=True,
+            # pin_memory=True,
         )
 
     def test_dataloader(self):
@@ -237,4 +243,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=self.test_dataset.collate_fn_val_test,
+            multiprocessing_context="spawn",  # TODO?
+            persistent_workers=True,
+            # pin_memory=True,
         )
