@@ -17,7 +17,7 @@ class MTTProbe(L.LightningModule):
         super(MTTProbe, self).__init__()
         # TODO create the probe with gin?
         # self.model = model
-        self.model = nn.Linear(in_features, num_labels)
+        self.model = nn.Linear(in_features, num_labels, bias=False)
         # TODO sigmoid or not?
         self.criterion = nn.BCEWithLogitsLoss()
         # TODO metrics fixed or with gin?
@@ -27,37 +27,37 @@ class MTTProbe(L.LightningModule):
         ]
 
     def forward(self, x):
-        # (B, F) -> (B, n_classes)
+        # (B, F) -> (B, num_labels)
         logits = self.model(x)
         return logits
 
     def training_step(self, batch, batch_idx):
-        """X : (n_chunks, n_feat_in), y : (n_chunks, n_classes)
+        """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
         each chunk may com from another track."""
 
         x, y_true = batch
         logits = self.forward(x)
         loss = self.criterion(logits, y_true)
         self.log("train_loss", loss)
-        return logits, loss
+        return loss
 
     def predict(self, batch, return_predicted_class=False):
         """Prediction step for a single track. A batch should
         contain all the chunks of a single track.
 
         # x : (n_chunks, n_feat_in)
-        # y_true : (n_classes, ) TODO ??"""
+        # y_true : (num_labels, ) TODO ??"""
 
         x, y_true = batch
         assert y_true.ndim == 1, "A batch should contain a single track"
         assert x.ndim == 2, "input should be 2D tensor of chunks"
 
-        # y_true = y_true.unsqueeze(0)  # (1, n_classes) TODO?
+        # y_true = y_true.unsqueeze(0)  # (1, num_labels) TODO?
         # TODO y_true dtype?
 
-        logits = self.forward(x)  # (n_chunks, n_classes)
+        logits = self.forward(x)  # (n_chunks, num_labels)
         # Aggregate the chunk embeddings
-        logits = torch.mean(logits, dim=0)  # (n_classes, )
+        logits = torch.mean(logits, dim=0)  # (num_labels, )
         # Calculate the loss
         loss = self.criterion(logits, y_true)  # (1,) TODO ?
         self.log("val_loss", loss)
