@@ -29,7 +29,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
 
         # TODO: i can not do it more elegantly for some linux reason
         # line.strip() returns empty string
-        print("Getting the partition files...")
         self.filelist = []
         with open(filelist, "r") as f:
             for line in f:
@@ -38,7 +37,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 )
         # print(self.filelist[0]) # TODO: this does not work on linux
         assert len(self.filelist) > 0, "No files found in the filelist."
-        print(f"{len(self.filelist):,} files found.")
+        print(f"{len(self.filelist):,} files specified in the filelist.")
 
         print("Checking if embeddings exist...")
         self.filelist = [filepath for filepath in self.filelist if filepath.exists()]
@@ -47,7 +46,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
         file_names = set([filepath.stem for filepath in self.filelist])
 
         # Load labels and filter out rows that do not have embeddings
-        # self.annotations_path = embeddings_dir / "metadata" / "annotations_final.csv"
         self.annotations_path = gt_path
         annotations_clean = []
         with open(self.annotations_path) as in_f:
