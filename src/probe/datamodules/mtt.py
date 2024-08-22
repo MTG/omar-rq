@@ -211,7 +211,6 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             num_workers=self.num_workers,
             multiprocessing_context="spawn",  # TODO?
             persistent_workers=True,  # TODO?
-            # pin_memory=True,  # TODO?
         )
 
     def val_dataloader(self):
@@ -223,7 +222,6 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
             persistent_workers=True,  # TODO?
-            # pin_memory=True,  # TODO?
         )
 
     def test_dataloader(self):
@@ -235,5 +233,4 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
             persistent_workers=True,  # TODO?
-            # pin_memory=True,  # TODO?
         )
