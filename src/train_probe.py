@@ -9,8 +9,8 @@ from pytorch_lightning.loggers import WandbLogger
 
 from utils import gin_config_to_readable_dictionary
 from callbacks import GinConfigSaverCallback
-from fine_tune.modules.module import MTTProbe
-from fine_tune.datamodules.mtt import MTTEmbeddingLoadingDataModule
+from probe.modules.module import MTTProbe
+from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 
 
 # # @gin.configurable
