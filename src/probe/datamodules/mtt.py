@@ -22,10 +22,27 @@ class MTTEmbeddingLoadingDataset(Dataset):
         """filelist is a text file with one filename per line without extensions."""
         # TODO more docs
 
+        # Assertions
         assert mode in ["train", "val", "test"], "Mode not recognized."
-        self.mode = mode
+        assert layer_aggregation in [
+            "mean",
+            "max",
+            "concat",
+            "sum",
+        ], "Layer aggregation not recognized."
+        assert granularity in ["frame", "chunk", "clip"], "Granularity not recognized."
+        assert time_aggregation in [
+            "mean",
+            "max",
+        ], "Time aggregation not recognized."
 
+        self.mode = mode
         self.embeddings_dir = embeddings_dir
+        self.annotations_path = gt_path
+        self.layer_aggregation = layer_aggregation
+        self.granularity = granularity
+        self.time_aggregation = time_aggregation
+        # self.normalize = normalize # TODO?
 
         # TODO: i can not do it more elegantly for some linux reason
         # line.strip() returns empty string
@@ -46,7 +63,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
         file_names = set([filepath.stem for filepath in self.filelist])
 
         # Load labels and filter out rows that do not have embeddings
-        self.annotations_path = gt_path
         annotations_clean = []
         with open(self.annotations_path) as in_f:
             labels = csv.reader(in_f, delimiter="\t")
@@ -62,23 +78,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
         assert len(self.labels) == len(
             self.filelist
         ), "Labels and embeddings do not match."
-
-        # Embedding aggregation parameters
-        self.layer_aggregation = layer_aggregation
-        assert layer_aggregation in [
-            "mean",
-            "max",
-            "concat",
-            "sum",
-        ], "Layer aggregation not recognized."
-        self.granularity = granularity
-        assert granularity in ["frame", "chunk", "clip"], "Granularity not recognized."
-        self.time_aggregation = time_aggregation
-        assert time_aggregation in [
-            "mean",
-            "max",
-        ], "Time aggregation not recognized."
-        # self.normalize = normalize # TODO?
 
     def __len__(self):
         return len(self.filelist)
