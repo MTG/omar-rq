@@ -1,0 +1,39 @@
+# general training parameters
+train.wandb_params = {
+    "project": "mtg-ssl-magnatagatune",
+    "offline": True,
+    # NOTE: path to logs in the BSC cluster. Change it for local experiments
+    "save_dir": "wandb",
+    "entity": "mtg-upf",
+}
+
+# modules to use
+build_module.representation = @nets.melspectrogram.MelSpectrogram
+build_module.module = @modules.maskingmodel.MaskingModel
+build_module.net = @nets.transformer.Transformer
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "gpu",
+    "devices": 1,
+    "max_steps": 300000, # TODO
+    "log_every_n_steps": 10, # TODO
+    "precision": "bf16-mixed", # TODO
+    "strategy": "ddp_find_unused_parameters_true", # TODO
+    "num_sanity_val_steps": 0,
+}
+
+# Dataloader
+AudioDataset.num_frames = 160000 # 3s
+AudioDataset.new_freq = 16000
+AudioDataset.mono = True
+AudioDataset.half_precision = True
+AudioDataModule.num_workers = 0
+
+# Discogs datamodule parameters
+DiscotubeAudioDataModule.batch_size = 1
+DiscotubeAudioDataModule.data_dir = "data/local"
+DiscotubeAudioDataModule.filelist_train = "data/local/train_mmap.txt"
+DiscotubeAudioDataModule.filelist_val = "data/local/test_mmap.txt"

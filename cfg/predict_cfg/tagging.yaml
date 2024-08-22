@@ -1,17 +1,49 @@
 dataset_name: magnatagatune
-
-audio:
-  data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/
-  file_format: mp3
-  orig_freq: 16000
-  new_freq: 16000
-  mono: True
-  half_precision: True
-  num_workers: 20
-
-device:
-  accelerator: gpu
-  devices: 1
-  precision: bf16-mixed
-
+data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/
 output_dir: /gpfs/projects/upf97/embeddings/
+
+# Embedding extraction
+predict:
+  audio:
+    file_format: mp3
+    orig_freq: 16000
+    new_freq: 16000
+    mono: True
+    half_precision: True
+    num_workers: 20
+  device:
+    accelerator: gpu
+    devices: 1
+    precision: bf16-mixed
+  embedding_layer: [-1]
+
+probe_model:
+  # model_path: /gpfs/projects/upf97/models/probe_models/magnatagatune/2021-09-30_14-00-00/epoch=9-step=999.ckpt
+  dataloader:
+    batch_size: 64
+    num_workers: 20
+    half_precision: True
+    num_classes: 50
+    num_features: 128
+  embedding_aggregation:
+    pooling: mean
+  model:
+    num_layers: 3
+    hidden_size: 512
+    dropout: 0.5
+    pooling: mean
+    embedding_size: 128
+  metrics:
+    - accuracy
+    - f1
+    - precision
+    - recall
+    - roc_auc
+    - pr_auc
+    - confusion_matrix
+    - classification_report
+    - f1_per_class
+    - roc_auc_per_class
+    - pr_auc_per_class
+    - confusion_matrix_per_class
+    - classification_report_per_class
