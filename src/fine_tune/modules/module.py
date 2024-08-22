@@ -92,3 +92,6 @@ class MTTProbe(L.LightningModule):
         # Calculate and log the final value for each metric
         for metric in self.metrics:
             self.log(f"test-{metric.name}", metric.compute())
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=1e-3)
