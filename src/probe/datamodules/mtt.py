@@ -31,6 +31,8 @@ class MTTEmbeddingLoadingDataset(Dataset):
             "sum",
         ], "Layer aggregation not recognized."
         assert granularity in ["frame", "chunk", "clip"], "Granularity not recognized."
+        if mode == "train":
+            assert granularity == "chunk", "Training mode should use chunk granularity."
         assert time_aggregation in [
             "mean",
             "max",
