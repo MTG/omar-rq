@@ -54,7 +54,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 self.filelist.append(
                     self.embeddings_dir / line[:3] / f"{line.replace('\n', '')}.pt"
                 )
-        # print(self.filelist[0]) # TODO: this does not work on linux
         assert len(self.filelist) > 0, "No files found in the filelist."
         print(f"{len(self.filelist):,} files specified in the filelist.")
 
