@@ -115,9 +115,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.max(dim=1)  # (N, F)
             # If training, get a random chunk
             if self.mode == "train":
-                embeddings = embeddings[torch.randint(0, N, (1,))].unsqueeze(
-                    0
-                )  # (1, F)
+                embeddings = embeddings[torch.randint(0, N, (1,))]  # (1, F)
         else:
             if self.time_aggregation == "mean":
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
