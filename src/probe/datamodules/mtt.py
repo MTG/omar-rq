@@ -114,7 +114,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.max(dim=1)  # (N, F)
             # If training, get a random chunk
             if self.mode == "train":
-                embeddings = embeddings[torch.randint(0, N, (1,)).item()]  # (F, )
+                embeddings = embeddings[torch.randint(0, N, ())]  # (F, )
         else:
             if self.time_aggregation == "mean":
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
@@ -203,7 +203,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             multiprocessing_context="spawn",  # TODO?
-            persistent_workers=True,
+            # persistent_workers=True,
             # pin_memory=True,
         )
 
@@ -215,7 +215,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             num_workers=self.num_workers,
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
-            persistent_workers=True,
+            # persistent_workers=True,
             # pin_memory=True,
         )
 
@@ -227,6 +227,6 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             num_workers=self.num_workers,
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
-            persistent_workers=True,
+            # persistent_workers=True,
             # pin_memory=True,
         )
