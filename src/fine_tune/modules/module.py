@@ -15,6 +15,7 @@ class MTTProbe(L.LightningModule):
 
     def __init__(self, model, in_features, num_labels):
         super(MTTProbe, self).__init__()
+        self.num_labels = num_labels
         # TODO create the probe with gin?
         # self.model = model
         self.model = nn.Linear(in_features, num_labels, bias=False)
@@ -43,36 +44,36 @@ class MTTProbe(L.LightningModule):
 
     def predict(self, batch, return_predicted_class=False):
         """Prediction step for a single track. A batch should
-        contain all the chunks of a single track.
-
-        # x : (n_chunks, n_feat_in)
-        # y_true : (num_labels, ) TODO ??"""
+        contain all the chunks of a single track."""
 
         x, y_true = batch
         assert y_true.ndim == 1, "A batch should contain a single track"
+        assert len(y_true) == self.num_labels, "y_true should have num_labels elements"
         assert x.ndim == 2, "input should be 2D tensor of chunks"
 
-        # y_true = y_true.unsqueeze(0)  # (1, num_labels) TODO?
-        # TODO y_true dtype?
+        y_true = y_true.unsqueeze(0)  # (1, num_labels)
 
+        # process each chunk separately
         logits = self.forward(x)  # (n_chunks, num_labels)
         # Aggregate the chunk embeddings
-        logits = torch.mean(logits, dim=0)  # (num_labels, )
-        # Calculate the loss
-        loss = self.criterion(logits, y_true)  # (1,) TODO ?
+        logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
+        # Calculate the loss for the track
+        loss = self.criterion(logits, y_true)
+        print(logits.shape, y_true.shape, loss.shape, loss)
         self.log("val_loss", loss)
         if return_predicted_class:
-            predicted_class = (torch.sigmoid(logits) > 0.5).long()
+            predicted_class = (torch.sigmoid(logits) > 0.5).int()
             return logits, loss, predicted_class
         return logits, loss
 
     # Calculate the metrics
     # TODO
     def validation_step(self, batch, batch_idx):
-        y_true = batch[1]
         logits, loss = self.predict(batch)
+        # print(logits.shape, y_true.shape, loss.shape)
         self.log("val_loss", loss)
         # Update all metrics with the current batch
+        y_true = batch[1].int().unsqueeze(0)
         for metric in self.metrics:
             metric.update(logits, y_true)
 
@@ -82,7 +83,7 @@ class MTTProbe(L.LightningModule):
             self.log(f"val-{metric.name}", metric.compute())
 
     def test_step(self, batch, batch_idx):
-        y_true = batch[1]
+        y_true = batch[1].int()
         logits, _ = self.predict(batch)
         # Update all metrics with the current batch
         for metric in self.metrics:
@@ -94,4 +95,5 @@ class MTTProbe(L.LightningModule):
             self.log(f"test-{metric.name}", metric.compute())
 
     def configure_optimizers(self):
+        # TODO take lr from construction
         return torch.optim.Adam(self.parameters(), lr=1e-3)
