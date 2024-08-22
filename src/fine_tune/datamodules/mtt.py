@@ -11,7 +11,8 @@ class MTTEmbeddingLoadingDataset(Dataset):
 
     def __init__(
         self,
-        data_dir: Path,
+        embeddings_dir: Path,
+        gt_path: Path,
         filelist: Path,
         layer_aggregation: str,
         granularity: str,
@@ -24,24 +25,35 @@ class MTTEmbeddingLoadingDataset(Dataset):
         assert mode in ["train", "val", "test"], "Mode not recognized."
         self.mode = mode
 
-        self.data_dir = data_dir
+        self.embeddings_dir = embeddings_dir
 
-        # Filter out files that embeddings were not extracted
+        # TODO: i can not do it more elegantly for some linux reason
+        # line.strip() returns empty string
+        print("Getting the partition files...")
+        self.filelist = []
         with open(filelist, "r") as f:
-            self.filelist = [data_dir / f"{line.rstrip()}.pt" for line in f.readlines()]
+            for line in f:
+                self.filelist.append(
+                    self.embeddings_dir / line[:3] / f"{line.replace('\n', '')}.pt"
+                )
+        # print(self.filelist[0]) # TODO: this does not work on linux
         assert len(self.filelist) > 0, "No files found in the filelist."
         print(f"{len(self.filelist):,} files found.")
+
+        print("Checking if embeddings exist...")
         self.filelist = [filepath for filepath in self.filelist if filepath.exists()]
         assert len(self.filelist) > 0, "No embeddings found."
         print(f"{len(self.filelist):,} embeddings found.")
         file_names = set([filepath.stem for filepath in self.filelist])
 
         # Load labels and filter out rows that do not have embeddings
-        self.annotations_path = data_dir / "metadata" / "annotations_final.csv"
+        # self.annotations_path = embeddings_dir / "metadata" / "annotations_final.csv"
+        self.annotations_path = gt_path
         annotations_clean = []
         with open(self.annotations_path) as in_f:
             labels = csv.reader(in_f, delimiter="\t")
-            for row in labels[1:]:  # skip header row
+            next(labels)  # skip header
+            for row in labels:
                 if row[-1].split("/")[-1].split(".")[0] in file_names:
                     row = row[1:-1]  # skip track id and track path
                     row = torch.tensor([int(i) for i in row])  # convert str to int
@@ -137,7 +149,8 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
 
     def __init__(
         self,
-        data_dir: Path,
+        embeddings_dir: Path,
+        gt_path: Path,
         train_filelist: Path,
         val_filelist: Path,
         test_filelist: Path,
@@ -148,7 +161,8 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
         time_aggregation: str,
     ):
         super().__init__()
-        self.data_dir = data_dir
+        self.embeddings_dir = embeddings_dir
+        self.gt_path = gt_path
         self.train_filelist = train_filelist
         self.val_filelist = val_filelist
         self.test_filelist = test_filelist
@@ -161,7 +175,8 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
     def setup(self, stage: str):
         print("Setting up Train dataset...")
         self.train_dataset = MTTEmbeddingLoadingDataset(
-            self.data_dir,
+            self.embeddings_dir,
+            self.gt_path,
             self.train_filelist,
             self.layer_aggregation,
             self.granularity,
@@ -170,7 +185,8 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
         )
         print("Setting up Validation dataset...")
         self.val_dataset = MTTEmbeddingLoadingDataset(
-            self.data_dir,
+            self.embeddings_dir,
+            self.gt_path,
             self.val_filelist,
             self.layer_aggregation,
             self.granularity,
@@ -179,7 +195,8 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
         )
         print("Setting up the Test dataset...")
         self.test_dataset = MTTEmbeddingLoadingDataset(
-            self.data_dir,
+            self.embeddings_dir,
+            self.gt_path,
             self.test_filelist,
             self.layer_aggregation,
             self.granularity,
