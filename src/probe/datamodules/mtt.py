@@ -64,6 +64,12 @@ class MTTEmbeddingLoadingDataset(Dataset):
         print(f"{len(self.filelist):,} embeddings found.")
         file_names = set([filepath.stem for filepath in self.filelist])
 
+        # Load all embeddings to memory
+        print("Loading all embeddings to memory...")
+        self.embeddings = torch.stack(
+            [torch.load(filepath) for filepath in self.filelist]
+        )
+
         # Load labels and filter out rows that do not have embeddings
         annotations_clean = []
         with open(self.annotations_path) as in_f:
@@ -89,7 +95,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
         to be 4D (L, N, T, F) and labels to be 1D."""
 
         # Load embeddings
-        embeddings = torch.load(self.filelist[idx])
+        embeddings = self.embeddings[idx]
         assert embeddings.ndim == 4, "Embeddings should be 4D."
         L, N, T, F = embeddings.shape
 
