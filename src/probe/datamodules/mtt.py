@@ -97,6 +97,10 @@ class MTTEmbeddingLoadingDataset(Dataset):
         # Load embeddings
         embeddings = self.embeddings[idx]
         assert embeddings.ndim == 4, "Embeddings should be 4D."
+
+        # Load labels
+        labels = self.labels[idx]  # (C, )
+
         L, N, T, F = embeddings.shape
 
         # Aggregate embeddings through layers (L, N, T, F) -> (N, T, F)
@@ -126,9 +130,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
             elif self.time_aggregation == "max":
                 embeddings = embeddings.max(dim=(0, 1)).unsqueeze(0)  # (1, F)
-
-        # Load labels
-        labels = self.labels[idx]  # (C, )
 
         return embeddings, labels
 
