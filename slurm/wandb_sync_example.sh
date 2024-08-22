@@ -32,6 +32,3 @@ cp -r wandb_all/latest-run wandb/
 # sync logs on wandb/
 wandb sync --sync-all wandb/
 
-
-
-
