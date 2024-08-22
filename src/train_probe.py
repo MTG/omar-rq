@@ -60,20 +60,24 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    trainer = Trainer(gpus=1, max_epochs=2)
+    trainer = Trainer(max_epochs=2)
 
     datamodule = MTTEmbeddingLoadingDataModule(
-        "/gpfs/projects/upf97/embeddings/cy1uafdv/magnatagatune/",
-        "/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt",
-        "/home/upf/upf455198/ssl-mtg/data/magnatagatune/val.txt",
-        "/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt",
+        Path("/gpfs/projects/upf97/embeddings/cy1uafdv/magnatagatune/"),
+        Path(
+            "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/annotations_final.csv"
+        ),
+        Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt"),
+        Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/validation.txt"),
+        Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt"),
         64,
         20,
         "mean",
         "chunk",
         "mean",
     )
-    module = MTTProbe(None, 768, len(datamodule.train_dataset.labels[0]))
+    module = MTTProbe(None, 768, 188)
+    # len(datamodule.train_dataset.labels[0])
 
     trainer.fit(model=module, datamodule=datamodule)
 
