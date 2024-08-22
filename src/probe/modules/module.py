@@ -92,4 +92,4 @@ class MTTProbe(L.LightningModule):
 
     def configure_optimizers(self):
         # TODO take lr from construction
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        return torch.optim.Adam(self.parameters(), lr=1e-4)
