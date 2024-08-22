@@ -141,7 +141,13 @@ class MTTEmbeddingLoadingDataset(Dataset):
     def collate_fn_val_test(items):
         """Collate function to pack embeddings and labels for validation and testing."""
         embeddings, labels = zip(*items)
-        return embeddings[0], labels[0]  # .unsqueeze(0)
+        assert (
+            len(embeddings) == 1
+        ), "Validation and testing should have one track at a time."
+        assert (
+            len(labels) == 1
+        ), "Validation and testing should have one track at a time."
+        return embeddings[0], labels[0].unsqueeze(0)
 
 
 class MTTEmbeddingLoadingDataModule(L.LightningDataModule):

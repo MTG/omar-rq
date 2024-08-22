@@ -60,7 +60,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    trainer = Trainer(max_epochs=2)
+    trainer = Trainer(
+        accelerator="gpu",
+        devices=1,
+        # max_steps=10,
+        limit_train_batches=5,
+        limit_val_batches=10,
+        max_epochs=2,
+        # strategy="ddp_find_unused_parameters_true",
+        # precision="bf16-mixed",
+        num_sanity_val_steps=0,
+    )
 
     datamodule = MTTEmbeddingLoadingDataModule(
         Path("/gpfs/projects/upf97/embeddings/cy1uafdv/magnatagatune/"),
@@ -71,7 +81,7 @@ if __name__ == "__main__":
         Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/validation.txt"),
         Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt"),
         64,
-        20,
+        0,
         "mean",
         "chunk",
         "mean",
@@ -80,6 +90,8 @@ if __name__ == "__main__":
     # len(datamodule.train_dataset.labels[0])
 
     trainer.fit(model=module, datamodule=datamodule)
+
+    trainer.test(model=module, datamodule=datamodule)
 
     # try:
     #     gin.parse_config_file(args.gin_config)

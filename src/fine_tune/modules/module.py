@@ -22,10 +22,12 @@ class MTTProbe(L.LightningModule):
         # TODO sigmoid or not?
         self.criterion = nn.BCEWithLogitsLoss()
         # TODO metrics fixed or with gin?
-        self.metrics = [
-            MultilabelAUROC(num_labels=num_labels, average="macro"),
-            MultilabelAveragePrecision(num_labels=num_labels, average="macro"),
-        ]
+        self.metrics = {
+            "AUROC-macro": MultilabelAUROC(num_labels=num_labels, average="macro"),
+            "MAP-macro": MultilabelAveragePrecision(
+                num_labels=num_labels, average="macro"
+            ),
+        }
 
     def forward(self, x):
         # (B, F) -> (B, num_labels)
@@ -47,11 +49,8 @@ class MTTProbe(L.LightningModule):
         contain all the chunks of a single track."""
 
         x, y_true = batch
-        assert y_true.ndim == 1, "A batch should contain a single track"
-        assert len(y_true) == self.num_labels, "y_true should have num_labels elements"
+        assert y_true.shape[0] == 1, "A batch should contain a single track"
         assert x.ndim == 2, "input should be 2D tensor of chunks"
-
-        y_true = y_true.unsqueeze(0)  # (1, num_labels)
 
         # process each chunk separately
         logits = self.forward(x)  # (n_chunks, num_labels)
@@ -59,7 +58,6 @@ class MTTProbe(L.LightningModule):
         logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
         # Calculate the loss for the track
         loss = self.criterion(logits, y_true)
-        print(logits.shape, y_true.shape, loss.shape, loss)
         self.log("val_loss", loss)
         if return_predicted_class:
             predicted_class = (torch.sigmoid(logits) > 0.5).int()
@@ -67,32 +65,30 @@ class MTTProbe(L.LightningModule):
         return logits, loss
 
     # Calculate the metrics
-    # TODO
     def validation_step(self, batch, batch_idx):
         logits, loss = self.predict(batch)
-        # print(logits.shape, y_true.shape, loss.shape)
         self.log("val_loss", loss)
         # Update all metrics with the current batch
-        y_true = batch[1].int().unsqueeze(0)
-        for metric in self.metrics:
+        y_true = batch[1].int()
+        for _, metric in self.metrics.items():
             metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
-        for metric in self.metrics:
-            self.log(f"val-{metric.name}", metric.compute())
+        for name, metric in self.metrics.items():
+            self.log(f"val-{name}", metric.compute())
 
     def test_step(self, batch, batch_idx):
-        y_true = batch[1].int()
         logits, _ = self.predict(batch)
         # Update all metrics with the current batch
-        for metric in self.metrics:
+        y_true = batch[1].int()
+        for _, metric in self.metrics.items():
             metric.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
-        for metric in self.metrics:
-            self.log(f"test-{metric.name}", metric.compute())
+        for name, metric in self.metrics.items():
+            self.log(f"test-{name}", metric.compute())
 
     def configure_optimizers(self):
         # TODO take lr from construction
