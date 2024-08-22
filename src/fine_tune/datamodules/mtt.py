@@ -56,7 +56,9 @@ class MTTEmbeddingLoadingDataset(Dataset):
             for row in labels:
                 if row[-1].split("/")[-1].split(".")[0] in file_names:
                     row = row[1:-1]  # skip track id and track path
-                    row = torch.tensor([int(i) for i in row])  # convert str to int
+                    row = torch.tensor(
+                        [float(i) for i in row]
+                    )  # convert str to float tensor
                     annotations_clean.append(row)
         self.labels = annotations_clean
         assert len(self.labels) == len(
@@ -132,7 +134,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
         """Collate function to pack embeddings and labels for training."""
         embeddings, labels = zip(*items)
         embeddings = torch.cat(embeddings)
-        labels = torch.cat(labels)
+        labels = torch.stack(labels)
         return embeddings, labels
 
     @staticmethod
