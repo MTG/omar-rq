@@ -85,10 +85,8 @@ class MTTEmbeddingLoadingDataset(Dataset):
         return len(self.filelist)
 
     def __getitem__(self, idx):
-        """Load embeddings and labels for a given index.
-        Expects the embeddings to be 4D (L, N, T, F) and
-        labels to be 50D. TODO 50?
-        """
+        """Load embeddings and labels for a given index. Expects the embeddings
+        to be 4D (L, N, T, F) and labels to be 1D."""
 
         # Load embeddings
         embeddings = torch.load(self.filelist[idx])
@@ -205,30 +203,30 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             multiprocessing_context="spawn",  # TODO?
-            # persistent_workers=True,
-            # pin_memory=True,
+            persistent_workers=True,  # TODO?
+            # pin_memory=True,  # TODO?
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
-            batch_size=1,  # TODO??
+            batch_size=1,
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
-            # persistent_workers=True,
-            # pin_memory=True,
+            persistent_workers=True,  # TODO?
+            # pin_memory=True,  # TODO?
         )
 
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
-            batch_size=1,  # TODO??
+            batch_size=1,
             shuffle=False,
             num_workers=self.num_workers,
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
-            # persistent_workers=True,
-            # pin_memory=True,
+            persistent_workers=True,  # TODO?
+            # pin_memory=True,  # TODO?
         )
