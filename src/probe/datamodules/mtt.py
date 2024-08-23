@@ -48,12 +48,10 @@ class MTTEmbeddingLoadingDataset(Dataset):
 
         # TODO: i can not do it more elegantly for some linux reason
         # line.strip() returns empty string
-        self.filelist = []
-        with open(filelist, "r") as f:
-            for line in f:
-                self.filelist.append(
-                    self.embeddings_dir / line[:3] / f"{line.replace('\n', '')}.pt"
-                )
+        with open(filelist, "r") as in_f:
+            self.filelist = [
+                self.embeddings_dir / line[:3] / f"{line.strip()}.pt" for line in in_f
+            ]
         assert len(self.filelist) > 0, "No files found in the filelist."
         print(f"{len(self.filelist):,} files specified in the filelist.")
 
