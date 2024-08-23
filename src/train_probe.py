@@ -7,8 +7,7 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
-from probe.modules.module import MTTProbe
-from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
+from probe.magnatagatune import MTTProbe, MTTEmbeddingLoadingDataModule
 
 # TODO fix seed
 # TODO use gin
