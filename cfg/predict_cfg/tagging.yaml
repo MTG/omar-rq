@@ -11,7 +11,7 @@ splits:
 # Embedding extraction with the SSL model
 predict:
   audio:
-    file_format: mp3
+    file_format: "mp3"
     orig_freq: 16000
     new_freq: 16000
     mono: True
@@ -19,27 +19,32 @@ predict:
     num_workers: 20
   embedding_layer: [-1]
   device:
-    accelerator: gpu
+    accelerator: "gpu"
     devices: 1
-    precision: bf16-mixed # TODO read from train config
+    precision: "bf16-mixed" # TODO read from train config
 
 # Probe configuration
 probe:
+  wandb:
+    project: "magnatagatune"
+    offline: True
+    entity: "mtg-upf"
+    save_dir: "/gpfs/projects/upf97/logs/probe/"
   data_loader:
     batch_size: 256
     num_workers: 10
   embedding_processing:
-    layer_aggregation: mean
-    granularity: chunk
-    time_aggregation: mean
+    layer_aggregation: "mean"
+    granularity: "chunk"
+    time_aggregation: "mean"
   model:
     in_features: 768
     num_labels: 188
     hidden_size: 512
     num_layers: 2
-    activation: relu
+    activation: "relu"
   trainer:
-    accelerator: gpu
+    accelerator: "gpu"
     devices: 1
     log_every_n_steps: 10
     max_epochs: 20
