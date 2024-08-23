@@ -53,11 +53,6 @@ from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 if __name__ == "__main__":
 
     parser = ArgumentParser()
-    # parser.add_argument(
-    #     "embedding_dir",
-    #     type=Path,
-    #     help="Directory containing the embeddings extracted from the SSL model.",
-    # )
     parser.add_argument(
         "ssl_model_id",
         type=str,
@@ -68,11 +63,6 @@ if __name__ == "__main__":
         type=Path,
         help="Path to the gin config file for training.",
     )
-    # parser.add_argument(
-    #     "test_config",  # TODO
-    #     type=Path,
-    #     help="Path to the config file for the dataset.",
-    # )
 
     args = parser.parse_args()
 
@@ -100,8 +90,6 @@ if __name__ == "__main__":
 
     # Define the trainer
     trainer = Trainer(
-        # accelerator=test_config["probe"]["model"]["accelerator"],
-        # devices=test_config["probe"]["model"]["devices"],
         **test_config["probe"]["device"],
         # max_steps=10,
         log_every_n_steps=10,
