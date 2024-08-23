@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import yaml
 from pathlib import Path
 import traceback
 
@@ -52,46 +53,60 @@ from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 if __name__ == "__main__":
 
     parser = ArgumentParser()
+    # parser.add_argument(
+    #     "embedding_dir",
+    #     type=Path,
+    #     help="Directory containing the embeddings extracted from the SSL model.",
+    # )
+    parser.add_argument(
+        "ssl_model_id",
+        type=str,
+        help="ID of the SSL model used to extract the embeddings.",
+    )
     parser.add_argument(
         "train_config",
         type=Path,
         help="Path to the gin config file for training.",
     )
     parser.add_argument(
-        "test_config",
+        "test_config",  # TODO
         type=Path,
-        help="Path to the config file for the embeddings.",
-    )
-    parser.add_argument(
-        "ssl_model_id",
-        type=str,
-        help="The Wandb ID of the SSL model used to extract embeddings.",
+        help="Path to the config file for the dataset.",
     )
 
     args = parser.parse_args()
 
-    datamodule = MTTEmbeddingLoadingDataModule(
-        Path("/gpfs/scratch/upf97/embeddings/cy1uafdv/magnatagatune/"),
-        Path(
-            "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/annotations_final.csv"
-        ),
-        Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt"),
-        Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/validation.txt"),
-        Path("/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt"),
-        256,
-        20,
-        "mean",
-        "chunk",
-        "mean",
+    with open(args.test_config, "r") as in_f:
+        test_config = yaml.safe_load(in_f)
+
+    # We save the embeddings in <output_dir>/<model_id><dataset_name>/
+    embedding_dir = (
+        Path(test_config["output_dir"])
+        / args.ssl_model_id
+        / test_config["dataset_name"]
     )
 
-    # Build the module
-    module = MTTProbe(None, 768, 188)
+    # Build the datamodule
+    datamodule = MTTEmbeddingLoadingDataModule(
+        embedding_dir,
+        Path(test_config["data_dir"]) / "metadata" / "annotations_final.csv",
+        **test_config["splits"],
+        **test_config["probe"]["data_loader"],
+        **test_config["probe"]["embedding_processing"],
+    )
+
+    # Build the module # TODO: provide a net
+    module = MTTProbe(
+        None,
+        test_config["probe"]["model"]["embedding_size"],
+        test_config["probe"]["model"]["num_classes"],
+    )
 
     # Define the trainer
     trainer = Trainer(
-        accelerator="gpu",
-        devices=1,
+        # accelerator=test_config["probe"]["model"]["accelerator"],
+        # devices=test_config["probe"]["model"]["devices"],
+        **test_config["probe"]["model"]["device"],
         # max_steps=10,
         log_every_n_steps=10,
         # limit_train_batches=2,

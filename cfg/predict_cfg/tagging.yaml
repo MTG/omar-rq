@@ -1,6 +1,11 @@
 dataset_name: magnatagatune
-data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/
+data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/ # audio dir
 output_dir: /gpfs/scratch/upf97/embeddings/
+
+splits:
+  train_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt"
+  val_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/validation.txt"
+  test_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt"
 
 # Embedding extraction with the SSL model
 predict:
@@ -18,26 +23,27 @@ predict:
     precision: bf16-mixed # TODO read from train config
 
 # Probe configuration
-probe_model:
+probe:
   dataloader:
-    batch_size: 64
+    batch_size: 256
     num_workers: 20
-    half_precision: True
-    num_classes: 50
-    num_features: 128
-  embedding_aggregation:
-    pooling: mean
+  embedding_processing:
+    layer_aggregation: mean
+    granularity: chunk
+    time_aggregation: mean
   model:
     num_layers: 3
     hidden_size: 512
     dropout: 0.5
-    pooling: mean
-    embedding_size: 128
+    # pooling: mean
+    embedding_size: 768
+    num_classes: 188
+    # num_features: 128
     device:
       accelerator: gpu
       devices: 1
 
-# Evaluation metrics for the task
-metrics:
-  - map_per_class
-  - roc_auc_per_class
+# # Evaluation metrics for the task
+# metrics:
+#   - map_per_class
+#   - roc_auc_per_class
