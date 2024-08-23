@@ -27,7 +27,7 @@ predict:
 probe:
   data_loader:
     batch_size: 256
-    num_workers: 20
+    num_workers: 10
   embedding_processing:
     layer_aggregation: mean
     granularity: chunk
@@ -38,9 +38,12 @@ probe:
     hidden_size: 512
     num_layers: 2
     activation: relu
-  device:
+  trainer:
     accelerator: gpu
     devices: 1
+    log_every_n_steps: 10
+    max_epochs: 20
+    num_sanity_val_steps: 0
 
 # # Evaluation metrics for the task
 # metrics:
