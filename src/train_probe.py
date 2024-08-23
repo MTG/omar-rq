@@ -7,8 +7,6 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
-from probe.magnatagatune import MTTProbe, MTTEmbeddingLoadingDataModule
-
 # TODO fix seed
 # TODO use gin
 
@@ -30,25 +28,33 @@ if __name__ == "__main__":
 
     with open(args.config, "r") as in_f:
         config = yaml.safe_load(in_f)
+    dataset_name = config["dataset_name"]
 
     try:
 
-        # We save the embeddings in <output_dir>/<model_id><dataset_name>/
-        embedding_dir = (
-            Path(config["output_dir"]) / args.ssl_model_id / config["dataset_name"]
-        )
+        if dataset_name == "magnatagatune":
 
-        # Build the datamodule
-        datamodule = MTTEmbeddingLoadingDataModule(
-            embedding_dir,
-            config["gt_path"],
-            **config["splits"],
-            **config["probe"]["data_loader"],
-            **config["probe"]["embedding_processing"],
-        )
+            from probe.magnatagatune import MTTProbe, MTTEmbeddingLoadingDataModule
 
-        # Build the module # TODO: provide a net with gin
-        module = MTTProbe(**config["probe"]["model"])
+            # We save the embeddings in <output_dir>/<model_id><dataset_name>/
+            embedding_dir = (
+                Path(config["output_dir"]) / args.ssl_model_id / dataset_name
+            )
+
+            # Build the datamodule
+            datamodule = MTTEmbeddingLoadingDataModule(
+                embedding_dir,
+                config["gt_path"],
+                **config["splits"],
+                **config["probe"]["data_loader"],
+                **config["probe"]["embedding_processing"],
+            )
+
+            # Build the module # TODO: provide a net with gin
+            module = MTTProbe(**config["probe"]["model"])
+
+        else:
+            raise ValueError(f"Unknown dataset: {dataset_name}")
 
         # Define the logger
         wandb_logger = WandbLogger(**config["probe"]["wandb_params"])
