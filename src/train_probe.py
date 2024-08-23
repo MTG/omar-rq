@@ -13,7 +13,6 @@ from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 # TODO fix seed
 # TODO use a function
 # TODO use gin
-# TODO use wandb
 
 if __name__ == "__main__":
 
@@ -55,8 +54,12 @@ if __name__ == "__main__":
         # Build the module # TODO: provide a net
         module = MTTProbe(**test_config["probe"]["model"])
 
+        # Define the logger
+        wandb_logger = WandbLogger(**test_config["probe"]["wandb_params"])
+        wandb_logger.log_hyperparams(test_config)
+
         # Define the trainer
-        trainer = Trainer(**test_config["probe"]["trainer"])
+        trainer = Trainer(logger=wandb_logger, **test_config["probe"]["trainer"])
 
         # Train the probe
         trainer.fit(model=module, datamodule=datamodule)

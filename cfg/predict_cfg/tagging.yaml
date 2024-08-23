@@ -25,7 +25,7 @@ predict:
 
 # Probe configuration
 probe:
-  wandb:
+  wandb_params:
     project: "magnatagatune"
     offline: True
     entity: "mtg-upf"
@@ -49,8 +49,3 @@ probe:
     log_every_n_steps: 10
     max_epochs: 20
     num_sanity_val_steps: 0
-
-# # Evaluation metrics for the task
-# metrics:
-#   - map_per_class
-#   - roc_auc_per_class
