@@ -31,16 +31,15 @@ class MTTProbe(L.LightningModule):
         self.lr = lr
 
         # TODO create the probe with gin
-        bias = True
         layers = []
         for i in range(num_layers):
             if i == num_layers - 1:
                 hidden_size = num_labels
-                bias = False
 
-            layers.append(nn.Linear(in_features, hidden_size, bias=bias))
+            # TODO: bias? WD?
+            layers.append(nn.Linear(in_features, hidden_size))
 
-            # Choose the activation # TODO: before or after?
+            # Choose the activation
             if activation.lower() == "relu":
                 layers.append(nn.ReLU())
             elif activation.lower() == "sigmoid":
@@ -54,7 +53,6 @@ class MTTProbe(L.LightningModule):
 
         # TODO sigmoid or not?
         self.criterion = nn.BCEWithLogitsLoss()
-        # TODO metrics fixed or with gin?
         self.metrics = {
             "AUROC-macro": MultilabelAUROC(num_labels=num_labels, average="macro"),
             "MAP-macro": MultilabelAveragePrecision(
@@ -124,5 +122,4 @@ class MTTProbe(L.LightningModule):
             self.log(f"test-{name}", metric.compute())
 
     def configure_optimizers(self):
-        # TODO take lr from construction
         return torch.optim.Adam(self.parameters(), lr=self.lr)

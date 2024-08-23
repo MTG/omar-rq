@@ -1,14 +1,24 @@
-from argparse import ArgumentParser
-import yaml
-from pathlib import Path
-import traceback
+""" This script is the main training and evaluation script for training a probe on 
+a downstream task. It expects pre-extracted embeddings from a self-supervised model 
+and a config file for the downstream task. The config file should contain the details
+of the dataset and the parameters of the probe. The script will train the probe on the
+embeddings and evaluate it on the corresponding downstream task.
 
-import pytorch_lightning as L
+# TODO use top 50 tags from MTT
+# TODO fix seed
+# TODO use gin for the probe
+# TODO use gin for the dataset
+# TODO load best ckpt for test
+# TODO why does it take 5 minutes to start training?
+"""
+
+import yaml
+import traceback
+from pathlib import Path
+from argparse import ArgumentParser
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-
-# TODO fix seed
-# TODO use gin
 
 if __name__ == "__main__":
 
