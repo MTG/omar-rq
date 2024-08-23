@@ -76,7 +76,7 @@ if __name__ == "__main__":
         # Train the probe
         trainer.fit(model=module, datamodule=datamodule)
 
-        # Test the best probe # TODO: how does it determine the best?
+        # Test the best probe
         trainer.test(datamodule=datamodule, ckpt_path="best")
 
     except Exception:
