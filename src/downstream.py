@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
             from probe.magnatagatune import MTTProbe, MTTEmbeddingLoadingDataModule
 
-            # We save the embeddings in <output_dir>/<model_id><dataset_name>/
+            # We saved the embeddings in <output_dir>/<model_id><dataset_name>/
             embedding_dir = (
                 Path(config["output_dir"]) / args.ssl_model_id / dataset_name
             )
