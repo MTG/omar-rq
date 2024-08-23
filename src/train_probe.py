@@ -47,7 +47,7 @@ if __name__ == "__main__":
             **config["probe"]["embedding_processing"],
         )
 
-        # Build the module # TODO: provide a net
+        # Build the module # TODO: provide a net with gin
         module = MTTProbe(**config["probe"]["model"])
 
         # Define the logger
