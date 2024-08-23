@@ -33,15 +33,15 @@ probe:
     time_aggregation: mean
   model:
     num_layers: 3
-    hidden_size: 512
-    dropout: 0.5
+    activation: relu
+    # hidden_size: 512
+    # dropout: 0.5
     # pooling: mean
     embedding_size: 768
-    num_classes: 188
-    # num_features: 128
-    device:
-      accelerator: gpu
-      devices: 1
+    num_labels: 188
+  device:
+    accelerator: gpu
+    devices: 1
 
 # # Evaluation metrics for the task
 # metrics:

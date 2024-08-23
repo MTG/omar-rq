@@ -96,17 +96,13 @@ if __name__ == "__main__":
     )
 
     # Build the module # TODO: provide a net
-    module = MTTProbe(
-        None,
-        test_config["probe"]["model"]["embedding_size"],
-        test_config["probe"]["model"]["num_classes"],
-    )
+    module = MTTProbe(**test_config["probe"]["model"])
 
     # Define the trainer
     trainer = Trainer(
         # accelerator=test_config["probe"]["model"]["accelerator"],
         # devices=test_config["probe"]["model"]["devices"],
-        **test_config["probe"]["model"]["device"],
+        **test_config["probe"]["device"],
         # max_steps=10,
         log_every_n_steps=10,
         # limit_train_batches=2,

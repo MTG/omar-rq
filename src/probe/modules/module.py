@@ -13,12 +13,28 @@ class MTTProbe(L.LightningModule):
     classification. The AUROC and Average Precision are used as metrics.
     """
 
-    def __init__(self, model, in_features, num_labels):
+    def __init__(self, num_layers, activation, in_features, num_labels):
         super(MTTProbe, self).__init__()
+
         self.num_labels = num_labels
-        # TODO create the probe with gin?
-        # self.model = model
-        self.model = nn.Linear(in_features, num_labels, bias=False)
+        self.activation = activation
+        self.in_features = in_features
+        self.num_layers = num_layers
+
+        # TODO create the probe with gin
+        self.model = []
+        for _ in range(num_layers):
+            if activation == "relu":
+                self.model.append(nn.ReLU())
+            elif activation == "sigmoid":
+                self.model.append(nn.Sigmoid())
+            else:
+                # TODO: more later
+                raise ValueError(f"Unknown activation function: {activation}")
+            self.model.append(nn.Linear(in_features, num_labels, bias=False))
+            in_features = num_labels
+        self.model = nn.Sequential(*self.model)
+
         # TODO sigmoid or not?
         self.criterion = nn.BCEWithLogitsLoss()
         # TODO metrics fixed or with gin?
