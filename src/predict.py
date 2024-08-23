@@ -11,8 +11,8 @@ from data import DATASETS
 from modules import MODULES
 from nets import NETS
 from utils import build_module
-from predict.callbacks import EmbeddingWriter
-from predict.dataset import AudioEmbeddingDataModule
+from prediction.callbacks import EmbeddingWriter
+from prediction.dataset import AudioEmbeddingDataModule
 
 # Register all modules, datasets and networs with gin
 for module_name, module in MODULES.items():
