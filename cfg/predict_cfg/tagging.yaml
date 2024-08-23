@@ -25,7 +25,7 @@ predict:
 
 # Probe configuration
 probe:
-  dataloader:
+  data_loader:
     batch_size: 256
     num_workers: 20
   embedding_processing:
@@ -33,13 +33,11 @@ probe:
     granularity: chunk
     time_aggregation: mean
   model:
-    num_layers: 3
-    activation: relu
-    # hidden_size: 512
-    # dropout: 0.5
-    # pooling: mean
-    embedding_size: 768
+    in_features: 768
     num_labels: 188
+    hidden_size: 512
+    num_layers: 2
+    activation: relu
   device:
     accelerator: gpu
     devices: 1
