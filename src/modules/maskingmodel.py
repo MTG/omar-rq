@@ -202,32 +202,59 @@ class MaskingModel(L.LightningModule):
         return masked_spec, mask.to(patches.device)
 
     def random_masking(self, patches):
-        B, num_patches, patch_size = patches.shape
+        """Apply random masking to the input patches.
+
+        The masking is applied so that the same number of patches are masked for every element in the batch.
+        This allows keeping an uniform batch size when discarding the masked patches forfeeding the model.
+        """
+
+        B, n_patches, _ = patches.shape
         mx = patches.clone()
 
-        len_masking_spec_frames = math.ceil(
-            self.mask_seconds * self.sr / self.hop_length
-        )
-        windows_tokens = (
-            len_masking_spec_frames
-            // self.patch_size[1]
-            * (self.n_mel // self.patch_size[0])
+        # Number of frames in self.mask_seconds
+        frames_per_mask = math.ceil(self.mask_seconds * self.sr / self.hop_length)
+
+        # Number of patches in self.mask_seconds
+        patches_per_mask = (
+            frames_per_mask // self.patch_size[1] * (self.n_mel // self.patch_size[0])
         )
 
-        # Generate random mask indices
-        start_indices = (
-            torch.rand(B, math.ceil(num_patches / windows_tokens)) < self.mask_prob
+        # Number of self.mask_seconds regions available in the input patches
+        # Skip the tailing patches for now
+        n_regions = math.floor(n_patches / patches_per_mask)
+
+        # Get the number of regions to mask
+        nm_regions = int(n_regions * self.mask_prob)
+
+        # Init the mask
+        start_indices = torch.zeros(B, n_regions)
+
+        # Get the index of the masked regions
+        im_regions = torch.multinomial(
+            torch.ones_like(start_indices),
+            num_samples=nm_regions,
+            replacement=False,
         )
-        mask = start_indices.repeat_interleave(windows_tokens, dim=1)
+
+        for i in range(B):
+            start_indices[i, im_regions[i]] = 1
+
+        # Add last index if there are remaining patches (these will never get masked).
+        if float(n_patches) / patches_per_mask > 0:
+            start_indices = torch.cat([start_indices, torch.zeros(B, 1)], dim=1)
+
+        start_indices = start_indices.bool()
+
+        mask = start_indices.repeat_interleave(patches_per_mask, dim=1)
 
         # Trim mask to fit the number of patches
-        if mask.size(1) > num_patches:
-            mask = mask[:, :num_patches]
+        if mask.size(1) > n_patches:
+            mask = mask[:, :n_patches]
 
-        # Mask with random values
+        # Mask with random values (0 mean and 0.1 std)
         masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(
             patches.device
-        )  # 0 mean 0.1 std
+        )
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
         # tensor 1 x N repeat to 16 x N
