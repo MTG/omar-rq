@@ -2,7 +2,6 @@ import gin
 import torch
 from torch import nn
 import pytorch_lightning as L
-from torchmetrics import MetricCollection
 from torchmetrics.classification import MultilabelAveragePrecision, MultilabelAUROC
 
 
@@ -55,22 +54,32 @@ class MTTProbe(L.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
 
         # Initialize the metrics
-        metrics = MetricCollection(
-            [
-                MultilabelAUROC(num_labels=num_labels, average="macro"),
-                MultilabelAveragePrecision(num_labels=num_labels, average="macro"),
-            ],
-            postfix="-macro",
+        self.val_metrics = nn.ModuleDict(
+            {
+                "val-AUROC-macro": MultilabelAUROC(
+                    num_labels=num_labels, average="macro"
+                ),
+                "val-MAP-macro": MultilabelAveragePrecision(
+                    num_labels=num_labels, average="macro"
+                ),
+            }
         )
-        self.val_metrics = metrics.clone(prefix="val-")
-        self.test_metrics = metrics.clone(prefix="test-")
+        self.test_metrics = nn.ModuleDict(
+            {
+                "test-AUROC-macro": MultilabelAUROC(
+                    num_labels=num_labels, average="macro"
+                ),
+                "test-MAP-macro": MultilabelAveragePrecision(
+                    num_labels=num_labels, average="macro"
+                ),
+            }
+        )
 
     def forward(self, x):
         # (B, F) -> (B, num_labels)
         logits = self.model(x)
         return logits
 
-    # TODO log train metrics just in case
     def training_step(self, batch, batch_idx):
         """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
         each chunk may com from another track."""
@@ -104,30 +113,27 @@ class MTTProbe(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         logits, loss = self.predict(batch)
         self.log("val_loss", loss)
-        y_true = batch[1].int()
         # Update all metrics with the current batch
-        output = self.val_metrics(logits, y_true)
-        self.log_dict(output)
+        y_true = batch[1].int()
+        for metric in self.val_metrics.values():
+            metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
-        output = self.val_metrics.compute()
-        self.log_dict(output)
-        self.val_metrics.reset()
+        for name, metric in self.val_metrics.items():
+            self.log(name, metric, on_epoch=True)
 
-    # TODO log test loss just in case
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
-        y_true = batch[1].int()
         # Update all metrics with the current batch
-        output = self.test_metrics(logits, y_true)
-        self.log_dict(output)
+        y_true = batch[1].int()
+        for metric in self.test_metrics.values():
+            metric.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
-        output = self.test_metrics.compute()
-        self.log_dict(output)
-        self.test_metrics.reset()
+        for name, metric in self.test_metrics.items():
+            self.log(name, metric, on_epoch=True)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
