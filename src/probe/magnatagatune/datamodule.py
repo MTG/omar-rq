@@ -50,8 +50,10 @@ class MTTEmbeddingLoadingDataset(Dataset):
         # Load the filelist of the partition
         with open(filelist, "r") as in_f:
             self.filelist = [
-                self.embeddings_dir / line[:3] / f"{line.strip()}.pt" for line in in_f
-            ]
+            embeddings_dir
+            / filename.split("\t")[1].split("/")[1].replace(".mp3", ".pt")
+            for filename in self.filelist
+        ]
         assert len(self.filelist) > 0, "No files found in the filelist."
         print(f"{len(self.filelist):,} files specified in the filelist.")
 
