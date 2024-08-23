@@ -1,5 +1,6 @@
-import csv
 from pathlib import Path
+
+import numpy as np
 
 import torch
 import pytorch_lightning as L
@@ -39,56 +40,34 @@ class MTTEmbeddingLoadingDataset(Dataset):
             "max",
         ], "Time aggregation not recognized."
 
-        self.mode = mode
         self.embeddings_dir = embeddings_dir
-        self.annotations_path = gt_path
+        self.gt_path = gt_path
         self.layer_aggregation = layer_aggregation
         self.granularity = granularity
         self.time_aggregation = time_aggregation
+        self.mode = mode
         # self.normalize = normalize # TODO?
 
-        # Load the filelist of the partition
-        with open(filelist, "r") as in_f:
-            self.filelist = [
-            embeddings_dir
-            / filename.split("\t")[1].split("/")[1].replace(".mp3", ".pt")
-            for filename in self.filelist
-        ]
+        # Load the filelist of the partition and binarized labels from Minz et al. 2020
+        filelist = np.load(filelist)
+        full_dataset_labels = np.load(gt_path)
+
+        # Load the filelist and labels
+        self.filelist, self.labels = [], []
+        for filename in filelist:
+            ix, fn = filename.split("\t")
+            emb_name = fn.split("/")[1].replace(".mp3", ".pt")
+            emb_path = self.embeddings_dir / emb_name[:3] / emb_name
+            # If the embedding exists, add it to the filelist
+            if emb_path.exists():
+                binary_label = full_dataset_labels[int(ix)]
+                assert np.any(binary_label), "No labels found for the example."
+                self.filelist.append(emb_path)
+                self.labels.append(torch.tensor(binary_label))
         assert len(self.filelist) > 0, "No files found in the filelist."
         print(f"{len(self.filelist):,} files specified in the filelist.")
-
-        print("Checking if embeddings exist...")
-        self.filelist = [filepath for filepath in self.filelist if filepath.exists()]
-        assert len(self.filelist) > 0, "No embeddings found."
-        print(f"{len(self.filelist):,} embeddings found.")
-        file_names = set([filepath.stem for filepath in self.filelist])
-
-        # Load labels and filter out rows that do not have embeddings
-        print("Reading the labels...")
-        annotations_clean = []
-        with open(self.annotations_path) as in_f:
-            labels = csv.reader(in_f, delimiter="\t")
-            tags = next(labels)[1:-1]
-            for row in labels:
-                if row[-1].split("/")[-1].split(".")[0] in file_names:
-                    row = row[1:-1]  # skip track id and track path
-                    row = torch.tensor(
-                        [float(i) for i in row]
-                    )  # convert str to float tensor
-                    annotations_clean.append(row)
-        self.labels = torch.stack(annotations_clean)
-
-        # Keep only the Top50 labels
-        print("Keeping only the Top50 labels...")
-        _, indices = torch.topk(self.labels.sum(dim=0), 50, largest=True)
-        self.labels = self.labels[:, indices]
-        print(f"Top50 labels: {[tags[i] for i in indices]}")
-
-        # If an example's labels are all zeros, exclude it
-        print("Excluding examples without any labels...")
-        mask = self.labels.sum(dim=1) > 0
-        self.labels = self.labels[mask]
-        self.filelist = [self.filelist[i] for i in range(len(self.filelist)) if mask[i]]
+        self.labels = torch.stack(self.labels)
+        print(f"Labels shape: {self.labels.shape}.")
 
         # Load all embeddings to memory
         print("Loading the embeddings to memory and processing...")

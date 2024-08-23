@@ -1,12 +1,12 @@
 dataset_name: "magnatagatune"
 data_dir: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/" # audio dir
-gt_path: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/annotations_final.csv"
+gt_path: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/binary.npy"
 output_dir: "/gpfs/scratch/upf97/embeddings/" # TODO embeddings dir
 
 splits:
-  train_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt"
-  val_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/validation.txt"
-  test_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/test.txt"
+  train_filelist: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/train.npy"
+  val_filelist: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/valid.npy"
+  test_filelist: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/test.npy"
 
 # Embedding extraction with the SSL model
 predict:
