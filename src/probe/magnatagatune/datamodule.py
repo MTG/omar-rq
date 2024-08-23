@@ -92,7 +92,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
         # Load all embeddings to memory
         print("Loading the embeddings to memory...")
         self.embeddings = torch.stack(
-            [torch.load(filepath) for filepath in self.filelist]
+            [self.prepare_embedding(torch.load(filepath)) for filepath in self.filelist]
         )
         assert len(self.labels) == len(
             self.embeddings
@@ -102,16 +102,21 @@ class MTTEmbeddingLoadingDataset(Dataset):
         return len(self.filelist)
 
     def __getitem__(self, idx):
-        """Load embeddings and labels for a given index. Expects the embeddings
-        to be 4D (L, N, T, F) and labels to be 1D."""
+        """Loads the labels and the processed embeddings for a given index."""
 
-        # Load embeddings
-        embeddings = self.embeddings[idx]
+        embeddings = self.embeddings[idx]  # (N, F)
+        if self.mode == "train":  # If training, get a random chunk
+            N = embeddings.size(0)
+            embeddings = embeddings[torch.randint(0, N, ())]  # (F, )
+        labels = self.labels[idx]  # (C, )
+
+        return embeddings, labels
+
+    def prepare_embedding(self, embeddings):
+        """Prepare embeddings for training. Expects the embeddings to be 4D (L, N, T, F)."""
+
         assert embeddings.ndim == 4, "Embeddings should be 4D."
         L, N, T, F = embeddings.shape
-
-        # Load labels
-        labels = self.labels[idx]  # (C, )
 
         # Aggregate embeddings through layers (L, N, T, F) -> (N, T, F)
         if self.layer_aggregation == "mean":
@@ -135,16 +140,13 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.mean(dim=1)  # (N, F)
             elif self.time_aggregation == "max":
                 embeddings = embeddings.max(dim=1)  # (N, F)
-            # If training, get a random chunk
-            if self.mode == "train":
-                embeddings = embeddings[torch.randint(0, N, ())]  # (F, )
         else:
             if self.time_aggregation == "mean":
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
             elif self.time_aggregation == "max":
                 embeddings = embeddings.max(dim=(0, 1)).unsqueeze(0)  # (1, F)
 
-        return embeddings, labels
+        return embeddings
 
 
 def collate_fn_val_test(items):
