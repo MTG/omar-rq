@@ -51,11 +51,18 @@ class MTTProbe(L.LightningModule):
             in_features = hidden_size
         self.model = nn.Sequential(*layers)
 
-        # TODO sigmoid or not?
-        self.criterion = nn.BCEWithLogitsLoss()
-        self.metrics = {
-            "AUROC-macro": MultilabelAUROC(num_labels=num_labels, average="macro"),
-            "MAP-macro": MultilabelAveragePrecision(
+        self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
+
+        # Initialize the metrics
+        self.val_metrics = {
+            "val-AUROC-macro": MultilabelAUROC(num_labels=num_labels, average="macro"),
+            "val-MAP-macro": MultilabelAveragePrecision(
+                num_labels=num_labels, average="macro"
+            ),
+        }
+        self.test_metrics = {
+            "test-AUROC-macro": MultilabelAUROC(num_labels=num_labels, average="macro"),
+            "test-MAP-macro": MultilabelAveragePrecision(
                 num_labels=num_labels, average="macro"
             ),
         }
@@ -100,25 +107,25 @@ class MTTProbe(L.LightningModule):
         self.log("val_loss", loss)
         # Update all metrics with the current batch
         y_true = batch[1].int()
-        for _, metric in self.metrics.items():
+        for metric in self.val_metrics.values():
             metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
-        for name, metric in self.metrics.items():
-            self.log(f"val-{name}", metric.compute())
+        for name, metric in self.val_metrics.items():
+            self.log(name, metric.compute())
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
         # Update all metrics with the current batch
         y_true = batch[1].int()
-        for _, metric in self.metrics.items():
+        for metric in self.test_metrics.values():
             metric.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
-        for name, metric in self.metrics.items():
-            self.log(f"test-{name}", metric.compute())
+        for name, metric in self.test_metrics.items():
+            self.log(name, metric.compute())
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
