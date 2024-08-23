@@ -68,15 +68,15 @@ if __name__ == "__main__":
         type=Path,
         help="Path to the gin config file for training.",
     )
-    parser.add_argument(
-        "test_config",  # TODO
-        type=Path,
-        help="Path to the config file for the dataset.",
-    )
+    # parser.add_argument(
+    #     "test_config",  # TODO
+    #     type=Path,
+    #     help="Path to the config file for the dataset.",
+    # )
 
     args = parser.parse_args()
 
-    with open(args.test_config, "r") as in_f:
+    with open(args.train_config, "r") as in_f:
         test_config = yaml.safe_load(in_f)
 
     # We save the embeddings in <output_dir>/<model_id><dataset_name>/
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Build the datamodule
     datamodule = MTTEmbeddingLoadingDataModule(
         embedding_dir,
-        Path(test_config["data_dir"]) / "metadata" / "annotations_final.csv",
+        test_config["gt_path"],
         **test_config["splits"],
         **test_config["probe"]["data_loader"],
         **test_config["probe"]["embedding_processing"],
