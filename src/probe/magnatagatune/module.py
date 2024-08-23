@@ -95,7 +95,6 @@ class MTTProbe(L.LightningModule):
             return logits, loss, predicted_class
         return logits, loss
 
-    # Calculate the metrics
     def validation_step(self, batch, batch_idx):
         logits, loss = self.predict(batch)
         self.log("val_loss", loss)

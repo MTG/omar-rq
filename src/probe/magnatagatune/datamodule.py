@@ -80,8 +80,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
         print("Keeping only the Top50 labels...")
         _, indices = torch.topk(self.labels.sum(dim=0), 50, largest=True)
         self.labels = self.labels[:, indices]
-        self.tags = [tags[i] for i in indices]
-        print(f"Top50 labels: {self.tags}")
+        print(f"Top50 labels: {[tags[i] for i in indices]}")
 
         # If an example's labels are all zeros, exclude it
         print("Excluding examples without any labels...")
@@ -90,10 +89,11 @@ class MTTEmbeddingLoadingDataset(Dataset):
         self.filelist = [self.filelist[i] for i in range(len(self.filelist)) if mask[i]]
 
         # Load all embeddings to memory
-        print("Loading the embeddings to memory...")
+        print("Loading the embeddings to memory and processing...")
         self.embeddings = torch.stack(
             [self.prepare_embedding(torch.load(filepath)) for filepath in self.filelist]
         )
+        print(f"Dataset size: {self.embeddings.shape[0]:,} examples.")
         assert len(self.labels) == len(
             self.embeddings
         ), "Labels and embeddings do not match."
