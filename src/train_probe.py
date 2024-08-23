@@ -7,8 +7,6 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
-# import torch.multiprocessing as mp
-
 from utils import gin_config_to_readable_dictionary
 from callbacks import GinConfigSaverCallback
 from probe.modules.module import MTTProbe
@@ -53,8 +51,6 @@ from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 
 if __name__ == "__main__":
 
-    # mp.set_start_method("spawn")
-
     parser = ArgumentParser()
     parser.add_argument(
         "train_config",
@@ -68,8 +64,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    print("START")
 
     datamodule = MTTEmbeddingLoadingDataModule(
         Path("/gpfs/scratch/upf97/embeddings/cy1uafdv/magnatagatune/"),
@@ -85,12 +79,11 @@ if __name__ == "__main__":
         "chunk",
         "mean",
     )
-    print("Before MODEL")
 
+    # Build the module
     module = MTTProbe(None, 768, 188)
 
-    print("TRAINER BUILT")
-
+    # Define the trainer
     trainer = Trainer(
         accelerator="gpu",
         devices=1,
@@ -102,12 +95,10 @@ if __name__ == "__main__":
         num_sanity_val_steps=0,
     )
 
-    print("FITTING")
-
+    # Train the probe
     trainer.fit(model=module, datamodule=datamodule)
 
-    print("TESTING")
-
+    # Test the best probe
     trainer.test(datamodule=datamodule, ckpt_path="best")
 
     # try:
