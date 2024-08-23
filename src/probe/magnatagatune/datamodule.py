@@ -69,12 +69,9 @@ class MTTEmbeddingLoadingDataset(Dataset):
 
         # Load all embeddings to memory
         print("Loading the embeddings to memory and processing...")
-        self.embeddings = torch.stack(
-            [self.prepare_embedding(torch.load(filepath)) for filepath in self.filelist]
-        )
-        assert len(self.labels) == len(
-            self.embeddings
-        ), "Labels and embeddings do not match."
+        self.embeddings = [
+            self.prepare_embedding(torch.load(filepath)) for filepath in self.filelist
+        ]
 
     def __len__(self):
         return len(self.filelist)
