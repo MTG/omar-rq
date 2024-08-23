@@ -46,8 +46,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
         self.time_aggregation = time_aggregation
         # self.normalize = normalize # TODO?
 
-        # TODO: i can not do it more elegantly for some linux reason
-        # line.strip() returns empty string
+        # Load filelist
         with open(filelist, "r") as in_f:
             self.filelist = [
                 self.embeddings_dir / line[:3] / f"{line.strip()}.pt" for line in in_f
@@ -67,6 +66,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
             [torch.load(filepath) for filepath in self.filelist]
         )
 
+        # TODO: switch to TOP50 tags
         # Load labels and filter out rows that do not have embeddings
         annotations_clean = []
         with open(self.annotations_path) as in_f:
@@ -94,11 +94,10 @@ class MTTEmbeddingLoadingDataset(Dataset):
         # Load embeddings
         embeddings = self.embeddings[idx]
         assert embeddings.ndim == 4, "Embeddings should be 4D."
+        L, N, T, F = embeddings.shape
 
         # Load labels
         labels = self.labels[idx]  # (C, )
-
-        L, N, T, F = embeddings.shape
 
         # Aggregate embeddings through layers (L, N, T, F) -> (N, T, F)
         if self.layer_aggregation == "mean":

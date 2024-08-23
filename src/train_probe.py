@@ -62,6 +62,11 @@ if __name__ == "__main__":
         type=Path,
         help="Path to the config file for the embeddings.",
     )
+    parser.add_argument(
+        "ssl_model_id",
+        type=str,
+        help="The Wandb ID of the SSL model used to extract embeddings.",
+    )
 
     args = parser.parse_args()
 
