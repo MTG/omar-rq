@@ -1,6 +1,4 @@
-/data/discotube/
-/data/mtg-ssl/
-/data/wandb/
+/data/
 .pyc
 *egg-info*
 *__pycache__*
