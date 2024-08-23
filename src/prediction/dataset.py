@@ -52,16 +52,16 @@ class AudioEmbeddingDataset(Dataset):
             if audio.shape[0] > 1 and self.mono:
                 audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
 
+            # TODO: On CPU created problems with half precision
+            # work with 16-bit precision
+            if self.half_precision:
+                audio = audio.half()
+
+                return audio, file_path
+
         except Exception:
             print(f"Error loading file {file_path}")
-            audio = None
-
-        # TODO: On CPU created problems with half precision
-        # work with 16-bit precision
-        if self.half_precision:
-            audio = audio.half()
-
-            return audio, file_path
+            return None, file_path
 
     @staticmethod
     def collate_fn(items):
