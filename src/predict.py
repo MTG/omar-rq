@@ -63,7 +63,7 @@ if __name__ == "__main__":
         callbacks = [EmbeddingWriter(output_dir)]
 
         # Need to use a trainer for model initialization
-        trainer = L.Trainer(callbacks=callbacks, **predict_config["device"])
+        trainer = L.Trainer(callbacks=callbacks, **predict_config["predict"]["device"])
 
         # Build the module and load the weights
         module, _ = build_module(trainer=trainer)
@@ -71,7 +71,9 @@ if __name__ == "__main__":
         gin.finalize()
 
         # Get the data module
-        data_module = AudioEmbeddingDataModule(**predict_config["audio"])
+        audio_config = {**predict_config["predict"]["audio"]}
+        audio_config["data_dir"] = predict_config["data_dir"]
+        data_module = AudioEmbeddingDataModule(**audio_config)
 
         trainer.predict(
             module,
