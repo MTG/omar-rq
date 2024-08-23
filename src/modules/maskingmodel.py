@@ -54,8 +54,10 @@ class MaskingModel(L.LightningModule):
         self.patch_size = net.patch_size
         self.net = net
         self.representation = representation
-        self.embedding_layer = nn.Linear(self.patch_size[0]*self.patch_size[1], self.net.head.out_features)
-        self.linear = nn.Linear(self.net.head.out_features, codebook_size)
+        self.embedding_layer = nn.Linear(
+            self.patch_size[0] * self.patch_size[1], self.net.embed_dim
+        )
+        self.linear = nn.Linear(self.net.embed_dim, codebook_size * num_codebooks)
         self.lr = lr
         self.seed = seed
         self.plot_tokens = plot_tokens
@@ -64,19 +66,30 @@ class MaskingModel(L.LightningModule):
         self.first_coverage = True
         self.feed_masked_tokens = feed_masked_tokens
 
-        if hasattr(representation, "sr") and hasattr(representation, "hop_len") and hasattr(representation, "n_mel"):
+        if (
+            hasattr(representation, "sr")
+            and hasattr(representation, "hop_len")
+            and hasattr(representation, "n_mel")
+        ):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
             self.n_mel = representation.n_mel
-            # random quantizer
-            self.codebook = RandomProjectionQuantizer(
-                input_dim=self.patch_size[0]*self.patch_size[1],
-                codebook_dim=codebook_dim,
-                codebook_size=codebook_size,
-                seed=self.seed
+            # Create a ModuleList to hold the quantizers
+            self.quantizers = nn.ModuleList(
+                [
+                    RandomProjectionQuantizer(
+                        self.patch_size[0] * self.patch_size[1],
+                        codebook_dim,
+                        codebook_size,
+                        seed=seed + i,
+                    )
+                    for i in range(num_codebooks)
+                ]
             )
         else:
-            raise NotImplementedError(f"Representation {type(self.representation)} is supported")
+            raise NotImplementedError(
+                f"Representation {type(self.representation)} is supported"
+            )
 
         # loss function
         self.loss = nn.CrossEntropyLoss()
@@ -89,18 +102,23 @@ class MaskingModel(L.LightningModule):
         pad_t = (patch_size - T % patch_size) % patch_size
 
         # Apply padding (only on F and T dimensions)
-        padded_spectrogram = torch.nn.functional.pad(spectrogram, (0, pad_t, 0, pad_f), mode='constant', value=0)
+        padded_spectrogram = torch.nn.functional.pad(
+            spectrogram, (0, pad_t, 0, pad_f), mode="constant", value=0
+        )
         return padded_spectrogram
 
-    def plot_spectrogram_with_tokens(self, spectrogram, num_patches_f, num_patches_t, tokens):
+    def plot_spectrogram_with_tokens(
+        self, spectrogram, num_patches_f, num_patches_t, tokens
+    ):
         from matplotlib import pyplot as plt
+
         plt.figure(figsize=(36, 8), dpi=300)
 
-        plt.imshow(spectrogram, aspect='auto', cmap='viridis', origin='lower')
-        plt.colorbar(label='Magnitude')
-        plt.title('Spectrogram with Token Numbers')
-        plt.xlabel('Time')
-        plt.ylabel('Frequency')
+        plt.imshow(spectrogram, aspect="auto", cmap="viridis", origin="lower")
+        plt.colorbar(label="Magnitude")
+        plt.title("Spectrogram with Token Numbers")
+        plt.xlabel("Time")
+        plt.ylabel("Frequency")
 
         token_index = 0
         for i in range(num_patches_f):
@@ -112,44 +130,65 @@ class MaskingModel(L.LightningModule):
                 end_t = start_t + self.patch_size[1]
 
                 # Draw the patch boundary
-                plt.plot([start_t, start_t], [start_f, end_f], color='white', linewidth=1)
-                plt.plot([end_t, end_t], [start_f, end_f], color='white', linewidth=1)
-                plt.plot([start_t, end_t], [start_f, start_f], color='white', linewidth=1)
-                plt.plot([start_t, end_t], [end_f, end_f], color='white', linewidth=1)
+                plt.plot(
+                    [start_t, start_t], [start_f, end_f], color="white", linewidth=1
+                )
+                plt.plot([end_t, end_t], [start_f, end_f], color="white", linewidth=1)
+                plt.plot(
+                    [start_t, end_t], [start_f, start_f], color="white", linewidth=1
+                )
+                plt.plot([start_t, end_t], [end_f, end_f], color="white", linewidth=1)
 
                 # Place the token number in the center of each patch
                 center_t = (start_t + end_t) / 2
                 center_f = (start_f + end_f) / 2
-                plt.text(center_t, center_f, str(tokens[token_index].item()), color='red', fontsize=8, ha='center', va='center', rotation=90)
+                plt.text(
+                    center_t,
+                    center_f,
+                    str(tokens[token_index].item()),
+                    color="red",
+                    fontsize=8,
+                    ha="center",
+                    va="center",
+                    rotation=90,
+                )
                 token_index += 1
         # save the plot in ../figs as pdf
         randint = random.randint(0, 100000)
-        if not os.path.exists('../figs'):
-            os.makedirs('figs')
+        if not os.path.exists("../figs"):
+            os.makedirs("figs")
         # save pdf
-        plt.savefig(f'figs/spectrogram_with_tokens_{randint}.pdf')
+        plt.savefig(f"figs/spectrogram_with_tokens_{randint}.pdf")
         plt.close()
 
     def vit_tokenization(self, spectrogram):
         B, F, T = spectrogram.shape
-        # Number of patches
         num_patches_f = F // self.patch_size[0]
         num_patches_t = T // self.patch_size[1]
         # Reshape spectrogram into patches
         patches = spectrogram.unfold(1, self.patch_size[0], self.patch_size[0])
         patches = patches.unfold(2, self.patch_size[1], self.patch_size[1])
         # Reshape to (B, num_patches_f * num_patches_t, patch_frames_f, patch_frames_t)
-        patches = patches.contiguous().view(B, num_patches_f * num_patches_t, self.patch_size[0], self.patch_size[1])
+        patches = patches.contiguous().view(
+            B, num_patches_f * num_patches_t, self.patch_size[0], self.patch_size[1]
+        )
         # Flatten patches to tokens
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
         # Return patches and tokens
-        tokens = self.codebook(patches)
+        tokens = torch.stack(
+            [quantizer(patches) for quantizer in self.quantizers], dim=-1
+        )
         if self.plot_tokens:
-            self.plot_spectrogram_with_tokens(spectrogram[0].detach().cpu(), num_patches_f, num_patches_t, tokens[0].detach().cpu())
+            self.plot_spectrogram_with_tokens(
+                spectrogram[0].detach().cpu(),
+                num_patches_f,
+                num_patches_t,
+                tokens[0, :, 0].detach().cpu(),
+            )
         return patches, tokens
 
-    def random_masking_simple(self, spectrogram):
-        B, num_patches, patch_size = spectrogram.shape
+    def random_masking_simple(self, patches):
+        B, num_patches, patch_size = patches.shape
         num_masked = int(self.mask_prob * num_patches)
         # we have a windows_random
         # Generate random mask indices
@@ -157,20 +196,28 @@ class MaskingModel(L.LightningModule):
         # Create a mask array with the same shape as tokens, initialized to False
         mask = torch.zeros(B, num_patches, dtype=torch.bool)
         mask[torch.arange(B).unsqueeze(1), mask_indices] = True
-        masked_spec = spectrogram.clone()
+        masked_spec = patches.clone()
         masking_noise = torch.randn_like(masked_spec) * 0.1
         masked_spec[mask] = masking_noise[mask]
-        return masked_spec, mask.to(spectrogram.device)
+        return masked_spec, mask.to(patches.device)
 
     def random_masking(self, patches):
         B, num_patches, patch_size = patches.shape
         mx = patches.clone()
 
-        len_masking_spec_frames = math.ceil(self.mask_seconds * self.sr / self.hop_length)
-        windows_tokens = len_masking_spec_frames // self.patch_size[1] * (self.n_mel // self.patch_size[0])
+        len_masking_spec_frames = math.ceil(
+            self.mask_seconds * self.sr / self.hop_length
+        )
+        windows_tokens = (
+            len_masking_spec_frames
+            // self.patch_size[1]
+            * (self.n_mel // self.patch_size[0])
+        )
 
         # Generate random mask indices
-        start_indices = torch.rand(B, math.ceil(num_patches / windows_tokens)) < self.mask_prob
+        start_indices = (
+            torch.rand(B, math.ceil(num_patches / windows_tokens)) < self.mask_prob
+        )
         mask = start_indices.repeat_interleave(windows_tokens, dim=1)
 
         # Trim mask to fit the number of patches
@@ -178,26 +225,30 @@ class MaskingModel(L.LightningModule):
             mask = mask[:, :num_patches]
 
         # Mask with random values
-        masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(patches.device)  # 0 mean 0.1 std
+        masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(
+            patches.device
+        )  # 0 mean 0.1 std
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
+        # tensor 1 x N repeat to 16 x N
         return mx, mask.to(patches.device)
 
     def get_loss(self, logits, target_tokens, mask):
         # zeros boolean with the shape of logit_out
         masked_logits = logits[mask]
         masked_tokens = target_tokens[mask]
+        # The loss is calculated only for the masked tokens
         losses = self.loss(masked_logits, masked_tokens)
         accuracies = (
-            torch.sum(masked_logits.argmax(-1) == masked_tokens)
-            / masked_tokens.numel()
+            torch.sum(masked_logits.argmax(1) == masked_tokens) / masked_tokens.numel()
         )
         return losses, accuracies
 
     def forward(self, x):
         x = self.representation(x[0])
+        B = x.shape[0]
         # get target feature tokens
-        x, target_tokens = self.vit_tokenization(x) # B x t x (16 x 4)
+        x, target_tokens = self.vit_tokenization(x)  # B x t x (16 x 4)
         # masking
         x, mask = self.random_masking(x)
         x = self.embedding_layer(x)
@@ -209,6 +260,7 @@ class MaskingModel(L.LightningModule):
 
         x = self.net(x, skip_tokens=skip_tokens)
         logits = self.linear(x)
+        logits = logits.view(B, -1, self.codebook_size, self.num_codebooks)
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
         return logits, losses, accuracies, target_tokens
@@ -218,27 +270,94 @@ class MaskingModel(L.LightningModule):
         logits, loss, accuracies, target_tokens = self.forward(x)
         # log tokens coverage
         if self.first_coverage and batch_idx < 1000:
-            self.tokens_coverage += target_tokens.flatten().cpu().tolist()
+            self.tokens_coverage += target_tokens[0].flatten().cpu().tolist()
         elif self.first_coverage and batch_idx == 1000:
             # Print the histogram you can check it in the wandb dashboard (log section)
             print("Logged histogram image of token counts for the first 1000 steps.")
             print(Counter(self.tokens_coverage))
-            self.logger.experiment.log({
-                "histogram": wandb.Histogram(self.tokens_coverage)
-            })
+            self.logger.experiment.log(
+                {"histogram": wandb.Histogram(self.tokens_coverage)}
+            )
             self.first_coverage = False
             self.tokens_coverage = []
-        self.log('train_loss', loss, prog_bar=True)
-        self.log(f'train_acc', accuracies)
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_acc", accuracies)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
-        self.log('val_loss', loss, prog_bar=True)
-        self.log(f'val_acc', accuracies)
+        self.log("val_loss", loss, prog_bar=True)
+        self.log(f"val_acc", accuracies)
         return loss
 
+    # TODO: how to control the embedding layer in Lightning?
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, _ = batch
+        # If the input is all zeros, return None to give signal
+        if x is None:
+            return None
+        return self.extract_embeddings(x.squeeze(0))
+
+    def extract_embeddings(
+        self,
+        audio,
+        layer=[-1],
+    ):
+        """Extract audio embeddings using the model.
+
+        Parameters:
+            audio (torch.Tensor): 1D audio tensor.
+            layer (list): List of layer indices to extract embeddings from.
+
+        Output:
+            torch.Tensor: Extracted embeddings.
+                Even in the case of aggregation or single layer embeddings,
+                the output tensor will have the same shape (L, B, T, C,)
+                where L = len(layer), B is the number of chunks
+                T is the number of melspec frames the model can accomodate
+                C = model output dimension. No aggregation is applied.
+
+        """
+
+        assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
+        assert isinstance(layer, list), "Layer must be a list."
+        assert layer == [-1], "Only last layer is supported for now."
+
+        # Compute the representation
+        x = self.representation(audio)  # (F, Tm)
+
+        # TODO: what if in Frequency axis we need to aggregate?
+        assert x.size()[0] == self.patch_size[0], (
+            f"Frequency patching is not implemented yet!"
+            f"Expected {self.patch_size[0]} but got {x.shape[0]}"
+        )
+
+        # Chunk the representation using the model's context length
+        chunk_len = self.patch_size[1] * self.net.num_patches
+
+        # NOTE: this will pad the representation even if it is
+        # very close to the context length
+        if x.shape[1] % chunk_len != 0:
+            # Pad the representation to fit the context length
+            pad_len = chunk_len - x.shape[1] % chunk_len
+            x = torch.nn.functional.pad(x, (0, pad_len), mode="constant", value=0)
+
+        # Chunk the representation and batch it
+        x_chunks = torch.split(x, chunk_len, dim=1)
+        x_chunks = torch.stack(x_chunks, dim=0)
+
+        # Embed the representation
+        x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
+        x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
+        # TODO: support multiple layers
+        x_chunks = self.net(x_chunks)  # (B, N, Cout)
+        x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
+
+        return x_chunks
+
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.AdamW(
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
         return optimizer

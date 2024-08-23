@@ -1,0 +1,17 @@
+dataset_name: magnatagatune
+
+audio:
+  data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/
+  file_format: mp3
+  orig_freq: 16000
+  new_freq: 16000
+  mono: True
+  half_precision: True
+  num_workers: 20
+
+device:
+  accelerator: gpu
+  devices: 1
+  precision: bf16-mixed
+
+output_dir: /gpfs/projects/upf97/embeddings/
