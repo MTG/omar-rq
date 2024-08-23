@@ -60,21 +60,18 @@ class MTTEmbeddingLoadingDataset(Dataset):
             emb_path = self.embeddings_dir / emb_name[:3] / emb_name
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
-                binary_label = full_dataset_labels[int(ix)]
-                assert np.any(binary_label), "No labels found for the example."
                 self.filelist.append(emb_path)
+                binary_label = full_dataset_labels[int(ix)]
                 self.labels.append(torch.tensor(binary_label))
         assert len(self.filelist) > 0, "No files found in the filelist."
         print(f"{len(self.filelist):,} files specified in the filelist.")
         self.labels = torch.stack(self.labels)
-        print(f"Labels shape: {self.labels.shape}.")
 
         # Load all embeddings to memory
         print("Loading the embeddings to memory and processing...")
         self.embeddings = torch.stack(
             [self.prepare_embedding(torch.load(filepath)) for filepath in self.filelist]
         )
-        print(f"Dataset size: {self.embeddings.shape[0]:,} examples.")
         assert len(self.labels) == len(
             self.embeddings
         ), "Labels and embeddings do not match."
