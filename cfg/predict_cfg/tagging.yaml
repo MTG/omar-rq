@@ -29,7 +29,7 @@ probe:
     project: "magnatagatune"
     offline: True
     entity: "mtg-upf"
-    save_dir: "/gpfs/projects/upf97/logs/probe/"
+    save_dir: "/gpfs/projects/upf97/logs/"
   data_loader:
     batch_size: 256
     num_workers: 10

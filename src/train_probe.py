@@ -11,7 +11,6 @@ from probe.modules.module import MTTProbe
 from probe.datamodules.mtt import MTTEmbeddingLoadingDataModule
 
 # TODO fix seed
-# TODO use a function
 # TODO use gin
 
 if __name__ == "__main__":
@@ -23,48 +22,46 @@ if __name__ == "__main__":
         help="ID of the SSL model used to extract the embeddings.",
     )
     parser.add_argument(
-        "train_config",
+        "config",
         type=Path,
-        help="Path to the gin config file for training.",
+        help="Path to the config file for the downstream task.",
     )
 
     args = parser.parse_args()
 
-    with open(args.train_config, "r") as in_f:
-        test_config = yaml.safe_load(in_f)
+    with open(args.config, "r") as in_f:
+        config = yaml.safe_load(in_f)
 
     try:
 
         # We save the embeddings in <output_dir>/<model_id><dataset_name>/
         embedding_dir = (
-            Path(test_config["output_dir"])
-            / args.ssl_model_id
-            / test_config["dataset_name"]
+            Path(config["output_dir"]) / args.ssl_model_id / config["dataset_name"]
         )
 
         # Build the datamodule
         datamodule = MTTEmbeddingLoadingDataModule(
             embedding_dir,
-            test_config["gt_path"],
-            **test_config["splits"],
-            **test_config["probe"]["data_loader"],
-            **test_config["probe"]["embedding_processing"],
+            config["gt_path"],
+            **config["splits"],
+            **config["probe"]["data_loader"],
+            **config["probe"]["embedding_processing"],
         )
 
         # Build the module # TODO: provide a net
-        module = MTTProbe(**test_config["probe"]["model"])
+        module = MTTProbe(**config["probe"]["model"])
 
         # Define the logger
-        wandb_logger = WandbLogger(**test_config["probe"]["wandb_params"])
-        wandb_logger.log_hyperparams(test_config)
+        wandb_logger = WandbLogger(**config["probe"]["wandb_params"])
+        wandb_logger.log_hyperparams(config)
 
         # Define the trainer
-        trainer = Trainer(logger=wandb_logger, **test_config["probe"]["trainer"])
+        trainer = Trainer(logger=wandb_logger, **config["probe"]["trainer"])
 
         # Train the probe
         trainer.fit(model=module, datamodule=datamodule)
 
-        # Test the best probe
+        # Test the best probe # TODO: how does it determine the best?
         trainer.test(datamodule=datamodule, ckpt_path="best")
 
     except Exception:
