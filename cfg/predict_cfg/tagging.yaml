@@ -1,7 +1,7 @@
-dataset_name: magnatagatune
-data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/ # audio dir
-gt_path: /gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/annotations_final.csv
-output_dir: /gpfs/scratch/upf97/embeddings/ # TODO embeddings dir
+dataset_name: "magnatagatune"
+data_dir: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/" # audio dir
+gt_path: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/annotations_final.csv"
+output_dir: "/gpfs/scratch/upf97/embeddings/" # TODO embeddings dir
 
 splits:
   train_filelist: "/home/upf/upf455198/ssl-mtg/data/magnatagatune/train.txt"
@@ -43,6 +43,7 @@ probe:
     hidden_size: 512
     num_layers: 2
     activation: "relu"
+    lr: 0.0001
   trainer:
     accelerator: "gpu"
     devices: 1

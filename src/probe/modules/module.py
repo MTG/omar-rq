@@ -1,9 +1,8 @@
 import gin
 import torch
-import wandb
-from torchmetrics.classification import MultilabelAveragePrecision, MultilabelAUROC
 from torch import nn
 import pytorch_lightning as L
+from torchmetrics.classification import MultilabelAveragePrecision, MultilabelAUROC
 
 
 @gin.configurable
@@ -20,6 +19,7 @@ class MTTProbe(L.LightningModule):
         hidden_size,
         num_layers,
         activation,
+        lr,
     ):
         super(MTTProbe, self).__init__()
 
@@ -28,19 +28,22 @@ class MTTProbe(L.LightningModule):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.activation = activation
+        self.lr = lr
 
         # TODO create the probe with gin
+        bias = True
         layers = []
         for i in range(num_layers):
             if i == num_layers - 1:
                 hidden_size = num_labels
+                bias = False
 
-            layers.append(nn.Linear(in_features, hidden_size, bias=False))
+            layers.append(nn.Linear(in_features, hidden_size, bias=bias))
 
             # Choose the activation # TODO: before or after?
-            if activation == "relu":
+            if activation.lower() == "relu":
                 layers.append(nn.ReLU())
-            elif activation == "sigmoid":
+            elif activation.lower() == "sigmoid":
                 layers.append(nn.Sigmoid())
             else:
                 # TODO: more later
@@ -122,4 +125,4 @@ class MTTProbe(L.LightningModule):
 
     def configure_optimizers(self):
         # TODO take lr from construction
-        return torch.optim.Adam(self.parameters(), lr=1e-4)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
