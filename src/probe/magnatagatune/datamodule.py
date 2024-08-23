@@ -52,8 +52,8 @@ class MTTEmbeddingLoadingDataset(Dataset):
         filelist = np.load(filelist)
         full_dataset_labels = np.load(gt_path)
 
-        # Load the filelist and labels
-        self.filelist, self.labels = [], []
+        # Load the embeddings and labels
+        self.filelist, self.embeddings, self.labels = [], [], []
         for filename in filelist:
             ix, fn = filename.split("\t")
             emb_name = fn.split("/")[1].replace(".mp3", ".pt")
@@ -61,25 +61,19 @@ class MTTEmbeddingLoadingDataset(Dataset):
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
                 self.filelist.append(emb_path)
+                # embedding = torch.load(emb_path)
+                # self.embeddings.append(self.prepare_embedding(embedding))
                 binary_label = full_dataset_labels[int(ix)]
                 self.labels.append(torch.tensor(binary_label))
-        assert len(self.filelist) > 0, "No files found in the filelist."
-        print(f"{len(self.filelist):,} files specified in the filelist.")
-        self.labels = torch.stack(self.labels)
-
-        # Load all embeddings to memory
-        print("Loading the embeddings to memory and processing...")
-        self.embeddings = [
-            self.prepare_embedding(torch.load(filepath)) for filepath in self.filelist
-        ]
 
     def __len__(self):
-        return len(self.filelist)
+        return len(self.labels)
 
     def __getitem__(self, idx):
         """Loads the labels and the processed embeddings for a given index."""
 
-        embeddings = self.embeddings[idx]  # (N, F)
+        # embeddings = self.embeddings[idx]  # (N, F)
+        embeddings = self.prepare_embedding(torch.load(self.filelist[idx]))
         if self.mode == "train":  # If training, get a random chunk
             N = embeddings.size(0)
             embeddings = embeddings[torch.randint(0, N, ())]  # (F, )
