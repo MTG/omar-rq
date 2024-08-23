@@ -1,12 +1,13 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "mask_conformer_rope_multi4",
+    "name": "mask_conformer_rope_multi4_big",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
-    "save_dir": "/gpfs/projects/upf97/logs/",
+    "save_dir": "/tmp/",
+    # "save_dir": "/gpfs/projects/upf97/logs/",
     "entity": "mtg-upf",
-    "group": "masking_transformer_small_fixed_dn",
+    "group": "masking_conformer",
 }
 
 # modules to use
@@ -20,7 +21,7 @@ build_dev_datamodule.datamodule = @discotube
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 4,
+    "devices": 8,
     "max_steps": 400000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
@@ -36,7 +37,7 @@ AudioDataset.half_precision = True
 AudioDataModule.num_workers = 80
 
 # Discogs datamodule parameters
-DiscotubeAudioDataModule.batch_size = 128
+DiscotubeAudioDataModule.batch_size = 16
 DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
 DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
 DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
@@ -74,8 +75,8 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 
 # Transformer parameters
 nets.conformer.Conformer.patch_size = (96, 4)
-nets.conformer.Conformer.embed_dim = 512
-nets.conformer.Conformer.depth = 12
+nets.conformer.Conformer.embed_dim = 1024
+nets.conformer.Conformer.depth = 40
 nets.conformer.Conformer.conv_kernel_size = 5
 nets.conformer.Conformer.num_heads = 8
 nets.conformer.Conformer.mlp_ratio = 4.0
