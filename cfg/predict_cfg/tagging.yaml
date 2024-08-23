@@ -1,8 +1,8 @@
 dataset_name: magnatagatune
 data_dir: /gpfs/projects/upf97/downstream_datasets/magnatagatune/
-output_dir: /gpfs/projects/upf97/embeddings/
+output_dir: /gpfs/scratch/upf97/embeddings/
 
-# Embedding extraction
+# Embedding extraction with the SSL model
 predict:
   audio:
     file_format: mp3
@@ -11,14 +11,14 @@ predict:
     mono: True
     half_precision: True
     num_workers: 20
+  embedding_layer: [-1]
   device:
     accelerator: gpu
     devices: 1
-    precision: bf16-mixed
-  embedding_layer: [-1]
+    precision: bf16-mixed # TODO read from train config
 
+# Probe configuration
 probe_model:
-  # model_path: /gpfs/projects/upf97/models/probe_models/magnatagatune/2021-09-30_14-00-00/epoch=9-step=999.ckpt
   dataloader:
     batch_size: 64
     num_workers: 20
@@ -33,17 +33,11 @@ probe_model:
     dropout: 0.5
     pooling: mean
     embedding_size: 128
-  metrics:
-    - accuracy
-    - f1
-    - precision
-    - recall
-    - roc_auc
-    - pr_auc
-    - confusion_matrix
-    - classification_report
-    - f1_per_class
-    - roc_auc_per_class
-    - pr_auc_per_class
-    - confusion_matrix_per_class
-    - classification_report_per_class
+    device:
+      accelerator: gpu
+      devices: 1
+
+# Evaluation metrics for the task
+metrics:
+  - map_per_class
+  - roc_auc_per_class
