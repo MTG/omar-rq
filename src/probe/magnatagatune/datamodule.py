@@ -29,6 +29,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
             "max",
             "concat",
             "sum",
+            "none",
         ], "Layer aggregation not recognized."
         assert granularity in ["frame", "chunk", "clip"], "Granularity not recognized."
         if mode == "train":
@@ -120,8 +121,11 @@ class MTTEmbeddingLoadingDataset(Dataset):
         elif self.layer_aggregation == "concat":
             embeddings = embeddings.permute(1, 2, 0, 3)  # (N, T, L, F)
             embeddings = embeddings.reshape(N, T, -1)  # (N, T, L*F)
-        else:
+        elif self.layer_aggregation == "sum":
             embeddings = embeddings.sum(dim=0)
+        else:
+            assert L == 1
+            embeddings = embeddings.squeeze(0)
 
         # Aggregate embeddings through time (N, T, F) -> (N', F)
         if self.granularity == "frame":
