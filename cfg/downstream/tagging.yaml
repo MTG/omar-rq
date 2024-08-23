@@ -39,7 +39,7 @@ probe:
     time_aggregation: "mean"
   model:
     in_features: 768
-    num_labels: 188
+    num_labels: 50
     hidden_size: 512
     num_layers: 2
     activation: "relu"

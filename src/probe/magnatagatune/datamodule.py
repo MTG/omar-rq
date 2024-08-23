@@ -46,7 +46,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
         self.time_aggregation = time_aggregation
         # self.normalize = normalize # TODO?
 
-        # Load filelist
+        # Load the filelist of the partition
         with open(filelist, "r") as in_f:
             self.filelist = [
                 self.embeddings_dir / line[:3] / f"{line.strip()}.pt" for line in in_f
@@ -60,18 +60,12 @@ class MTTEmbeddingLoadingDataset(Dataset):
         print(f"{len(self.filelist):,} embeddings found.")
         file_names = set([filepath.stem for filepath in self.filelist])
 
-        # Load all embeddings to memory
-        print("Loading all embeddings to memory...")
-        self.embeddings = torch.stack(
-            [torch.load(filepath) for filepath in self.filelist]
-        )
-
-        # TODO: switch to TOP50 tags
         # Load labels and filter out rows that do not have embeddings
+        print("Reading the labels...")
         annotations_clean = []
         with open(self.annotations_path) as in_f:
             labels = csv.reader(in_f, delimiter="\t")
-            next(labels)  # skip header
+            tags = next(labels)[1:-1]
             for row in labels:
                 if row[-1].split("/")[-1].split(".")[0] in file_names:
                     row = row[1:-1]  # skip track id and track path
@@ -79,9 +73,28 @@ class MTTEmbeddingLoadingDataset(Dataset):
                         [float(i) for i in row]
                     )  # convert str to float tensor
                     annotations_clean.append(row)
-        self.labels = annotations_clean
+        self.labels = torch.stack(annotations_clean)
+
+        # Keep only the Top50 labels
+        print("Keeping only the Top50 labels...")
+        _, indices = torch.topk(self.labels.sum(dim=0), 50, largest=True)
+        self.labels = self.labels[:, indices]
+        self.tags = [tags[i] for i in indices]
+        print(f"Top50 labels: {self.tags}")
+
+        # If an example's labels are all zeros, exclude it
+        print("Excluding examples without any labels...")
+        mask = self.labels.sum(dim=1) > 0
+        self.labels = self.labels[mask]
+        self.filelist = [self.filelist[i] for i in range(len(self.filelist)) if mask[i]]
+
+        # Load all embeddings to memory
+        print("Loading the embeddings to memory...")
+        self.embeddings = torch.stack(
+            [torch.load(filepath) for filepath in self.filelist]
+        )
         assert len(self.labels) == len(
-            self.filelist
+            self.embeddings
         ), "Labels and embeddings do not match."
 
     def __len__(self):

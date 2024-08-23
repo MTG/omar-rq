@@ -4,7 +4,6 @@ and a config file for the downstream task. The config file should contain the de
 of the dataset and the parameters of the probe. The script will train the probe on the
 embeddings and evaluate it on the corresponding downstream task.
 
-# TODO use top 50 tags from MTT
 # TODO fix seed
 # TODO use gin for the probe
 # TODO use gin for the dataset
