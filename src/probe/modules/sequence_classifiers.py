@@ -55,6 +55,8 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
                 layers.append(nn.ReLU())
             elif activation.lower() == "sigmoid":
                 layers.append(nn.Sigmoid())
+            elif activation.lower() == "none":
+                pass
             else:
                 # TODO: more later
                 raise ValueError(f"Unknown activation function: {activation}")
