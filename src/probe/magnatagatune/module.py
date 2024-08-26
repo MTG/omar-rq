@@ -70,7 +70,6 @@ class MTTProbe(L.LightningModule):
                 ),
             }
         )
-        self.val_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
         self.test_metrics = nn.ModuleDict(
             {
                 "test-AUROC-macro": MultilabelAUROC(
@@ -125,19 +124,11 @@ class MTTProbe(L.LightningModule):
         y_true = batch[1].int()
         for metric in self.val_metrics.values():
             metric.update(logits, y_true)
-        # Update the confusion matrix
-        self.val_confusion_matrix.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
             self.log(name, metric, on_epoch=True)
-        # Compute the confusion matrix
-        conf_matrix = self.val_confusion_matrix.compute()
-        # Plot the confusion matrix and write to disk
-        fig = self.plot_confusion_matrix(conf_matrix)
-        fig.savefig("val_confusion_matrix.png")
-        # self.logger.experiment.log({"val_confusion_matrix": fig_}) # TODO
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
@@ -165,7 +156,7 @@ class MTTProbe(L.LightningModule):
 
         conf_matrix = conf_matrix.cpu().numpy()
         fig, axes = plt.subplots(
-            nrows=10, ncols=5, figsize=(50, 25), constrained_layout=True
+            nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
         )
         axes = axes.flatten()  # Flatten the axes array for easy iteration
         labels = [f"{i+1}" for i in range(50)]
