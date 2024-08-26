@@ -24,15 +24,15 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
 
     def __init__(
         self,
-        in_features,
-        num_labels,
-        hidden_size,
-        num_layers,
-        activation,
-        bias,
-        lr,
-        labels=None,
-        plot_dir=None,
+        in_features: int,
+        num_labels: int,
+        hidden_size: int,
+        num_layers: int,
+        activation: str,
+        bias: bool,
+        lr: float,
+        labels: Path = None,
+        plot_dir: Path = None,
     ):
         super(SequenceMultiLabelClassificationProbe, self).__init__()
 
