@@ -63,7 +63,6 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
                 # TODO: more later
                 raise ValueError(f"Unknown activation function: {activation}")
 
-            # TODO WD?
             layers.append(nn.Linear(in_features, hidden_size, bias=bias))
 
             in_features = hidden_size
@@ -166,7 +165,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             fig.savefig(self.plot_dir / "test_confusion_matrix.png")
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
     def plot_confusion_matrix(self, conf_matrix):
 
