@@ -29,6 +29,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         hidden_size,
         num_layers,
         activation,
+        bias,
         lr,
         labels=None,
         plot_dir=None,
@@ -40,6 +41,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.activation = activation
+        self.bias = bias
         self.lr = lr
         self.labels = np.load(labels) if labels is not None else None
         self.plot_dir = Path(plot_dir) if plot_dir is not None else None
@@ -61,8 +63,8 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
                 # TODO: more later
                 raise ValueError(f"Unknown activation function: {activation}")
 
-            # TODO: bias? WD?
-            layers.append(nn.Linear(in_features, hidden_size))
+            # TODO WD?
+            layers.append(nn.Linear(in_features, hidden_size, bias=bias))
 
             in_features = hidden_size
         self.model = nn.Sequential(*layers)
