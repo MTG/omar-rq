@@ -66,11 +66,9 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             layers.append(nn.Linear(in_features, hidden_size, bias=bias))
 
             in_features = hidden_size
-        layers.append(nn.Sigmoid())
         self.model = nn.Sequential(*layers)
 
-        # self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
-        self.criterion = nn.BCELoss()  # TODO sigmoid or not?
+        self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -97,16 +95,16 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
 
     def forward(self, x):
         # (B, F) -> (B, num_labels)
-        probs = self.model(x)
-        return probs
+        logits = self.model(x)
+        return logits
 
     def training_step(self, batch, batch_idx):
         """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
         each chunk may com from another track."""
 
         x, y_true = batch
-        probs = self.forward(x)
-        loss = self.criterion(probs, y_true)
+        logits = self.forward(x)
+        loss = self.criterion(logits, y_true)
         self.log("train_loss", loss)
         return loss
 
@@ -119,24 +117,24 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         assert x.ndim == 2, "input should be 2D tensor of chunks"
 
         # process each chunk separately
-        probs = self.forward(x)  # (n_chunks, num_labels)
+        logits = self.forward(x)  # (n_chunks, num_labels)
         # Aggregate the chunk embeddings
-        probs = torch.mean(probs, dim=0, keepdim=True)  # (1, num_labels)
+        logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
         # Calculate the loss for the track
-        loss = self.criterion(probs, y_true)
+        loss = self.criterion(logits, y_true)
         self.log("val_loss", loss)
         if return_predicted_class:
-            predicted_class = (probs > 0.5).int()
-            return probs, loss, predicted_class
-        return probs, loss
+            predicted_class = (torch.sigmoid(logits) > 0.5).int()
+            return logits, loss, predicted_class
+        return logits, loss
 
     def validation_step(self, batch, batch_idx):
-        probs, loss = self.predict(batch)
+        logits, loss = self.predict(batch)
         self.log("val_loss", loss)
         # Update all metrics with the current batch
         y_true = batch[1].int()
         for metric in self.val_metrics.values():
-            metric.update(probs, y_true)
+            metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
@@ -144,13 +142,13 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             self.log(name, metric, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
-        probs, _ = self.predict(batch)
+        logits, _ = self.predict(batch)
         # Update all metrics with the current batch
         y_true = batch[1].int()
         for metric in self.test_metrics.values():
-            metric.update(probs, y_true)
+            metric.update(logits, y_true)
         # Update the confusion matrix
-        self.test_confusion_matrix.update(probs, y_true)
+        self.test_confusion_matrix.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
