@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import gin
 import torch
 from torch import nn
@@ -26,6 +28,8 @@ class MTTProbe(L.LightningModule):
         num_layers,
         activation,
         lr,
+        labels=None,
+        plot_dir=None,
     ):
         super(MTTProbe, self).__init__()
 
@@ -35,6 +39,8 @@ class MTTProbe(L.LightningModule):
         self.num_layers = num_layers
         self.activation = activation
         self.lr = lr
+        self.labels = np.load(labels) if labels is not None else None
+        self.plot_dir = Path(plot_dir) if plot_dir is not None else None
 
         # TODO create the probe with gin
         layers = []
@@ -147,7 +153,9 @@ class MTTProbe(L.LightningModule):
         conf_matrix = self.test_confusion_matrix.compute()
         fig = self.plot_confusion_matrix(conf_matrix)
         # self.logger.experiment.log({"test_confusion_matrix": fig_})
-        fig.savefig("test_confusion_matrix.png")
+        if self.plot_dir:
+            self.plot_dir.mkdir(parents=True, exist_ok=True)
+            fig.savefig(self.plot_dir / "test_confusion_matrix.png")
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -158,8 +166,8 @@ class MTTProbe(L.LightningModule):
         fig, axes = plt.subplots(
             nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
         )
-        axes = axes.flatten()  # Flatten the axes array for easy iteration
-        labels = [f"{i+1}" for i in range(50)]
+        axes = axes.flatten()
+        labels = [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
         for ax, cm, label in zip(axes, conf_matrix, labels):
             # Plot the confusion matrix in each subplot
             im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)

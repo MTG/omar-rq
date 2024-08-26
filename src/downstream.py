@@ -32,6 +32,13 @@ if __name__ == "__main__":
         type=Path,
         help="Path to the config file for the downstream task.",
     )
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        type=Path,
+        default="output",
+        help="Directory where the output of the probe will be saved.",
+    )
 
     args = parser.parse_args()
 
@@ -59,11 +66,15 @@ if __name__ == "__main__":
                 **config["probe"]["embedding_processing"],
             )
 
+            model_dict = config["probe"]["model"]
             # Get the embedding dimension from the dataloader
-            config["probe"]["model"]["in_features"] = datamodule.embedding_dimension
+            model_dict["in_features"] = datamodule.embedding_dimension
+            # Add the labels to the model dict for plotting confusion matrix
+            model_dict["labels"] = config["labels"]
+            model_dict["plot_dir"] = args.output_dir
 
             # Build the module # TODO: provide a net with gin
-            module = MTTProbe(**config["probe"]["model"])
+            module = MTTProbe(**model_dict)
 
         else:
             raise ValueError(f"Unknown dataset: {dataset_name}")
