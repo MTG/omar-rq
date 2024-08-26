@@ -7,6 +7,8 @@ from torchmetrics.classification import (
     MultilabelAUROC,
     MultilabelConfusionMatrix,
 )
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 @gin.configurable
@@ -130,11 +132,12 @@ class MTTProbe(L.LightningModule):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
             self.log(name, metric, on_epoch=True)
-        # Calculate the confusion matrix and plot
+        # Compute the confusion matrix
         conf_matrix = self.val_confusion_matrix.compute()
-        fig_, ax_ = self.val_confusion_matrix.plot(conf_matrix)
-        # self.logger.experiment.log({"val_confusion_matrix": fig_})
-        fig_.savefig("val_confusion_matrix.png")
+        # Plot the confusion matrix and write to disk
+        fig = self.plot_confusion_matrix(conf_matrix)
+        fig.savefig("val_confusion_matrix.png")
+        # self.logger.experiment.log({"val_confusion_matrix": fig_}) # TODO
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
@@ -149,12 +152,38 @@ class MTTProbe(L.LightningModule):
         # Calculate and log the final value for each metric
         for name, metric in self.test_metrics.items():
             self.log(name, metric, on_epoch=True)
-        # Log the confusion matrix
-        # self.log("test_confusion_matrix", self.test_confusion_matrix.compute())
+        # Compute the confusion matrix
         conf_matrix = self.test_confusion_matrix.compute()
-        fig_, ax_ = self.test_confusion_matrix.plot(conf_matrix)
+        fig = self.plot_confusion_matrix(conf_matrix)
         # self.logger.experiment.log({"test_confusion_matrix": fig_})
-        fig_.savefig("test_confusion_matrix.png")
+        fig.savefig("test_confusion_matrix.png")
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
+
+    def plot_confusion_matrix(self, conf_matrix):
+
+        conf_matrix = conf_matrix.cpu().numpy()
+        fig, axes = plt.subplots(
+            nrows=10, ncols=5, figsize=(50, 25), constrained_layout=True
+        )
+        axes = axes.flatten()  # Flatten the axes array for easy iteration
+        labels = [f"{i+1}" for i in range(50)]
+        for ax, cm, label in zip(axes, conf_matrix, labels):
+            # Plot the confusion matrix in each subplot
+            im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+            ax.set_title(label)
+            # Annotation inside the heatmap
+            for i in range(cm.shape[0]):
+                for j in range(cm.shape[1]):
+                    text = ax.text(
+                        j, i, cm[i, j], ha="center", va="center", color="red"
+                    )
+
+            ax.set_xticks(np.arange(cm.shape[1]))
+            ax.set_yticks(np.arange(cm.shape[0]))
+            ax.set_xticklabels(["False", "True"])
+            ax.set_yticklabels(["False", "True"])
+            ax.set_xlabel("Predicted Label")
+            ax.set_ylabel("True Label")
+        return fig
