@@ -2,7 +2,7 @@ dataset_name: "magnatagatune"
 data_dir: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/" # audio dir
 gt_path: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/binary.npy"
 labels: "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"
-output_dir: "/gpfs/scratch/upf97/embeddings/" # TODO embeddings dir
+embeddings_dir: "/gpfs/scratch/upf97/embeddings/"
 # TODO: an output dir for writing the metrics
 
 splits:

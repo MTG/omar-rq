@@ -6,7 +6,6 @@ import traceback
 import gin.torch
 import pytorch_lightning as L
 
-
 from data import DATASETS
 from modules import MODULES
 from nets import NETS
@@ -54,7 +53,7 @@ if __name__ == "__main__":
         ckpt_path = Path(gin.query_parameter("build_module.ckpt_path"))
         model_version_name = ckpt_path.parent.parent.name
         output_dir = (
-            Path(predict_config["output_dir"])
+            Path(predict_config["embeddings_dir"])
             / model_version_name
             / predict_config["dataset_name"]
         )

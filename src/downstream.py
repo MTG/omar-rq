@@ -53,13 +53,13 @@ if __name__ == "__main__":
             from probe.magnatagatune import MTTProbe, MTTEmbeddingLoadingDataModule
 
             # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
-            embedding_dir = (
-                Path(config["output_dir"]) / args.ssl_model_id / dataset_name
-            )  # TODO: embeddings dir
+            embeddings_dir = (
+                Path(config["embeddings_dir"]) / args.ssl_model_id / dataset_name
+            )
 
             # Build the datamodule
             datamodule = MTTEmbeddingLoadingDataModule(
-                embedding_dir,
+                embeddings_dir,
                 config["gt_path"],
                 **config["splits"],
                 **config["probe"]["data_loader"],
