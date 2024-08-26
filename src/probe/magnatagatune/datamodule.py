@@ -42,28 +42,27 @@ class MTTEmbeddingLoadingDataset(Dataset):
 
         self.embeddings_dir = embeddings_dir
         self.gt_path = gt_path
+        self.filelist = filelist
         self.layer_aggregation = layer_aggregation
         self.granularity = granularity
         self.time_aggregation = time_aggregation
         self.mode = mode
         # self.normalize = normalize # TODO?
 
-        # Load the filelist of the partition and binarized labels from Minz et al. 2020
-        filelist = np.load(filelist)
+        # Load the filelist of the partition and the binarized labels from Minz et al. 2020
+        filenames = np.load(filelist)
         full_dataset_labels = np.load(gt_path)
 
         # Load the embeddings and labels
-        self.filelist, self.embeddings, self.labels = [], [], []
-        for filename in filelist:
+        self.embeddings, self.labels = [], []
+        for filename in filenames:
             ix, fn = filename.split("\t")
             emb_name = fn.split("/")[1].replace(".mp3", ".pt")
             emb_path = self.embeddings_dir / emb_name[:3] / emb_name
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
-                self.filelist.append(emb_path)
                 embedding = torch.load(emb_path)
                 self.embeddings.append(embedding)
-                # self.embeddings.append(self.prepare_embedding(embedding))
                 binary_label = full_dataset_labels[int(ix)]
                 self.labels.append(torch.tensor(binary_label))
 
@@ -73,9 +72,8 @@ class MTTEmbeddingLoadingDataset(Dataset):
     def __getitem__(self, idx):
         """Loads the labels and the processed embeddings for a given index."""
 
-        # embeddings = self.embeddings[idx]  # (N, F)
-        # embeddings = self.prepare_embedding(torch.load(self.filelist[idx]))
-        embeddings = self.prepare_embedding(self.embeddings[idx])
+        embeddings = self.embeddings[idx]
+        embeddings = self.prepare_embedding(embeddings)  # (N, F)
         if self.mode == "train":  # If training, get a random chunk
             N = embeddings.size(0)
             embeddings = embeddings[torch.randint(0, N, ())]  # (F, )
@@ -196,7 +194,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             shuffle=True,
             num_workers=self.num_workers,
             multiprocessing_context="spawn",  # TODO?
-            persistent_workers=True,  # TODO?
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
@@ -207,7 +205,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             num_workers=self.num_workers,
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
-            persistent_workers=True,  # TODO?
+            persistent_workers=True,
         )
 
     def test_dataloader(self):
@@ -218,5 +216,5 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
             num_workers=self.num_workers,
             collate_fn=collate_fn_val_test,
             multiprocessing_context="spawn",  # TODO?
-            persistent_workers=True,  # TODO?
+            persistent_workers=True,
         )
