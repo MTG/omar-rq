@@ -171,7 +171,7 @@ class MTTProbe(L.LightningModule):
         for ax, cm, label in zip(axes, conf_matrix, labels):
             # Plot the confusion matrix in each subplot
             im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-            ax.set_title(label)
+            ax.set_title(label, fontsize=15)
             # Annotation inside the heatmap
             for i in range(cm.shape[0]):
                 for j in range(cm.shape[1]):
