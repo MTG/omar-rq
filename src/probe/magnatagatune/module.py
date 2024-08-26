@@ -11,6 +11,7 @@ from torchmetrics.classification import (
 )
 import matplotlib.pyplot as plt
 import numpy as np
+import wandb
 
 
 @gin.configurable
@@ -152,7 +153,9 @@ class MTTProbe(L.LightningModule):
         # Compute the confusion matrix
         conf_matrix = self.test_confusion_matrix.compute()
         fig = self.plot_confusion_matrix(conf_matrix)
-        # self.logger.experiment.log({"test_confusion_matrix": fig_})
+        # Log the figure directly to wandb
+        if self.logger:
+            self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
         if self.plot_dir:
             self.plot_dir.mkdir(parents=True, exist_ok=True)
             fig.savefig(self.plot_dir / "test_confusion_matrix.png")
