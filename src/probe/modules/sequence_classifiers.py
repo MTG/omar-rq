@@ -30,6 +30,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         num_layers: int,
         activation: str,
         bias: bool,
+        dropout: float,
         lr: float,
         labels: Path = None,
         plot_dir: Path = None,
@@ -42,6 +43,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         self.num_layers = num_layers
         self.activation = activation
         self.bias = bias
+        self.dropout = dropout
         self.lr = lr
         self.labels = np.load(labels) if labels is not None else None
         self.plot_dir = Path(plot_dir) if plot_dir is not None else None
@@ -51,6 +53,8 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         for i in range(num_layers):
             if i == num_layers - 1:
                 hidden_size = num_labels
+
+            layers.append(nn.Dropout(dropout))
 
             # Add the linear layer
             layers.append(nn.Linear(in_features, hidden_size, bias=bias))
