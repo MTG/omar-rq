@@ -50,9 +50,6 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             if i == num_layers - 1:
                 hidden_size = num_labels
 
-            # TODO: bias? WD?
-            layers.append(nn.Linear(in_features, hidden_size))
-
             # Choose the activation
             if activation.lower() == "relu":
                 layers.append(nn.ReLU())
@@ -61,6 +58,9 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             else:
                 # TODO: more later
                 raise ValueError(f"Unknown activation function: {activation}")
+
+            # TODO: bias? WD?
+            layers.append(nn.Linear(in_features, hidden_size))
 
             in_features = hidden_size
         self.model = nn.Sequential(*layers)
