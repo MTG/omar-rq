@@ -61,7 +61,7 @@ class MTTEmbeddingLoadingDataset(Dataset):
             emb_path = self.embeddings_dir / emb_name[:3] / emb_name
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
-                embedding = torch.load(emb_path)
+                embedding = torch.load(emb_path, map_location="cpu")
                 self.embeddings.append(embedding)
                 binary_label = full_dataset_labels[int(ix)]
                 self.labels.append(torch.tensor(binary_label))
@@ -160,7 +160,7 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
         _, filename = filename.split("\t")
         emb_name = filename.split("/")[1].replace(".mp3", ".pt")
         emb_path = self.embeddings_dir / emb_name[:3] / emb_name
-        embedding = torch.load(emb_path)
+        embedding = torch.load(emb_path, map_location="cpu")
         self.embedding_dimension = embedding.shape[-1]
 
     def setup(self, stage: str):
