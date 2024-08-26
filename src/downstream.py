@@ -43,7 +43,8 @@ if __name__ == "__main__":
 
         if dataset_name == "magnatagatune":
 
-            from probe.magnatagatune import MTTProbe, MTTEmbeddingLoadingDataModule
+            from probe.modules import SequenceMultiLabelClassificationProbe
+            from probe.data import MTTEmbeddingLoadingDataModule
 
             # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
             embeddings_dir = (
@@ -72,7 +73,7 @@ if __name__ == "__main__":
             # TODO: provide a net with gin
             # TODO: write the metrics to the eval dir too
             # Build the module
-            module = MTTProbe(**model_dict)
+            module = SequenceMultiLabelClassificationProbe(**model_dict)
 
         else:
             raise ValueError(f"Unknown dataset: {dataset_name}")

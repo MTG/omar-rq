@@ -15,10 +15,11 @@ import wandb
 
 
 @gin.configurable
-class MTTProbe(L.LightningModule):
-    """Train a probe on top of a pre-trained model to predict the
-    tags of the Magnatagatune dataset. The probe is trained for multi-label
-    classification. The AUROC and Average Precision are used as metrics.
+class SequenceMultiLabelClassificationProbe(L.LightningModule):
+    """Train a probe using the embeddings from a pre-trained model to predict the
+    labels of a downstream dataset. The probe is trained for multi-label
+    classification. The macro AUROC, Mean Average Precision metrics are calculated.
+    The confusion matrix is also computed on the test set.
     """
 
     def __init__(
@@ -32,7 +33,7 @@ class MTTProbe(L.LightningModule):
         labels=None,
         plot_dir=None,
     ):
-        super(MTTProbe, self).__init__()
+        super(SequenceMultiLabelClassificationProbe, self).__init__()
 
         self.in_features = in_features
         self.num_labels = num_labels
