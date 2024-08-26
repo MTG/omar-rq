@@ -52,18 +52,19 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             if i == num_layers - 1:
                 hidden_size = num_labels
 
+            # Add the linear layer
+            layers.append(nn.Linear(in_features, hidden_size, bias=bias))
+
             # Choose the activation
-            if activation.lower() == "relu":
+            if (i == num_layers - 1) or activation.lower() == "none":
+                pass
+            elif activation.lower() == "relu":
                 layers.append(nn.ReLU())
             elif activation.lower() == "sigmoid":
                 layers.append(nn.Sigmoid())
-            elif activation.lower() == "none":
-                pass
             else:
                 # TODO: more later
                 raise ValueError(f"Unknown activation function: {activation}")
-
-            layers.append(nn.Linear(in_features, hidden_size, bias=bias))
 
             in_features = hidden_size
         self.model = nn.Sequential(*layers)
