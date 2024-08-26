@@ -59,6 +59,9 @@ if __name__ == "__main__":
                 **config["probe"]["embedding_processing"],
             )
 
+            # Get the embedding dimension from the dataloader
+            config["probe"]["model"]["in_features"] = datamodule.embedding_dimension
+
             # Build the module # TODO: provide a net with gin
             module = MTTProbe(**config["probe"]["model"])
 

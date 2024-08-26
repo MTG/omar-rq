@@ -153,6 +153,16 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
         self.granularity = granularity
         self.time_aggregation = time_aggregation
 
+        # Load one embedding to get the dimension
+        # NOTE: I tried doing this inside self.setup() but those are
+        # called when the trainer is used.
+        filename = np.load(train_filelist)[0]
+        _, filename = filename.split("\t")
+        emb_name = filename.split("/")[1].replace(".mp3", ".pt")
+        emb_path = self.embeddings_dir / emb_name[:3] / emb_name
+        embedding = torch.load(emb_path)
+        self.embedding_dimension = embedding.shape[-1]
+
     def setup(self, stage: str):
         if stage == "fit":
             print("\nSetting up Train dataset...")
