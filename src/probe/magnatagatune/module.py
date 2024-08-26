@@ -2,7 +2,11 @@ import gin
 import torch
 from torch import nn
 import pytorch_lightning as L
-from torchmetrics.classification import MultilabelAveragePrecision, MultilabelAUROC
+from torchmetrics.classification import (
+    MultilabelAveragePrecision,
+    MultilabelAUROC,
+    MultilabelConfusionMatrix,
+)
 
 
 @gin.configurable
@@ -64,6 +68,7 @@ class MTTProbe(L.LightningModule):
                 ),
             }
         )
+        self.val_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
         self.test_metrics = nn.ModuleDict(
             {
                 "test-AUROC-macro": MultilabelAUROC(
@@ -74,6 +79,7 @@ class MTTProbe(L.LightningModule):
                 ),
             }
         )
+        self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
 
     def forward(self, x):
         # (B, F) -> (B, num_labels)
@@ -117,11 +123,18 @@ class MTTProbe(L.LightningModule):
         y_true = batch[1].int()
         for metric in self.val_metrics.values():
             metric.update(logits, y_true)
+        # Update the confusion matrix
+        self.val_confusion_matrix.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
             self.log(name, metric, on_epoch=True)
+        # Calculate the confusion matrix and plot
+        conf_matrix = self.val_confusion_matrix.compute()
+        fig_, ax_ = self.val_confusion_matrix.plot(conf_matrix)
+        # self.logger.experiment.log({"val_confusion_matrix": fig_})
+        fig_.savefig("val_confusion_matrix.png")
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
@@ -129,11 +142,19 @@ class MTTProbe(L.LightningModule):
         y_true = batch[1].int()
         for metric in self.test_metrics.values():
             metric.update(logits, y_true)
+        # Update the confusion matrix
+        self.test_confusion_matrix.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.test_metrics.items():
             self.log(name, metric, on_epoch=True)
+        # Log the confusion matrix
+        # self.log("test_confusion_matrix", self.test_confusion_matrix.compute())
+        conf_matrix = self.test_confusion_matrix.compute()
+        fig_, ax_ = self.test_confusion_matrix.plot(conf_matrix)
+        # self.logger.experiment.log({"test_confusion_matrix": fig_})
+        fig_.savefig("test_confusion_matrix.png")
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
