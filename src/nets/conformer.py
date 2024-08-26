@@ -398,7 +398,7 @@ class Conformer(nn.Module):
         self.use_deepnorm = use_deepnorm
         self.use_rope = use_rope
 
-        self.input_dropout = nn.Dropout()
+        self.input_dropout = nn.Dropout(self.dropout)
 
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(
