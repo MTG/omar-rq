@@ -335,6 +335,7 @@ class MaskingModel(L.LightningModule):
             pad_len = chunk_len - x.shape[1] % chunk_len
             x = torch.nn.functional.pad(x, (0, pad_len), mode="constant", value=0)
 
+        # TODO overlap half
         # Chunk the representation and batch it
         x_chunks = torch.split(x, chunk_len, dim=1)
         x_chunks = torch.stack(x_chunks, dim=0)

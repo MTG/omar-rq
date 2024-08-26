@@ -135,7 +135,10 @@ class Transformer(Net):
         self.alpha_deepnorm = alpha_deepnorm
         self.beta_deepnorm = beta_deepnorm
 
-        self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
+        if self.do_vit_tokenization:
+            self.patch_embed = PatchEmbed(patch_size, in_chans, embed_dim)
+        else:
+            self.patch_embed = nn.Identity()
         if self.do_classification:
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
@@ -164,9 +167,12 @@ class Transformer(Net):
         self.head = nn.Linear(embed_dim, head_dims)
 
     def forward(self, x):
-        if self.do_vit_tokenization:
-            x = self.patch_embed(x)  # Embed the patches
-        B, N, _ = x.shape
+
+        # Embed the patches. If do_vit_tokenization is False, the input
+        # is already tokenized and the patch_embed layer is an identity
+        x = self.patch_embed(x)
+
+        B, _, _ = x.shape
 
         if self.do_classification:
             cls_token = self.cls_token.expand(B, -1, -1)
