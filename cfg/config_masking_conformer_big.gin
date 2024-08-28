@@ -4,8 +4,7 @@ train.wandb_params = {
     "name": "mask_conformer_rope_multi4_big",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
-    "save_dir": "/tmp/",
-    # "save_dir": "/gpfs/projects/upf97/logs/",
+    "save_dir": "/gpfs/projects/upf97/logs/",
     "entity": "mtg-upf",
     "group": "masking_conformer",
 }
