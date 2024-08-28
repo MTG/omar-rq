@@ -9,88 +9,104 @@ embeddings and evaluate it on the corresponding downstream task.
 # TODO load best ckpt for test
 """
 
-import yaml
 import traceback
 from pathlib import Path
-from argparse import ArgumentParser
+import argparse
 
+import gin.torch
+import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
+from utils import gin_config_to_readable_dictionary
+
+
+@gin.configurable
+def build_module_and_datamodule(
+    ssl_model_id: str, dataset_name: str, embeddings_dir: Path
+):
+
+    # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
+    embeddings_dir = Path(embeddings_dir) / ssl_model_id / dataset_name
+
+    if dataset_name == "magnatagatune":
+
+        from probe.modules import SequenceMultiLabelClassificationProbe
+        from probe.data import MTTEmbeddingLoadingDataModule
+
+        # Build the datamodule
+        datamodule = MTTEmbeddingLoadingDataModule(
+            embeddings_dir,
+        )
+
+        # Get the number of features from the dataloader
+        in_features = datamodule.embedding_dimension
+
+        # Build the DataModule
+        module = SequenceMultiLabelClassificationProbe(
+            in_features=in_features,
+        )
+
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
+
+    return module, datamodule
+
+
+@gin.configurable
+def train_probe(
+    module: L.LightningModule,
+    datamodule: L.LightningDataModule,
+    gin_config_dict: dict,
+    wandb_params: dict,
+    train_params: dict,
+):
+
+    # Define the logger
+    wandb_logger = WandbLogger(**wandb_params)
+    wandb_logger.log_hyperparams(gin_config_dict)
+
+    # Define the trainer
+    trainer = Trainer(logger=wandb_logger, **train_params)
+
+    # Train the probe
+    trainer.fit(model=module, datamodule=datamodule)
+
+    # Test the best probe
+    trainer.test(datamodule=datamodule, ckpt_path="best")
+
+
 if __name__ == "__main__":
 
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         "ssl_model_id",
         type=str,
         help="ID of the SSL model used to extract the embeddings.",
     )
     parser.add_argument(
-        "config",
+        "downstream_config",
         type=Path,
         help="Path to the config file for the downstream task.",
     )
 
     args = parser.parse_args()
 
-    with open(args.config, "r") as in_f:
-        config = yaml.safe_load(in_f)
-    dataset_name = config["dataset_name"]
+    gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
+    # Add the model id
+    gin_config_dict["ssl_model_id"] = args.ssl_model_id
 
     try:
+        # Load the downstream config
+        gin.parse_config_file(str(args.downstream_config))
 
-        if dataset_name == "magnatagatune":
-
-            from probe.modules import SequenceMultiLabelClassificationProbe
-            from probe.data import MTTEmbeddingLoadingDataModule
-
-            # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
-            embeddings_dir = (
-                Path(config["embeddings_dir"]) / args.ssl_model_id / dataset_name
-            )
-
-            # Build the datamodule
-            datamodule = MTTEmbeddingLoadingDataModule(
-                embeddings_dir,
-                config["gt_path"],
-                **config["splits"],
-                **config["probe"]["data_loader"],
-                **config["probe"]["embedding_processing"],
-            )
-
-            # TODO: all with gin
-            model_dict = config["probe"]["model"]
-            # Get the embedding dimension from the dataloader
-            model_dict["in_features"] = datamodule.embedding_dimension
-            # Add the labels to the model dict for plotting confusion matrix
-            model_dict["labels"] = config["labels"]
-            model_dict["plot_dir"] = (
-                Path(config["evaluation_dir"]) / args.ssl_model_id / dataset_name
-            )
-
-            # Add the model id
-            config["probe"]["wandb_params"] = args.ssl_model_id
-
-            # TODO: provide a net with gin
-            # TODO: write the metrics to the eval dir too
-            # Build the module
-            module = SequenceMultiLabelClassificationProbe(**model_dict)
-
-        else:
-            raise ValueError(f"Unknown dataset: {dataset_name}")
-
-        # Define the logger
-        wandb_logger = WandbLogger(**config["probe"]["wandb_params"])
-        wandb_logger.log_hyperparams(config)
-
-        # Define the trainer
-        trainer = Trainer(logger=wandb_logger, **config["probe"]["trainer"])
+        # Build the module and datamodule
+        module, datamodule = build_module_and_datamodule(args.ssl_model_id)
 
         # Train the probe
-        trainer.fit(model=module, datamodule=datamodule)
-
-        # Test the best probe
-        trainer.test(datamodule=datamodule, ckpt_path="best")
+        train_probe(module, datamodule, gin_config_dict)
 
     except Exception:
         traceback.print_exc()

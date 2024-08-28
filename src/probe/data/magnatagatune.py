@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import pytorch_lightning as L
 from torch.utils.data import Dataset, DataLoader
+import gin.torch
 
 
 class MTTEmbeddingLoadingDataset(Dataset):
@@ -125,6 +126,7 @@ def collate_fn_val_test(items):
     return embeddings[0], labels[0].unsqueeze(0)
 
 
+@gin.configurable
 class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
     """DataModule for loading embeddings and labels from the Magnatagatune dataset."""
 
