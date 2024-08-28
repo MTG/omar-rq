@@ -70,6 +70,9 @@ if __name__ == "__main__":
                 Path(config["evaluation_dir"]) / args.ssl_model_id / dataset_name
             )
 
+            # Add the model id
+            config["probe"]["wandb_params"] = args.ssl_model_id
+
             # TODO: provide a net with gin
             # TODO: write the metrics to the eval dir too
             # Build the module
