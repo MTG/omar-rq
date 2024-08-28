@@ -19,6 +19,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
 from utils import gin_config_to_readable_dictionary
+from probe.modules import SequenceMultiLabelClassificationProbe
+from probe.data import MTTEmbeddingLoadingDataModule
 
 
 @gin.configurable
@@ -30,9 +32,6 @@ def build_module_and_datamodule(
     embeddings_dir = Path(embeddings_dir) / ssl_model_id / dataset_name
 
     if dataset_name == "magnatagatune":
-
-        from probe.modules import SequenceMultiLabelClassificationProbe
-        from probe.data import MTTEmbeddingLoadingDataModule
 
         # Build the datamodule
         datamodule = MTTEmbeddingLoadingDataModule(
@@ -100,7 +99,7 @@ if __name__ == "__main__":
 
     try:
         # Load the downstream config
-        gin.parse_config_file(str(args.downstream_config))
+        gin.parse_config_file(args.downstream_config, skip_unknown=True)
 
         # Build the module and datamodule
         module, datamodule = build_module_and_datamodule(args.ssl_model_id)
