@@ -21,7 +21,8 @@ build_dev_datamodule.datamodule = @discotube
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 8,
+    "devices": 4,
+    "num_nodes": 2,
     "max_steps": 400000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
