@@ -1,4 +1,13 @@
-"""Evaluate SSL models using gin configs. TODO more detailed description."""
+"""Evaluate SSL models using gin configs. This script is used to extract
+embeddings from a pre-trained SSL model for downstream tasks. The embeddings are
+saved in the embeddings_dir specified in the downstream task's gin config.
+By default, the embeddings won't be aggregated and will be saved as they are.
+(L, B, T, C,)
+    where L = len(layers),
+    B = number of audio chunks
+    T = number of melspec frames the model can accomodate
+    C = model output dimension
+"""
 
 import traceback
 import argparse
