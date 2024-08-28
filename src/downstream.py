@@ -5,7 +5,6 @@ of the dataset and the parameters of the probe. The script will train the probe 
 embeddings and evaluate it on the corresponding downstream task.
 
 # TODO fix seed
-# TODO use gin for the probe
 # TODO load best ckpt for test
 """
 
