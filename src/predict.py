@@ -37,7 +37,11 @@ for net_name, net in NETS.items():
 
 @gin.configurable
 def predict(
-    ckpt_path: Path, embeddings_dir: Path, device_dict: dict, embedding_layer: List[int]
+    ckpt_path: Path,
+    dataset_name: str,
+    embeddings_dir: Path,
+    device_dict: dict,
+    embedding_layer: List[int],
 ):
     """Wrapper function. Basically overrides some train parameters."""
 
@@ -45,11 +49,7 @@ def predict(
     # root_output_dir/ssl_model_id/dataset_name/ Inside dataset_name,
     # we have the following structure: dataset_name/audio_name[:3]/audio_name.pt
     ssl_model_id = Path(ckpt_path).parent.parent.name
-    embeddings_dir = (
-        Path(embeddings_dir["output_dir"])
-        / ssl_model_id
-        / embeddings_dir["dataset_name"]
-    )
+    embeddings_dir = Path(embeddings_dir) / ssl_model_id / dataset_name
 
     train(
         embeddings_dir=embeddings_dir,
