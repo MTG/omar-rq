@@ -38,7 +38,7 @@ MTTEmbeddingLoadingDataModule.time_aggregation = "mean"
 
 train_probe.wandb_params = {
     "project": "magnatagatune",
-    "offline": True,
+    "offline": False,
     "entity": "mtg-upf",
     "save_dir": "/home/oaraz/ssl-mtg/data/logs/"
 }
