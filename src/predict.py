@@ -51,10 +51,10 @@ if __name__ == "__main__":
 
         # Set the output directory with model name and dataset name
         ckpt_path = Path(gin.query_parameter("build_module.ckpt_path"))
-        model_version_name = ckpt_path.parent.parent.name
+        ssl_model_id = ckpt_path.parent.parent.name
         output_dir = (
             Path(predict_config["embeddings_dir"])
-            / model_version_name
+            / ssl_model_id
             / predict_config["dataset_name"]
         )
 
