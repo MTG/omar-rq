@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import traceback
+from typing import List
 
 import gin.torch
 import pytorch_lightning as L
@@ -35,13 +36,19 @@ def define_embeddings_dir(ckpt_path: Path, dataset_name: str, root_output_dir: s
 
 
 @gin.configurable
-def predict(ckpt_path: Path, embeddings_dir: Path, device_dict: dict):
+def predict(
+    ckpt_path: Path, embeddings_dir: Path, device_dict: dict, embedding_layer: List[int]
+):
     """Wrapper function. Basically overrides some train parameters."""
 
     # Set the output directory with model id and dataset name
     embeddings_dir = define_embeddings_dir(ckpt_path, **embeddings_dir)
 
-    train(embeddings_dir=embeddings_dir, device_dict=device_dict)
+    train(
+        embeddings_dir=embeddings_dir,
+        device_dict=device_dict,
+        embedding_layer=embedding_layer,
+    )
 
 
 @gin.configurable
@@ -49,6 +56,7 @@ def train(
     embeddings_dir: Path,
     params: dict,
     device_dict: dict,
+    embedding_layer: List[int],
     wandb_params=None,
 ):
     """The name is train, but we are actually predicting the embeddings for
@@ -68,6 +76,9 @@ def train(
 
     # Build the module and load the weights
     module, _ = build_module(trainer=trainer)
+
+    # Set the embedding layer
+    module.embedding_layer = embedding_layer
 
     # Get the data module
     data_module = AudioEmbeddingDataModule()

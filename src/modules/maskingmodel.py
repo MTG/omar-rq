@@ -2,7 +2,7 @@ import math
 import os
 import random
 from collections import Counter
-from time import sleep
+from typing import List
 
 import gin
 import torch
@@ -63,6 +63,7 @@ class MaskingModel(L.LightningModule):
         self.weight_decay = weight_decay
         self.tokens_coverage = []
         self.first_coverage = True
+        self.embedding_layer = [-1]
 
         if (
             hasattr(representation, "sr")
@@ -272,7 +273,6 @@ class MaskingModel(L.LightningModule):
         self.log(f"val_acc", accuracies)
         return loss
 
-    # TODO: how to control the embedding layer in Lightning?
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, _ = batch
         # If the input is all zeros, return None to give signal
@@ -282,14 +282,15 @@ class MaskingModel(L.LightningModule):
 
     def extract_embeddings(
         self,
-        audio,
-        layer=[-1],
+        audio: torch.Tensor,
+        layer: List[int] = None,
     ):
         """Extract audio embeddings using the model.
 
         Parameters:
             audio (torch.Tensor): 1D audio tensor.
             layer (list): List of layer indices to extract embeddings from.
+            By default, it extracts embeddings from the last layer.
 
         Output:
             torch.Tensor: Extracted embeddings.
@@ -302,6 +303,9 @@ class MaskingModel(L.LightningModule):
         """
 
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
+
+        if layer is None:
+            layer = self.embedding_layer
         assert isinstance(layer, list), "Layer must be a list."
         assert layer == [-1], "Only last layer is supported for now."
 
