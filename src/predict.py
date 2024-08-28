@@ -1,6 +1,8 @@
-from argparse import ArgumentParser
-from pathlib import Path
+"""Evaluate SSL models using gin configs. TODO more detailed description."""
+
 import traceback
+import argparse
+from pathlib import Path
 from typing import List
 
 import gin.torch
@@ -91,7 +93,9 @@ def train(
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser("Evaluate SSL models using gin configs.")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         "train_config",
         type=Path,
