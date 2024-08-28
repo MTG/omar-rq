@@ -6,9 +6,7 @@ embeddings and evaluate it on the corresponding downstream task.
 
 # TODO fix seed
 # TODO use gin for the probe
-# TODO use gin for the dataset
 # TODO load best ckpt for test
-# TODO why does it take 5 minutes to start training?
 """
 
 import yaml
