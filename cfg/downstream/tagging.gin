@@ -1,4 +1,6 @@
-define_embeddings_dir.dataset_name= "magnatagatune"
+dataset_name = "magnatagatune"
+
+define_embeddings_dir.dataset_name= %dataset_name
 define_embeddings_dir.root_output_dir= "/gpfs/scratch/upf97/embeddings/try/"
 
 # Lighting trainer parameters, overwrites the training config
