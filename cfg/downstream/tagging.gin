@@ -1,5 +1,5 @@
 dataset_name = "magnatagatune"
-embeddings_dir = "/gpfs/scratch/upf97/embeddings/try/"
+embeddings_dir = "/gpfs/scratch/upf97/embeddings/"
 
 # Lighting Trainer parameters, overwrites the training config
 predict.device_dict = {
@@ -22,9 +22,6 @@ AudioEmbeddingDataModule.mono = True # TODO read from train cfg
 AudioEmbeddingDataModule.half_precision = True # TODO read from train cfg
 AudioEmbeddingDataModule.num_workers = 20
 
-
-# Downstream parameters TODO?
-#evaluation_dir = "/gpfs/scratch/upf97/eval_results/"
 
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
