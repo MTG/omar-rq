@@ -1,0 +1,18 @@
+define_embeddings_dir.dataset_name= "magnatagatune"
+define_embeddings_dir.root_output_dir= "/gpfs/scratch/upf97/embeddings/try/"
+
+# Lighting trainer parameters, overwrites the training config
+predict.device_dict = {
+    "accelerator": "gpu",
+    "devices": 1,
+}
+
+#"embedding_layer": [-1] # TODO: not used currently
+
+AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/"
+AudioEmbeddingDataModule.file_format = "mp3"
+AudioEmbeddingDataModule.orig_freq = 16000
+AudioEmbeddingDataModule.new_freq = 16000 # TODO read from train cfg
+AudioEmbeddingDataModule.mono = True # TODO read from train cfg
+AudioEmbeddingDataModule.half_precision = True # TODO read from train cfg
+AudioEmbeddingDataModule.num_workers = 20
