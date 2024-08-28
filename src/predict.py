@@ -26,6 +26,7 @@ for net_name, net in NETS.items():
     gin.external_configurable(net, net_name)
 
 
+# TODO remove
 def define_embeddings_dir(ckpt_path: Path, dataset_name: str, root_output_dir: str):
     """We use the following structure for the embeddings directory:
         root_output_dir/ssl_model_id/dataset_name/
@@ -80,7 +81,7 @@ def train(
     module, _ = build_module(trainer=trainer)
 
     # Set the embedding layer
-    module.embedding_layer = embedding_layer
+    module.downstream_embedding_layer = embedding_layer
 
     # Get the data module
     data_module = AudioEmbeddingDataModule()

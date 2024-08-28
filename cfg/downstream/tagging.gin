@@ -1,6 +1,6 @@
 dataset_name = "magnatagatune"
 
-# Lighting trainer parameters, overwrites the training config
+# Lighting Trainer parameters, overwrites the training config
 predict.device_dict = {
     "accelerator": "gpu",
     "devices": 1,
@@ -9,8 +9,9 @@ predict.device_dict = {
 predict.embeddings_dir = {
     "dataset_name": %dataset_name,
     "root_output_dir": "/gpfs/scratch/upf97/embeddings/try/"
- }
+}
 
+# Embedding taking location from the neural network
 predict.embedding_layer = [-1]
 
 AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/"

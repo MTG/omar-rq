@@ -63,7 +63,7 @@ class MaskingModel(L.LightningModule):
         self.weight_decay = weight_decay
         self.tokens_coverage = []
         self.first_coverage = True
-        self.embedding_layer = [-1]
+        self.downstream_embedding_layer = [-1]
 
         if (
             hasattr(representation, "sr")
@@ -305,7 +305,7 @@ class MaskingModel(L.LightningModule):
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
 
         if layer is None:
-            layer = self.embedding_layer
+            layer = self.downstream_embedding_layer
         assert isinstance(layer, list), "Layer must be a list."
         assert layer == [-1], "Only last layer is supported for now."
 
