@@ -8,7 +8,7 @@ predict.device_dict = {
 
 predict.embeddings_dir = {
     "dataset_name": %dataset_name,
-    "root_output_dir": "/gpfs/scratch/upf97/embeddings/try/"
+    "output_dir": "/gpfs/scratch/upf97/embeddings/try/"
 }
 
 # Embedding taking location from the neural network

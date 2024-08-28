@@ -26,26 +26,21 @@ for net_name, net in NETS.items():
     gin.external_configurable(net, net_name)
 
 
-# TODO remove
-def define_embeddings_dir(ckpt_path: Path, dataset_name: str, root_output_dir: str):
-    """We use the following structure for the embeddings directory:
-        root_output_dir/ssl_model_id/dataset_name/
-
-    Inside dataset_name, we have the following structure:
-        dataset_name/audio_name[:3]/audio_name.pt"""
-
-    ssl_model_id = Path(ckpt_path).parent.parent.name
-    return Path(root_output_dir) / ssl_model_id / dataset_name
-
-
 @gin.configurable
 def predict(
     ckpt_path: Path, embeddings_dir: Path, device_dict: dict, embedding_layer: List[int]
 ):
     """Wrapper function. Basically overrides some train parameters."""
 
-    # Set the output directory with model id and dataset name
-    embeddings_dir = define_embeddings_dir(ckpt_path, **embeddings_dir)
+    # We use the following structure for the embeddings directory:
+    # root_output_dir/ssl_model_id/dataset_name/ Inside dataset_name,
+    # we have the following structure: dataset_name/audio_name[:3]/audio_name.pt
+    ssl_model_id = Path(ckpt_path).parent.parent.name
+    embeddings_dir = (
+        Path(embeddings_dir["output_dir"])
+        / ssl_model_id
+        / embeddings_dir["dataset_name"]
+    )
 
     train(
         embeddings_dir=embeddings_dir,
