@@ -11,7 +11,7 @@ predict.embeddings_dir = {
     "root_output_dir": "/gpfs/scratch/upf97/embeddings/try/"
  }
 
-#"embedding_layer": [-1] # TODO: not used currently
+predict.embedding_layer = [-1]
 
 AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/"
 AudioEmbeddingDataModule.file_format = "mp3"
