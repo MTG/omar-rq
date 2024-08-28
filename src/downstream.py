@@ -55,14 +55,17 @@ def build_module_and_datamodule(
 def train_probe(
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
-    gin_config_dict: dict,
+    ssl_model_id: str,
     wandb_params: dict,
     train_params: dict,
 ):
 
     # Define the logger
     wandb_logger = WandbLogger(**wandb_params)
-    wandb_logger.log_hyperparams(gin_config_dict)
+
+    # Get the gin config as a dictionary and log it to wandb
+    _gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
+    wandb_logger.log_hyperparams({"ssl_model_id": ssl_model_id, **_gin_config_dict})
 
     # Define the trainer
     trainer = Trainer(logger=wandb_logger, **train_params)
@@ -92,10 +95,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
-    # Add the model id
-    gin_config_dict["ssl_model_id"] = args.ssl_model_id
-
     try:
         # Load the downstream config
         gin.parse_config_file(args.downstream_config, skip_unknown=True)
@@ -104,7 +103,7 @@ if __name__ == "__main__":
         module, datamodule = build_module_and_datamodule(args.ssl_model_id)
 
         # Train the probe
-        train_probe(module, datamodule, gin_config_dict)
+        train_probe(module, datamodule, args.ssl_model_id)
 
     except Exception:
         traceback.print_exc()
