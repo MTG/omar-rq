@@ -1,4 +1,3 @@
-import yaml
 from argparse import ArgumentParser
 from pathlib import Path
 import traceback
@@ -24,7 +23,6 @@ for net_name, net in NETS.items():
     gin.external_configurable(net, net_name)
 
 
-@gin.configurable
 def define_embeddings_dir(ckpt_path: Path, dataset_name: str, root_output_dir: str):
     """We use the following structure for the embeddings directory:
         root_output_dir/ssl_model_id/dataset_name/
@@ -37,15 +35,18 @@ def define_embeddings_dir(ckpt_path: Path, dataset_name: str, root_output_dir: s
 
 
 @gin.configurable
-def predict(ckpt_path: Path, device_dict: dict):
+def predict(ckpt_path: Path, embeddings_dir: Path, device_dict: dict):
     """Wrapper function. Basically overrides some train parameters."""
 
-    train(ckpt_path=ckpt_path, device_dict=device_dict)
+    # Set the output directory with model id and dataset name
+    embeddings_dir = define_embeddings_dir(ckpt_path, **embeddings_dir)
+
+    train(embeddings_dir=embeddings_dir, device_dict=device_dict)
 
 
 @gin.configurable
 def train(
-    ckpt_path: Path,
+    embeddings_dir: Path,
     params: dict,
     device_dict: dict,
     wandb_params=None,
@@ -55,9 +56,6 @@ def train(
 
     NOTE: you have to keep wandb_params argument of this function. Otherwise,
     Gin can not use the training config."""
-
-    # Set the output directory with model id and dataset name
-    embeddings_dir = define_embeddings_dir(ckpt_path)
 
     # Add the callback to write the embeddings
     callbacks = [EmbeddingWriter(embeddings_dir)]
@@ -98,8 +96,7 @@ if __name__ == "__main__":
 
     try:
 
-        # TODO: clean this
-        # Parse the gin configs. Parse last the predict config to overwrite the train config
+        # Parse the gin configs.
         for config_file in [args.train_config, args.predict_config]:
             gin.parse_config_file(config_file, skip_unknown=True)
 

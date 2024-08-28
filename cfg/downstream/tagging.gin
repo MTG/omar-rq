@@ -1,13 +1,15 @@
 dataset_name = "magnatagatune"
 
-define_embeddings_dir.dataset_name= %dataset_name
-define_embeddings_dir.root_output_dir= "/gpfs/scratch/upf97/embeddings/try/"
-
 # Lighting trainer parameters, overwrites the training config
 predict.device_dict = {
     "accelerator": "gpu",
     "devices": 1,
 }
+
+predict.embeddings_dir = {
+    "dataset_name": %dataset_name,
+    "root_output_dir": "/gpfs/scratch/upf97/embeddings/try/"
+ }
 
 #"embedding_layer": [-1] # TODO: not used currently
 
