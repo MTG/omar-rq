@@ -41,6 +41,7 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
+        use_residual_quantizers: bool,
         plot_tokens: bool = False,
     ):
         super(MaskingModel, self).__init__()
@@ -61,6 +62,7 @@ class MaskingModel(L.LightningModule):
         self.seed = seed
         self.plot_tokens = plot_tokens
         self.weight_decay = weight_decay
+        self.use_residual_quantizers = use_residual_quantizers
         self.tokens_coverage = []
         self.first_coverage = True
 
@@ -173,9 +175,26 @@ class MaskingModel(L.LightningModule):
         # Flatten patches to tokens
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
         # Return patches and tokens
-        tokens = torch.stack(
-            [quantizer(patches) for quantizer in self.quantizers], dim=-1
-        )
+        tokens = []
+        q_input = patches
+        do_projection = True
+        for quantizer in self.quantizers:
+            cb_indices, err = quantizer(
+                q_input,
+                return_error=self.use_residual_quantizers,
+                do_projection=do_projection,
+            )
+            tokens.append(cb_indices)
+
+            # Use residual quantization
+            if self.use_residual_quantizers:
+                # Next quantizer's input is the error from the previous one
+                q_input = err
+                # Subsequent quantizers do not need random projection
+                do_projection = False
+
+        tokens = torch.stack(tokens, dim=-1)
+
         if self.plot_tokens:
             self.plot_spectrogram_with_tokens(
                 spectrogram[0].detach().cpu(),

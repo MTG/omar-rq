@@ -38,13 +38,14 @@ class RandomProjectionQuantizer(nn.Module):
         nn.init.normal_(codebook)
         self.register_buffer("codebook", codebook)
 
-    def codebook_lookup(self, x):
+    def codebook_lookup(self, x, return_error: bool = False):
         # reshape
-        b, n, e = x.shape
-        x = x.view(b * n, e)
+        b, n, d = x.shape
+        x = x.view(b * n, d)
 
         # L2 normalization
         normalized_x = nn.functional.normalize(x, dim=1, p=2)
+        # TODO: do this only once
         normalized_codebook = nn.functional.normalize(self.codebook, dim=1, p=2)
 
         # compute distances
@@ -55,17 +56,26 @@ class RandomProjectionQuantizer(nn.Module):
 
         # reshape
         xq = nearest_indices.view(b, n)
-        return xq
+
+        # compute error
+        if return_error:
+            err = normalized_x - normalized_codebook[nearest_indices]
+            err = err.view(b, n, d)
+        else:
+            err = None
+
+        return xq, err
 
     @torch.no_grad()
-    def forward(self, x):
+    def forward(self, x, return_error=False, do_projection=True):
         # Set to evaluation mode
         self.eval()
         # Apply random projection
-        x = einsum("b n d, d e -> b n e", x, self.random_projection)
+        if do_projection:
+            x = einsum("b n d, d e -> b n e", x, self.random_projection)
         # Perform codebook lookup
-        xq = self.codebook_lookup(x)
-        return xq
+        xq, err = self.codebook_lookup(x, return_error=return_error)
+        return xq, err
 
 
 class Codebook(nn.Module):
