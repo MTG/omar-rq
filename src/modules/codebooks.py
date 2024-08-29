@@ -36,6 +36,7 @@ class RandomProjectionQuantizer(nn.Module):
         # randomly initialized codebook
         codebook = torch.empty(codebook_size, codebook_dim)
         nn.init.normal_(codebook)
+        codebook = nn.functional.normalize(codebook, dim=1, p=2)
         self.register_buffer("codebook", codebook)
 
     def codebook_lookup(self, x, return_error: bool = False):
@@ -45,11 +46,9 @@ class RandomProjectionQuantizer(nn.Module):
 
         # L2 normalization
         normalized_x = nn.functional.normalize(x, dim=1, p=2)
-        # TODO: do this only once
-        normalized_codebook = nn.functional.normalize(self.codebook, dim=1, p=2)
 
         # compute distances
-        distances = torch.cdist(normalized_codebook, normalized_x)
+        distances = torch.cdist(self.codebook, normalized_x)
 
         # get nearest
         nearest_indices = torch.argmin(distances, dim=0)
@@ -59,7 +58,7 @@ class RandomProjectionQuantizer(nn.Module):
 
         # compute error
         if return_error:
-            err = normalized_x - normalized_codebook[nearest_indices]
+            err = normalized_x - self.codebook[nearest_indices]
             err = err.view(b, n, d)
         else:
             err = None
