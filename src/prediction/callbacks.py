@@ -31,4 +31,7 @@ class EmbeddingWriter(BasePredictionWriter):
 
         # If the prediction is a tensor, write it to a file
         if prediction is not None:
+            # NOTE: this will remember the device the tensor was on
+            # and will restore it when loading the tensor
+            # maybe we should move to CPU before saving
             torch.save(prediction, output_path)

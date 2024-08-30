@@ -2,6 +2,7 @@ from pathlib import Path
 
 import torch
 import torchaudio
+import gin.torch
 import pytorch_lightning as L
 from torch.utils.data import Dataset, DataLoader
 from torchaudio.transforms import Resample
@@ -69,6 +70,7 @@ class AudioEmbeddingDataset(Dataset):
         return [item[0] for item in items][0], [item[1] for item in items][0]
 
 
+@gin.configurable
 class AudioEmbeddingDataModule(L.LightningDataModule):
     def __init__(
         self,

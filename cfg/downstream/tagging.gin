@@ -1,0 +1,61 @@
+dataset_name = "magnatagatune"
+embeddings_dir = "/gpfs/scratch/upf97/embeddings/"
+
+# Lighting Trainer parameters, overwrites the training config
+predict.device_dict = {
+	"accelerator": "gpu",
+	"devices": 1,
+}
+
+# Embedding taking location from the neural network
+predict.embedding_layer = [-1]
+
+predict.embeddings_dir = %embeddings_dir
+predict.dataset_name = %dataset_name
+
+# Audio Loader for embedding extraction
+AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/"
+AudioEmbeddingDataModule.file_format = "mp3"
+AudioEmbeddingDataModule.orig_freq = 16000
+AudioEmbeddingDataModule.new_freq = 16000 # TODO read from train cfg
+AudioEmbeddingDataModule.mono = True # TODO read from train cfg
+AudioEmbeddingDataModule.half_precision = True # TODO read from train cfg
+AudioEmbeddingDataModule.num_workers = 20
+
+
+build_module_and_datamodule.dataset_name = %dataset_name
+build_module_and_datamodule.embeddings_dir = %embeddings_dir
+
+MTTEmbeddingLoadingDataModule.gt_path = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/binary.npy"
+MTTEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/train.npy"
+MTTEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/valid.npy"
+MTTEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/test.npy"
+MTTEmbeddingLoadingDataModule.batch_size = 256
+MTTEmbeddingLoadingDataModule.num_workers = 10
+MTTEmbeddingLoadingDataModule.layer_aggregation = "none"
+MTTEmbeddingLoadingDataModule.granularity = "chunk"
+MTTEmbeddingLoadingDataModule.time_aggregation = "mean"
+
+train_probe.wandb_params = {
+    "project": "magnatagatune",
+    "offline": True,
+    "entity": "mtg-upf",
+    "save_dir": "/gpfs/projects/upf97/logs/",
+}
+
+train_probe.train_params = {
+    "accelerator": "gpu",
+    "devices": 1,
+    "log_every_n_steps": 10,
+    "max_epochs": 20,
+    "num_sanity_val_steps": 0,
+}
+
+SequenceMultiLabelClassificationProbe.num_layers = 2
+SequenceMultiLabelClassificationProbe.num_labels = 50 # TODO
+SequenceMultiLabelClassificationProbe.hidden_size = 512
+SequenceMultiLabelClassificationProbe.activation = "relu"
+SequenceMultiLabelClassificationProbe.bias = True
+SequenceMultiLabelClassificationProbe.dropout = 0.2
+SequenceMultiLabelClassificationProbe.lr = 0.0001
+SequenceMultiLabelClassificationProbe.labels = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"

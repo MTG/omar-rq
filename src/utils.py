@@ -66,12 +66,3 @@ def build_dev_datamodule(
 ):
     datamodule = datamodule()
     return datamodule
-
-
-@gin.configurable
-def build_test_datamodule(
-    datamodule: L.LightningDataModule,
-):
-    # datamodule = datamodule()
-    # return datamodule
-    raise NotImplementedError
