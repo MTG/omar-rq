@@ -63,6 +63,9 @@ class MelSpectrogram(torch.nn.Module):
         self.mean = norm_mean
         self.std = norm_std
 
+        # store the number dimensions to be used by the training modules
+        self.rep_dims = n_mel
+
     def znorm(self, input_values: torch.Tensor) -> torch.Tensor:
         return (input_values - (self.mean)) / (self.std)
 
