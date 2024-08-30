@@ -68,11 +68,11 @@ class MaskingModel(L.LightningModule):
         if (
             hasattr(representation, "sr")
             and hasattr(representation, "hop_len")
-            and hasattr(representation, "n_mel")
+            and hasattr(representation, "rep_dims")
         ):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
-            self.n_mel = representation.n_mel
+            self.rep_dims = representation.rep_dims
             # Create a ModuleList to hold the quantizers
             self.quantizers = nn.ModuleList(
                 [
@@ -87,7 +87,7 @@ class MaskingModel(L.LightningModule):
             )
         else:
             raise NotImplementedError(
-                f"Representation {type(self.representation)} is supported"
+                f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
             )
 
         # loss function
@@ -210,7 +210,7 @@ class MaskingModel(L.LightningModule):
         windows_tokens = (
             len_masking_spec_frames
             // self.patch_size[1]
-            * (self.n_mel // self.patch_size[0])
+            * (self.rep_dims // self.patch_size[0])
         )
 
         # Generate random mask indices
