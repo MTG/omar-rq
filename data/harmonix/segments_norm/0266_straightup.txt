@@ -1,0 +1,11 @@
+0.0 silence
+2.5 intro
+12.51668 verse
+32.54428 verse
+42.559152 chorus
+62.58544 bridge
+82.614372 bridge
+102.643816 verse
+125.171972 chorus
+145.206924 chorus
+155.222028 end

@@ -1,0 +1,11 @@
+0.0 intro
+6.274488 intro
+14.640472 chorus
+31.390688 verse
+69.074008 chorus
+85.822112 intro
+94.205032 bridge
+119.334568 inst
+136.088864 chorus
+152.841924 outro
+159.124788 end

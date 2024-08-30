@@ -1,0 +1,14 @@
+0.0375 intro
+14.1 chorus
+45.0375 verse
+60.0375 verse
+75.0375 verse
+90.0375 verse
+104.1 chorus
+135.0375 verse
+150.0375 verse
+165.0375 verse
+180.0375 bridge
+195.0375 bridge
+209.1 chorus
+240.0375 end

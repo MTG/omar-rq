@@ -1,0 +1,13 @@
+0.0 silence
+4.0 intro
+71.348642 inst
+104.090692 verse
+147.56475 inst
+175.771494 inst
+195.39449 verse
+238.537198 inst
+257.327318 verse
+305.72378 inst
+327.202384 verse
+355.66311 chorus
+399.49113 end

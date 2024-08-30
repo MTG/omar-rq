@@ -1,0 +1,15 @@
+0.0 intro
+7.5 chorus
+22.5 verse
+30.0 verse
+37.5 inst
+52.5 chorus
+67.5 bridge
+75.0 verse
+82.5 inst
+105.030944 inst
+120.032128 chorus
+135.033312 verse
+142.533904 verse
+150.034496 outro
+165.03568 end

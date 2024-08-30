@@ -1,0 +1,13 @@
+0.0 silence
+1.665504 intro
+4.998824 chorus
+18.332104 verse
+44.998664 chorus
+58.331944 verse
+64.998584 chorus
+78.331864 verse
+104.998424 chorus
+118.331704 verse
+124.998344 chorus
+138.331624 outro
+148.331584 end

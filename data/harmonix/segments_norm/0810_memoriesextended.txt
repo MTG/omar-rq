@@ -1,0 +1,10 @@
+0.075 intro
+37.68372 chorus
+67.770696 chorus
+97.857672 inst
+112.90116 chorus
+142.988136 chorus
+173.075112 bridge
+203.162088 chorus
+233.249064 inst
+278.379528 end
