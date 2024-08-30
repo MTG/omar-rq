@@ -27,6 +27,7 @@ train.params = {
 
 # Dataloader
 AudioDataset.num_frames = 160000 # 3s
+AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True

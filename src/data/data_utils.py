@@ -20,6 +20,7 @@ class AudioDataset(Dataset):
         data_dir: Path,
         filelist: Path,
         num_frames: int,
+        orig_freq: int,
         new_freq: int,
         mono: bool,
         half_precision: bool,
@@ -31,8 +32,9 @@ class AudioDataset(Dataset):
 
         self.num_frames = num_frames
         self.frame_offset = frame_offset
+        self.orig_freq = orig_freq
         self.new_freq = new_freq
-        self.resample = Resample(new_freq=self.new_freq)
+        self.resample = Resample(orig_freq=self.orig_freq, new_freq=self.new_freq)
         self.mono = mono
         self.half_precision = half_precision
 
