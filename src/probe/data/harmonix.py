@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import numpy as np
 
 import torch
@@ -48,25 +47,22 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.granularity = granularity
         self.time_aggregation = time_aggregation
         self.mode = mode
-        # self.normalize = normalize # TODO?
-
-        # Load the filelist of the partition and the binarized labels from Minz et al. 2020
-        filenames = np.load(filelist)
-        full_dataset_labels = np.load(gt_path)
 
         # Load the embeddings and labels
         self.embeddings, self.labels = [], []
+        filenames = [p.strip() for p in open(filelist).readlines()]
+
         for filename in filenames:
-            ix, fn = filename.split("\t")
-            emb_name = fn.split("/")[1].replace(".mp3", ".pt")
-            emb_path = self.embeddings_dir / emb_name[:3] / emb_name
+            emb_name =  Path(filename + ".pt")
+            emb_path = self.embeddings_dir / Path(str(emb_name)[:3]) / emb_name
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
                 embedding = torch.load(emb_path, map_location="cpu")
                 embedding = self.prepare_embedding(embedding)
                 self.embeddings.append(embedding)
-                binary_label = full_dataset_labels[int(ix)]
-                self.labels.append(torch.tensor(binary_label))
+                path_structure =  gt_path / Path(filename + ".txt")
+
+                self.prepare_structure_annotations(path_structure, output_length=embedding.shape[1]*embedding.shape[2])
 
     def __len__(self):
         return len(self.labels)
@@ -81,6 +77,38 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         labels = self.labels[idx]  # (C, )
 
         return embeddings, labels
+
+    def prepare_structure_annotations(self, file_path, output_length):
+        timestamps = []
+        labels = []
+
+        # Read the file and extract timestamps and labels
+        with open(file_path, 'r') as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    timestamp = float(parts[0])
+                    label = parts[1]
+                    timestamps.append(timestamp)
+                    labels.append(label)
+
+        # Generate the output labels
+        output_labels = []
+        num_steps = int(output_length / self.granularity_ms)
+        current_label = "intro"  # Assume it starts with 'intro', or adjust as needed
+        label_index = 0
+        current_time = 0
+
+        for step in range(num_steps):
+            current_time = step * self.granularity_ms / 1000  # Convert to seconds
+            if label_index < len(timestamps) and current_time >= timestamps[label_index]:
+                current_label = labels[label_index]
+                label_index += 1
+            output_labels.append(current_label)
+
+        return output_labels
+
+
 
     def prepare_embedding(self, embeddings):
         """Prepare embeddings for training. Expects the embeddings to be 4D (L, N, T, F)."""
@@ -158,12 +186,15 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
         # Load one embedding to get the dimension
         # NOTE: I tried doing this inside self.setup() but those are
         # called when the trainer is used.
-        filename = np.load(train_filelist)[0]
-        _, filename = filename.split("\t")
-        emb_name = filename.split("/")[1].replace(".mp3", ".pt")
-        emb_path = self.embeddings_dir / emb_name[:3] / emb_name
+
+        emb_name = Path(open(train_filelist).readlines()[0].strip() + ".pt")
+        emb_path = self.embeddings_dir / Path(str(emb_name)[:3]) / emb_name
         embedding = torch.load(emb_path, map_location="cpu")
         self.embedding_dimension = embedding.shape[-1]
+
+        # when developing
+        self.setup("fit")
+        self.setup("test")
 
     def setup(self, stage: str):
         if stage == "fit":

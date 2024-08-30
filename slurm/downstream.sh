@@ -15,4 +15,5 @@ source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 ssl_model_id=$1
 downstream_config=$2
 
+# example: python src/downstream.py ws3pyty7 cfg/downstream/structure_local.gin
 python src/downstream.py $1 $2

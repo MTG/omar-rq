@@ -17,6 +17,7 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
+from probe.data.harmonix import HarmonixEmbeddingLoadingDataModule
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
 from probe.data import MTTEmbeddingLoadingDataModule
@@ -26,10 +27,8 @@ from probe.data import MTTEmbeddingLoadingDataModule
 def build_module_and_datamodule(
     ssl_model_id: str, dataset_name: str, embeddings_dir: Path
 ):
-
     # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
     embeddings_dir = Path(embeddings_dir) / ssl_model_id / dataset_name
-
     if dataset_name == "magnatagatune":
 
         # Build the datamodule
@@ -44,7 +43,19 @@ def build_module_and_datamodule(
         module = SequenceMultiLabelClassificationProbe(
             in_features=in_features,
         )
+    elif dataset_name == "harmonix":
+        # Build the datamodule
+        datamodule = HarmonixEmbeddingLoadingDataModule(
+            embeddings_dir
+        )
 
+        # Get the number of features from the dataloader
+        in_features = datamodule.embedding_dimension
+
+        # Build the DataModule
+        module = SequenceMultiLabelClassificationProbe(
+            in_features=in_features,
+        )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
