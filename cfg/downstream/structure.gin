@@ -13,12 +13,13 @@ predict.embedding_layer = [-1]
 predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
 
+
 # Audio Loader for embedding extraction
 AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/harmonix/tracks"
 AudioEmbeddingDataModule.file_format = "mp3"
 AudioEmbeddingDataModule.orig_freq = 44100
 AudioEmbeddingDataModule.new_freq = 16000 # TODO read from train cfg
-AudioEmbeddingDataModule.mono = False # TODO read from train cfg
+AudioEmbeddingDataModule.mono = True # TODO read from train cfg
 AudioEmbeddingDataModule.half_precision = True # TODO read from train cfg
 AudioEmbeddingDataModule.num_workers = 20
 

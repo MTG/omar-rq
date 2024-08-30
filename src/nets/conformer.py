@@ -398,6 +398,9 @@ class Conformer(nn.Module):
         self.use_deepnorm = use_deepnorm
         self.use_rope = use_rope
 
+        # TODO guarrada de @oguz para que no pete (if seconds or representation is changed we have to change this)
+        self.num_patches = 469
+
         self.dropout = dropout
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(

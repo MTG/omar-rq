@@ -60,8 +60,9 @@ class AudioEmbeddingDataset(Dataset):
 
                 return audio, file_path
 
-        except Exception:
+        except Exception as e:
             print(f"Error loading file {file_path}")
+            print(e)
             return None, file_path
 
     @staticmethod
