@@ -14,4 +14,4 @@
 module load anaconda
 source /gpfs/projects/upf97/envs/mtg-bsc-codecs/bin/activate
 
-python3 src/train.py cfg/config_conformer_encoded.gin
+python3 src/train.py cfg/config_conformer_encodec.gin
