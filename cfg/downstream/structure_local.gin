@@ -27,15 +27,13 @@ AudioEmbeddingDataModule.num_workers = 20
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-HarmonixEmbeddingLoadingDataModule.gt_path =  "/home/pedro/Documents/experimentos_bsc/segments"
+HarmonixEmbeddingLoadingDataModule.gt_path =  "data/harmonix/segments_norm"
 HarmonixEmbeddingLoadingDataModule.train_filelist = "data/harmonix/train.txt"
 HarmonixEmbeddingLoadingDataModule.val_filelist = "data/harmonix/validation.txt"
 HarmonixEmbeddingLoadingDataModule.test_filelist = "data/harmonix/test.txt"
-HarmonixEmbeddingLoadingDataModule.batch_size = 64
+HarmonixEmbeddingLoadingDataModule.batch_size = 2
+HarmonixEmbeddingLoadingDataModule.num_frames_aggregate = 3
 HarmonixEmbeddingLoadingDataModule.num_workers = 0
-HarmonixEmbeddingLoadingDataModule.layer_aggregation = "none"
-HarmonixEmbeddingLoadingDataModule.granularity = "chunk"
-HarmonixEmbeddingLoadingDataModule.time_aggregation = "mean"
 
 train_probe.wandb_params = {
     "project": "structure",
@@ -52,11 +50,12 @@ train_probe.train_params = {
     "num_sanity_val_steps": 0,
 }
 
-SequenceMultiLabelClassificationProbe.num_layers = 2
-SequenceMultiLabelClassificationProbe.num_labels = 50 # TODO
-SequenceMultiLabelClassificationProbe.hidden_size = 512
-SequenceMultiLabelClassificationProbe.activation = "relu"
-SequenceMultiLabelClassificationProbe.bias = True
-SequenceMultiLabelClassificationProbe.dropout = 0.2
-SequenceMultiLabelClassificationProbe.lr = 0.0001
-SequenceMultiLabelClassificationProbe.labels = "/home/oaraz/sota-music-tagging-models/split/mtat/tags.npy"
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_layers = 2
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_classes = 8 # TODO
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.hidden_size = 512
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.activation = "relu"
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.bias = True
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.dropout = 0.2
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.lr = 0.0001
+probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_aggregations = 3
+

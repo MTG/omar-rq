@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Set the directory
-directory="/gpfs/projects/upf97/downstream_datasets/harmonix/tracks"
-find "$directory" -type f -name "*.mp3" > all.txt
+directory="segments"
+find "$directory" -type f -name "*.txt" > all.txt
 
 # Remove .mp3 extension from each path
-sed -i 's/.mp3//g' all.txt
+sed -i 's/.txt//g' all.txt
 
 # Remove path only keep basename
 sed -i 's/.*\///' all.txt

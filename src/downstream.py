@@ -18,8 +18,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
 from probe.data.harmonix import HarmonixEmbeddingLoadingDataModule
+from src.probe.modules import AggregateMultiClassProbe
 from utils import gin_config_to_readable_dictionary
-from probe.modules import SequenceMultiLabelClassificationProbe
+from probe.modules import SequenceMultiLabelClassificationProbe, AggregateMultiClassProbe
 from probe.data import MTTEmbeddingLoadingDataModule
 
 
@@ -53,7 +54,7 @@ def build_module_and_datamodule(
         in_features = datamodule.embedding_dimension
 
         # Build the DataModule
-        module = SequenceMultiLabelClassificationProbe(
+        module = AggregateMultiClassProbe(
             in_features=in_features,
         )
     else:

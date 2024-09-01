@@ -115,7 +115,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
             elif self.time_aggregation == "max":
                 embeddings = embeddings.max(dim=(0, 1)).unsqueeze(0)  # (1, F)
-
         return embeddings
 
 
