@@ -282,27 +282,26 @@ class AggregateMultiClassProbe(L.LightningModule):
         self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_classes)
 
     def forward(self, x):
-        # (B, F) -> (B, num_labels)
         x = self.avg(x.transpose(1, 2))
         x = x.transpose(1, 2)
         logits = self.model(x)
         return logits
 
-    def _multi_hot(self, y_true, shape_embedding, device):
+    def _one_hot(self, y_true, shape_embedding, device):
         if len(shape_embedding) == 3:
             # 3D case
             B, T, E = shape_embedding
-            y_true_multi = torch.zeros(B, T // 3, self.num_classes).to(device)
-            y_true_multi.scatter_(2, y_true.unsqueeze(2), 1)
+            y_true_one_hot = torch.zeros(B, T // 3, self.num_classes).to(device)
+            y_true_one_hot.scatter_(2, y_true.unsqueeze(2), 1)
         elif len(shape_embedding) == 2:
             # 2D case
             T3, E = shape_embedding
-            y_true_multi = torch.zeros(T3 , self.num_classes).to(device)
-            y_true_multi.scatter_(1, y_true.unsqueeze(1), 0)
+            y_true_one_hot = torch.zeros(T3 , self.num_classes).to(device)
+            y_true_one_hot.scatter_(1, y_true.unsqueeze(1), 0)
         else:
             raise ValueError("shape_embedding must be either 2D or 3D")
 
-        return y_true_multi
+        return y_true_one_hot
 
     def training_step(self, batch, batch_idx):
         """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
@@ -311,8 +310,8 @@ class AggregateMultiClassProbe(L.LightningModule):
 
         logits = self.forward(x)
         # multihot
-        y_true_multi = self._multi_hot(y_true, x.shape, x.device)
-        loss = self.criterion(logits, y_true_multi)
+        y_true_one_hot = self._one_hot(y_true, x.shape, x.device)
+        loss = self.criterion(logits, y_true_one_hot)
         self.log("train_loss", loss)
         return loss
 
@@ -328,9 +327,9 @@ class AggregateMultiClassProbe(L.LightningModule):
         logits = self.forward(x)  # (n_chunks, num_labels)
         # cat the chunk embeddings B x T x E -> (B x T) x E
         logits = logits.reshape(-1, logits.shape[-1])
-        y_true_multi = self._multi_hot(y_true.squeeze(0), logits.shape, logits.device)
+        y_true_one_hot = self._one_hot(y_true.squeeze(0), logits.shape, logits.device)
         # Calculate the loss for the track
-        loss = self.criterion(logits, y_true_multi)
+        loss = self.criterion(logits, y_true_one_hot)
         self.log("val_loss", loss)
         if return_predicted_class:
             # use argmax
