@@ -4,7 +4,7 @@ import gin
 import torch
 from torch import nn
 import pytorch_lightning as L
-from torchmetrics import Accuracy
+from torchmetrics import Accuracy, ConfusionMatrix
 from torchmetrics.classification import (
     MultilabelAveragePrecision,
     MultilabelAUROC,
@@ -210,30 +210,24 @@ class AggregateMultiClassProbe(L.LightningModule):
     """
 
     def __init__(
-        self,
-        num_classes: int,
-        hidden_size: int,
-        num_layers: int,
-        activation: str,
-        bias: bool,
-        dropout: float,
-        lr: float,
-        num_aggregations: int,
-        in_features: int,
-        plot_dir: Path = None,
+            self,
+            num_classes: int,
+            hidden_size: int,
+            bias: bool,
+            dropout: float,
+            lr: float,
+            num_aggregations: int,
+            in_features: int,
     ):
         super(AggregateMultiClassProbe, self).__init__()
 
         self.in_features = in_features
         self.num_classes = num_classes
         self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.activation = activation
         self.bias = bias
         self.dropout = dropout
         self.lr = lr
         self.num_aggregations = num_aggregations
-        self.plot_dir = Path(plot_dir) if plot_dir is not None else None
         self.avg = nn.AvgPool1d(kernel_size=num_aggregations, stride=num_aggregations)
 
         self.model = nn.Sequential(
@@ -261,7 +255,9 @@ class AggregateMultiClassProbe(L.LightningModule):
                 ),
             }
         )
-        self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_classes)
+
+        # Confusion matrix metric
+        self.conf_matrix = ConfusionMatrix(num_classes=num_classes, task="multiclass")
 
     def forward(self, x):
         x = self.avg(x.transpose(1, 2))
@@ -270,33 +266,19 @@ class AggregateMultiClassProbe(L.LightningModule):
         return logits
 
     def training_step(self, batch, batch_idx):
-        """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
-        each chunk may com from another track."""
         x, y_true = batch
-
         logits = self.forward(x)
-        # multihot
         loss = self.criterion(logits.view(-1, logits.size(-1)), y_true.view(-1))
         self.log("train_loss", loss)
         return loss
 
     def predict(self, batch, return_predicted_class=False):
-        """Prediction step for a single track. A batch should
-        contain all the chunks of a single track."""
-
         x, y_true = batch
-        assert y_true.shape[0] == 1, "A batch should contain a single track"
-        assert x.ndim == 3, "input should be 3D tensor of chunks"
-
-        # process each chunk separately
-        logits = self.forward(x)  # (n_chunks, num_labels)
-        # cat the chunk embeddings B x T x E -> (B x T) x E
+        logits = self.forward(x)
         logits = logits.reshape(-1, logits.shape[-1])
-        # Calculate the loss for the track
         loss = self.criterion(logits.view(-1, logits.size(-1)), y_true.view(-1))
         self.log("val_loss", loss)
         if return_predicted_class:
-            # use argmax
             predicted_class = torch.argmax(logits, dim=1)
             return logits, loss, predicted_class
         return logits, loss
@@ -304,66 +286,56 @@ class AggregateMultiClassProbe(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         logits, loss, preds = self.predict(batch, return_predicted_class=True)
         self.log("val_loss", loss)
-        # Update all metrics with the current batch
         y_true = batch[1].int().squeeze(0)
         for metric in self.val_metrics.values():
             metric.update(preds, y_true)
 
     def on_validation_epoch_end(self):
-        # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
             self.log(name, metric, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
         logits, loss, preds = self.predict(batch, return_predicted_class=True)
         self.log("test_loss", loss)
-        # Update all metrics with the current batch
         y_true = batch[1].int().squeeze(0)
-        for metric in self.val_metrics.values():
+        for metric in self.test_metrics.values():
             metric.update(preds, y_true)
-        # Update the confusion matrix
-        #self.test_confusion_matrix.update(logits, y_true)
+
+        # Update the confusion matrix metric
+        self.conf_matrix.update(preds, y_true)
 
     def on_test_epoch_end(self):
-        # Calculate and log the final value for each metric
         for name, metric in self.test_metrics.items():
             self.log(name, metric, on_epoch=True)
-        # # Compute the confusion matrix
-        # conf_matrix = self.test_confusion_matrix.compute()
-        # fig = self.plot_confusion_matrix(conf_matrix)
-        # # Log the figure directly to wandb
-        # if self.logger:
-        #     self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
-        # if self.plot_dir:
-        #     self.plot_dir.mkdir(parents=True, exist_ok=True)
-        #     fig.savefig(self.plot_dir / "test_confusion_matrix.png")
+
+        # Compute and log the confusion matrix
+        conf_matrix = self.conf_matrix.compute()
+        fig = self.plot_confusion_matrix(conf_matrix)
+        wandb.log({"confusion_matrix": wandb.Image(fig)})
+
+        # Clear the confusion matrix for potential future test runs
+        self.conf_matrix.reset()
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
     def plot_confusion_matrix(self, conf_matrix):
+        fig, ax = plt.subplots(figsize=(10, 8))
+        cax = ax.matshow(conf_matrix.cpu().numpy(), cmap="Blues")
+        fig.colorbar(cax)
 
-        conf_matrix = conf_matrix.cpu().numpy()
-        fig, axes = plt.subplots(
-            nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
-        )
-        axes = axes.flatten()
-        labels = [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
-        for ax, cm, label in zip(axes, conf_matrix, labels):
-            # Plot the confusion matrix in each subplot
-            im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-            ax.set_title(label, fontsize=15)
-            # Annotation inside the heatmap
-            for i in range(cm.shape[0]):
-                for j in range(cm.shape[1]):
-                    text = ax.text(
-                        j, i, cm[i, j], ha="center", va="center", color="red"
-                    )
+        ax.set_xticks(range(self.num_classes))
+        ax.set_yticks(range(self.num_classes))
+        ax.set_xticklabels(range(self.num_classes))
+        ax.set_yticklabels(range(self.num_classes))
 
-            ax.set_xticks(np.arange(cm.shape[1]))
-            ax.set_yticks(np.arange(cm.shape[0]))
-            ax.set_xticklabels(["False", "True"])
-            ax.set_yticklabels(["False", "True"])
-            ax.set_xlabel("Predicted Label")
-            ax.set_ylabel("True Label")
+        plt.xlabel("Predicted Label")
+        plt.ylabel("True Label")
+        plt.title("Confusion Matrix")
+
+        # Annotate the confusion matrix
+        for i in range(self.num_classes):
+            for j in range(self.num_classes):
+                ax.text(j, i, int(conf_matrix[i, j].item()), ha='center', va='center', color='black')
+
         return fig

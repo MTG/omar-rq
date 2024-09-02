@@ -51,10 +51,9 @@ train_probe.train_params = {
     "num_sanity_val_steps": 0,
 }
 
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_layers = 2
+
 probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_classes = 8 # TODO
 probe.modules.sequence_classifiers.AggregateMultiClassProbe.hidden_size = 512
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.activation = "relu"
 probe.modules.sequence_classifiers.AggregateMultiClassProbe.bias = True
 probe.modules.sequence_classifiers.AggregateMultiClassProbe.dropout = 0.2
 probe.modules.sequence_classifiers.AggregateMultiClassProbe.lr = 0.0001
