@@ -81,6 +81,7 @@ nets.transformer.Transformer.depth = 12
 nets.transformer.Transformer.num_heads = 12
 nets.transformer.Transformer.mlp_ratio=4.0
 nets.transformer.Transformer.dropout=0.1
+nets.transformer.Transformer.input_dropout=0.1
 nets.transformer.Transformer.do_vit_tokenization = False
 nets.transformer.Transformer.do_deepnorm = True
 nets.transformer.Transformer.alpha_deepnorm = 2.21 # we can tune this number
