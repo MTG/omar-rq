@@ -236,33 +236,15 @@ class AggregateMultiClassProbe(L.LightningModule):
         self.plot_dir = Path(plot_dir) if plot_dir is not None else None
         self.avg = nn.AvgPool1d(kernel_size=num_aggregations, stride=num_aggregations)
 
-        # TODO create the probe with gin
-        layers = []
-        # average pooling
-        for i in range(num_layers):
-            if i == num_layers - 1:
-                hidden_size = num_classes
+        self.model = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(in_features, hidden_size, bias=bias),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, num_classes, bias=bias),
+        )
 
-            layers.append(nn.Dropout(dropout))
-
-            # Add the linear layer
-            layers.append(nn.Linear(in_features, hidden_size, bias=bias))
-
-            # Choose the activation
-            if (i == num_layers - 1) or activation.lower() == "none":
-                pass
-            elif activation.lower() == "relu":
-                layers.append(nn.ReLU())
-            elif activation.lower() == "sigmoid":
-                layers.append(nn.Sigmoid())
-            else:
-                # TODO: more later
-                raise ValueError(f"Unknown activation function: {activation}")
-
-            in_features = hidden_size
-        self.model = nn.Sequential(*layers)
-
-        self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
+        self.criterion = nn.CrossEntropyLoss()
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -287,22 +269,6 @@ class AggregateMultiClassProbe(L.LightningModule):
         logits = self.model(x)
         return logits
 
-    def _one_hot(self, y_true, shape_embedding, device):
-        if len(shape_embedding) == 3:
-            # 3D case
-            B, T, E = shape_embedding
-            y_true_one_hot = torch.zeros(B, T // 3, self.num_classes).to(device)
-            y_true_one_hot.scatter_(2, y_true.unsqueeze(2), 1)
-        elif len(shape_embedding) == 2:
-            # 2D case
-            T3, E = shape_embedding
-            y_true_one_hot = torch.zeros(T3 , self.num_classes).to(device)
-            y_true_one_hot.scatter_(1, y_true.unsqueeze(1), 0)
-        else:
-            raise ValueError("shape_embedding must be either 2D or 3D")
-
-        return y_true_one_hot
-
     def training_step(self, batch, batch_idx):
         """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
         each chunk may com from another track."""
@@ -310,8 +276,7 @@ class AggregateMultiClassProbe(L.LightningModule):
 
         logits = self.forward(x)
         # multihot
-        y_true_one_hot = self._one_hot(y_true, x.shape, x.device)
-        loss = self.criterion(logits, y_true_one_hot)
+        loss = self.criterion(logits.view(-1, logits.size(-1)), y_true.view(-1))
         self.log("train_loss", loss)
         return loss
 
@@ -327,9 +292,8 @@ class AggregateMultiClassProbe(L.LightningModule):
         logits = self.forward(x)  # (n_chunks, num_labels)
         # cat the chunk embeddings B x T x E -> (B x T) x E
         logits = logits.reshape(-1, logits.shape[-1])
-        y_true_one_hot = self._one_hot(y_true.squeeze(0), logits.shape, logits.device)
         # Calculate the loss for the track
-        loss = self.criterion(logits, y_true_one_hot)
+        loss = self.criterion(logits.view(-1, logits.size(-1)), y_true.view(-1))
         self.log("val_loss", loss)
         if return_predicted_class:
             # use argmax
@@ -352,7 +316,7 @@ class AggregateMultiClassProbe(L.LightningModule):
 
     def test_step(self, batch, batch_idx):
         logits, loss, preds = self.predict(batch, return_predicted_class=True)
-        self.log("val_loss", loss)
+        self.log("test_loss", loss)
         # Update all metrics with the current batch
         y_true = batch[1].int().squeeze(0)
         for metric in self.val_metrics.values():
