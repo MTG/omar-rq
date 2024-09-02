@@ -31,12 +31,13 @@ HarmonixEmbeddingLoadingDataModule.gt_path =  "data/harmonix/segments_norm"
 HarmonixEmbeddingLoadingDataModule.train_filelist = "data/harmonix/train.txt"
 HarmonixEmbeddingLoadingDataModule.val_filelist = "data/harmonix/validation.txt"
 HarmonixEmbeddingLoadingDataModule.test_filelist = "data/harmonix/test.txt"
-HarmonixEmbeddingLoadingDataModule.batch_size = 2
+HarmonixEmbeddingLoadingDataModule.batch_size = 32
 HarmonixEmbeddingLoadingDataModule.num_frames_aggregate = 3
 HarmonixEmbeddingLoadingDataModule.num_workers = 0
 
 train_probe.wandb_params = {
     "project": "structure",
+    "name": "my_first_structure_classifier",
     "offline": False,
     "entity": "mtg-upf",
     "save_dir": "/home/pedro/ssl-mtg/data/logs/"

@@ -289,11 +289,20 @@ class AggregateMultiClassProbe(L.LightningModule):
         return logits
 
     def _multi_hot(self, y_true, shape_embedding, device):
-        B, T, E = shape_embedding
-        y_true_multi = torch.zeros(B, T//3, self.num_classes).to(device)
-        y_true_multi.scatter_(2, y_true.unsqueeze(2), 1)
-        return y_true_multi
+        if len(shape_embedding) == 3:
+            # 3D case
+            B, T, E = shape_embedding
+            y_true_multi = torch.zeros(B, T // 3, self.num_classes).to(device)
+            y_true_multi.scatter_(2, y_true.unsqueeze(2), 1)
+        elif len(shape_embedding) == 2:
+            # 2D case
+            T3, E = shape_embedding
+            y_true_multi = torch.zeros(T3 , self.num_classes).to(device)
+            y_true_multi.scatter_(1, y_true.unsqueeze(1), 0)
+        else:
+            raise ValueError("shape_embedding must be either 2D or 3D")
 
+        return y_true_multi
 
     def training_step(self, batch, batch_idx):
         """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
@@ -313,14 +322,15 @@ class AggregateMultiClassProbe(L.LightningModule):
 
         x, y_true = batch
         assert y_true.shape[0] == 1, "A batch should contain a single track"
-        assert x.ndim == 2, "input should be 2D tensor of chunks"
+        assert x.ndim == 3, "input should be 3D tensor of chunks"
 
         # process each chunk separately
         logits = self.forward(x)  # (n_chunks, num_labels)
-        # Aggregate the chunk embeddings
-        logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
+        # cat the chunk embeddings B x T x E -> (B x T) x E
+        logits = logits.reshape(-1, logits.shape[-1])
+        y_true_multi = self._multi_hot(y_true.squeeze(0), logits.shape, logits.device)
         # Calculate the loss for the track
-        loss = self.criterion(logits, y_true)
+        loss = self.criterion(logits, y_true_multi)
         self.log("val_loss", loss)
         if return_predicted_class:
             # use argmax
@@ -329,12 +339,12 @@ class AggregateMultiClassProbe(L.LightningModule):
         return logits, loss
 
     def validation_step(self, batch, batch_idx):
-        logits, loss = self.predict(batch)
+        logits, loss, preds = self.predict(batch, return_predicted_class=True)
         self.log("val_loss", loss)
         # Update all metrics with the current batch
-        y_true = batch[1].int()
+        y_true = batch[1].int().squeeze(0)
         for metric in self.val_metrics.values():
-            metric.update(logits, y_true)
+            metric.update(preds, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
@@ -342,27 +352,28 @@ class AggregateMultiClassProbe(L.LightningModule):
             self.log(name, metric, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
-        logits, _ = self.predict(batch)
+        logits, loss, preds = self.predict(batch, return_predicted_class=True)
+        self.log("val_loss", loss)
         # Update all metrics with the current batch
-        y_true = batch[1].int()
-        for metric in self.test_metrics.values():
-            metric.update(logits, y_true)
+        y_true = batch[1].int().squeeze(0)
+        for metric in self.val_metrics.values():
+            metric.update(preds, y_true)
         # Update the confusion matrix
-        self.test_confusion_matrix.update(logits, y_true)
+        #self.test_confusion_matrix.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.test_metrics.items():
             self.log(name, metric, on_epoch=True)
-        # Compute the confusion matrix
-        conf_matrix = self.test_confusion_matrix.compute()
-        fig = self.plot_confusion_matrix(conf_matrix)
-        # Log the figure directly to wandb
-        if self.logger:
-            self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
-        if self.plot_dir:
-            self.plot_dir.mkdir(parents=True, exist_ok=True)
-            fig.savefig(self.plot_dir / "test_confusion_matrix.png")
+        # # Compute the confusion matrix
+        # conf_matrix = self.test_confusion_matrix.compute()
+        # fig = self.plot_confusion_matrix(conf_matrix)
+        # # Log the figure directly to wandb
+        # if self.logger:
+        #     self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
+        # if self.plot_dir:
+        #     self.plot_dir.mkdir(parents=True, exist_ok=True)
+        #     fig.savefig(self.plot_dir / "test_confusion_matrix.png")
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)

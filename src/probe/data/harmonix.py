@@ -54,7 +54,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             if emb_path.exists():
                 # shape embeddings: (1, N, F, D)
                 embedding = torch.load(emb_path, map_location="cpu")
-                frames_length = embedding.shape[1] * math.ceil(embedding.shape[2] / num_frames_aggregate + 1)
+                frames_length = embedding.shape[1] * (embedding.shape[2] // num_frames_aggregate)
                 embedding = torch.squeeze(embedding, 0)
                 self.embeddings.append(embedding)
                 path_structure =  gt_path / Path(filename + ".txt")
