@@ -13,6 +13,7 @@ from torchmetrics.classification import (
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+import torch.nn.functional as F
 
 
 @gin.configurable
@@ -235,10 +236,12 @@ class AggregateMultiClassProbe(L.LightningModule):
             nn.Dropout(dropout),
             nn.Linear(in_features, hidden_size, bias=bias),
             nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, num_classes, bias=bias),
+            nn.Dropout(dropout)
         )
+        self.frame_output = nn.Linear(hidden_size, num_classes, bias=bias)
+        self.boundary_output = nn.Linear(hidden_size, 1, bias=bias)
         self.criterion = nn.BCEWithLogitsLoss(weight=class_weights)
+        self.criterion_boundaries = nn.BCEWithLogitsLoss()
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -262,32 +265,46 @@ class AggregateMultiClassProbe(L.LightningModule):
     def forward(self, x):
         x = self.avg(x.transpose(1, 2))
         x = x.transpose(1, 2)
-        logits = self.model(x)
-        return logits
+        x = self.model(x)
+        logits_frame = self.frame_output(x)
+        logits_boundaries = self.boundary_output(x)
+        return logits_frame, logits_boundaries
 
     def training_step(self, batch, batch_idx):
-        x, y_true = batch
-        logits = self.forward(x)
+        x, y_true, boundaries = batch
+        logits_frame, logits_boundaries = self.forward(x)
+        # frame loss
         y_true_one_hot = self._one_hot(y_true, x.shape, x.device)
-        loss = self.criterion(logits, y_true_one_hot)
-        self.log("train_loss", loss)
-        return loss
+        loss = self.criterion(logits_frame, y_true_one_hot)
+        # boundaries loss
+        boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3)
+        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
+        self.log("train_loss", loss + loss_boundaries)
+        self.log("train_loss_frame", loss)
+        self.log("train_loss_boundaries", loss_boundaries)
+        return loss + loss_boundaries
 
     def predict(self, batch, return_predicted_class=False):
-        x, y_true = batch
-        logits = self.forward(x)
+        x, y_true, boundaries = batch
+        logits, logits_boundaries = self.forward(x)
+        # frame
         logits = logits.reshape(-1, logits.shape[-1])
         y_true_one_hot = self._one_hot(y_true.squeeze(0), logits.shape, logits.device)
-        # Calculate the loss for the track
         loss = self.criterion(logits, y_true_one_hot)
+        # boundaries
+        logits_boundaries = logits_boundaries.reshape(-1, 1)
+        boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3).squeeze(0)
+        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
         if return_predicted_class:
             predicted_class = torch.argmax(logits, dim=1)
-            return logits, loss, predicted_class
-        return logits, loss
+            return logits, loss, predicted_class, loss_boundaries
+        return logits, loss, loss_boundaries
 
     def validation_step(self, batch, batch_idx):
-        logits, loss, preds = self.predict(batch, return_predicted_class=True)
-        self.log("val_loss", loss)
+        logits, loss, preds, loss_boundaries = self.predict(batch, return_predicted_class=True)
+        self.log("val_loss", loss + loss_boundaries)
+        self.log("val_loss_frame", loss)
+        self.log("val_loss_boundaries", loss_boundaries)
         y_true = batch[1].int().squeeze(0)
         for metric in self.val_metrics.values():
             metric.update(preds, y_true)
@@ -297,8 +314,8 @@ class AggregateMultiClassProbe(L.LightningModule):
             self.log(name, metric, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
-        logits, loss, preds = self.predict(batch, return_predicted_class=True)
-        self.log("test_loss", loss)
+        logits, loss, preds, loss_boundaries = self.predict(batch, return_predicted_class=True)
+        self.log("test_loss", loss + loss_boundaries)
         y_true = batch[1].int().squeeze(0)
         for metric in self.test_metrics.values():
             metric.update(preds, y_true)
@@ -348,12 +365,59 @@ class AggregateMultiClassProbe(L.LightningModule):
             B, T, E = shape_embedding
             y_true_one_hot = torch.zeros(B, T // 3, self.num_classes).to(device)
             y_true_one_hot.scatter_(2, y_true.unsqueeze(2), 1)
+            y_true_one_hot = apply_moving_average(y_true_one_hot)
         elif len(shape_embedding) == 2:
             # 2D case
             T3, E = shape_embedding
             y_true_one_hot = torch.zeros(T3, self.num_classes).to(device)
             y_true_one_hot.scatter_(1, y_true.unsqueeze(1), 0)
+            y_true_one_hot = apply_moving_average(y_true_one_hot.unsqueeze(0)).squeeze(0)
         else:
             raise ValueError("shape_embedding must be either 2D or 3D")
 
         return y_true_one_hot
+
+
+def apply_moving_average(matrix, filter_size=10):
+    # Input is expected in shape B x T x C
+    B, T, C = matrix.shape
+
+    # We need to transpose to (B x C x T) for conv1d
+    matrix_torch = matrix.transpose(1, 2)  # Shape: (B, C, T)
+
+    # Define the moving average filter (simple averaging kernel) for each channel
+    filter_kernel = torch.ones(C, 1, filter_size) / filter_size  # Shape: (C, 1, filter_size)
+    filter_kernel = filter_kernel.to(matrix_torch.device)
+
+    # Apply the convolution (moving average) along the time axis (T) using grouped convolution
+    smoothed_matrix_torch = F.conv1d(matrix_torch, filter_kernel, padding=filter_size // 2, groups=C)
+
+    # Trim the extra time step if the output size is larger than the input
+    if smoothed_matrix_torch.shape[2] > T:
+        smoothed_matrix_torch = smoothed_matrix_torch[:, :, :T]  # Trim to match original T
+
+    # Transpose back to original shape (B x T x C)
+    smoothed_matrix = smoothed_matrix_torch.transpose(1, 2)
+
+    return smoothed_matrix
+
+
+# Function to plot the heatmap using matplotlib
+def plot_labels(matrix):
+    matrix = matrix.cpu().transpose(0, 1)
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Display the heatmap using imshow
+    ax.imshow(matrix, cmap='Blues', interpolation='nearest')
+
+    # Adding labels
+    ax.set_title('Heatmap of Binary Matrix')
+    ax.set_xlabel('Class')
+    ax.set_ylabel('Time Step')
+
+    # Adding grid lines
+    ax.set_xticks(np.arange(matrix.shape[1]))
+    ax.set_yticks(np.arange(matrix.shape[0]))
+    ax.grid(False)
+
+    plt.show()

@@ -41,7 +41,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.num_frames_aggregate = num_frames_aggregate
 
         # Load the embeddings and labels
-        self.embeddings, self.labels = [], []
+        self.embeddings, self.labels, self.boundaries = [], [], []
         filenames = [p.strip() for p in open(filelist).readlines()]
 
         for filename in filenames:
@@ -57,9 +57,12 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
                 self.embeddings.append(embedding)
                 path_structure =  gt_path / Path(filename + ".txt")
                 label = self.prepare_structure_class_annotations(path_structure, output_length=frames_length)
+                boundary = self.prepare_boundary_class_annotations(path_structure, output_length=frames_length)
                 #assert N*F//3 == len(label), f"{N * F // 3} != {len(label)}"
                 label = torch.tensor(label)
                 self.labels.append(label)
+                boundary = torch.tensor(boundary).float()
+                self.boundaries.append(boundary)
 
         class_counts = {label: 0 for label in range(0, 7)}
         for y_true in self.labels:
@@ -75,6 +78,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         """Loads the labels and the processed embeddings for a given index."""
         embeddings = self.embeddings[idx]
         labels = self.labels[idx]# (N, F)
+        boundaries = self.boundaries[idx]# (N, F)
         if self.mode == "train":  # If training, get a random chunk
             N, F, E = embeddings.shape
             random_int = random.randint(0, N - 1)
@@ -82,10 +86,11 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             random_fragment_idx = random_int * (F // self.num_frames_aggregate)
             random_fragment_jdx = random_fragment_idx + (F // 3)
             labels = labels[random_fragment_idx:random_fragment_jdx]
+            boundaries = boundaries[random_fragment_idx:random_fragment_jdx]
         # if labels is an empty list
         if len(labels) == 0:
             print()
-        return embeddings, labels
+        return embeddings, labels, boundaries
 
     def prepare_structure_class_annotations(self, file_path, output_length):
         timestamps = []
@@ -115,12 +120,55 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             output_labels.append(label_number)
         return output_labels
 
+    def prepare_boundary_class_annotations(self, file_path, output_length):
+        timestamps = []
+        labels = []
+
+        # Read the structure class annotations from the file
+        with open(file_path, 'r') as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    timestamp = float(parts[0])
+                    label = parts[1]
+                    timestamps.append(timestamp)
+                    labels.append(label)
+
+        output_boundaries = []
+        label_index = 0
+
+        # Initialize the previous label for boundary detection
+        previous_label = None
+
+        # Iterate through each time step to detect boundaries
+        for step in range(output_length):
+            current_time = step * 0.064 * self.num_frames_aggregate
+
+            # Check if it's time to switch to a new label
+            if label_index < len(timestamps) and current_time >= timestamps[label_index]:
+                current_label = labels[label_index]
+                label_index += 1
+            else:
+                current_label = labels[label_index - 1] if label_index > 0 else labels[0]
+
+            # Check if the current label is different from the previous label
+            if current_label != previous_label:
+                output_boundaries.append(1)  # Boundary detected (C=1)
+            else:
+                output_boundaries.append(0)  # No boundary (C=0)
+
+            # Update the previous label
+            previous_label = current_label
+
+        # Return the binary boundary matrix (T x C), where C is 1
+        return output_boundaries
+
 
 def collate_fn_val_test(items):
     """Collate function to pack embeddings and labels for validation and testing."""
     assert len(items) == 1, "Validation and testing should have one track at a time."
-    embeddings, labels = zip(*items)
-    return embeddings[0], labels[0].unsqueeze(0)
+    embeddings, labels, boundaries = zip(*items)
+    return embeddings[0], labels[0].unsqueeze(0), boundaries[0].unsqueeze(0)
 
 
 @gin.configurable
