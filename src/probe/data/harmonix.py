@@ -17,8 +17,7 @@ label_to_number = {
     'bridge': 3,
     'outro': 4,
     'inst': 5,
-    'silence': 6,
-    'end': 7
+    'silence': 6
 }
 
 
@@ -31,8 +30,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         gt_path: Path,
         filelist: Path,
         mode: str,
-        num_frames_aggregate: int,
-        num_classes: int
+        num_frames_aggregate: int
     ):
         """filelist is a text file with one filename per line without extensions."""
 
@@ -41,7 +39,6 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.filelist = filelist
         self.mode = mode
         self.num_frames_aggregate = num_frames_aggregate
-        self.num_classes = num_classes
 
         # Load the embeddings and labels
         self.embeddings, self.labels = [], []
@@ -54,35 +51,46 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             if emb_path.exists():
                 # shape embeddings: (1, N, F, D)
                 embedding = torch.load(emb_path, map_location="cpu")
+                _, N, F, D = embedding.shape
                 frames_length = embedding.shape[1] * (embedding.shape[2] // num_frames_aggregate)
                 embedding = torch.squeeze(embedding, 0)
                 self.embeddings.append(embedding)
                 path_structure =  gt_path / Path(filename + ".txt")
                 label = self.prepare_structure_class_annotations(path_structure, output_length=frames_length)
-                self.labels.append(torch.tensor(label))
+                #assert N*F//3 == len(label), f"{N * F // 3} != {len(label)}"
+                label = torch.tensor(label)
+                self.labels.append(label)
+
+        class_counts = {label: 0 for label in range(0, 7)}
+        for y_true in self.labels:
+            for label in y_true.flatten():
+                class_counts[label.item()] += 1
+        print(class_counts)
+        self.class_counts = class_counts
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
         """Loads the labels and the processed embeddings for a given index."""
-
         embeddings = self.embeddings[idx]
         labels = self.labels[idx]# (N, F)
         if self.mode == "train":  # If training, get a random chunk
             N, F, E = embeddings.shape
-            random_int = random.randint(0, N-1)
+            random_int = random.randint(0, N - 1)
             embeddings = embeddings[random_int]
             random_fragment_idx = random_int * (F // self.num_frames_aggregate)
             random_fragment_jdx = random_fragment_idx + (F // 3)
             labels = labels[random_fragment_idx:random_fragment_jdx]
+        # if labels is an empty list
+        if len(labels) == 0:
+            print()
         return embeddings, labels
 
     def prepare_structure_class_annotations(self, file_path, output_length):
         timestamps = []
         labels = []
 
-        # Read the file and extract timestamps and labels
         with open(file_path, 'r') as f:
             for line in f:
                 parts = line.strip().split()
@@ -92,20 +100,18 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
                     timestamps.append(timestamp)
                     labels.append(label)
 
-        # Generate the output labels
         output_labels = []
         label_index = 0
 
         for step in range(output_length):
-            current_time = step * self.num_frames_aggregate / 1000  # Convert to seconds
+            current_time = step * 0.064 * self.num_frames_aggregate
             if label_index < len(timestamps) and current_time >= timestamps[label_index]:
                 current_label = labels[label_index]
                 label_index += 1
             else:
                 current_label = labels[label_index - 1] if label_index > 0 else labels[0]
 
-            # Convert the label to its corresponding number
-            label_number = label_to_number[current_label]
+            label_number = label_to_number.get(current_label, label_to_number['silence'])
             output_labels.append(label_number)
         return output_labels
 
@@ -160,7 +166,6 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.gt_path,
                 self.train_filelist,
                 num_frames_aggregate=self.num_frames_aggregate,
-                num_classes=self.num_classes,
                 mode="train",
             )
             print("\nSetting up Validation dataset...")
@@ -169,7 +174,6 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.gt_path,
                 self.val_filelist,
                 num_frames_aggregate=self.num_frames_aggregate,
-                num_classes=self.num_classes,
                 mode="val",
             )
         if stage == "test":
@@ -179,9 +183,16 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.gt_path,
                 self.test_filelist,
                 num_frames_aggregate=self.num_frames_aggregate,
-                num_classes=self.num_classes,
                 mode="test",
             )
+
+    @property
+    def class_weights(self):
+        self.setup("test")
+        weights = []
+        for key in self.test_dataset.class_counts.keys():
+            weights.append(1/(self.test_dataset.class_counts[key]+1))
+        return torch.tensor(weights)
 
     def train_dataloader(self):
         return DataLoader(

@@ -52,10 +52,12 @@ def build_module_and_datamodule(
 
         # Get the number of features from the dataloader
         in_features = datamodule.embedding_dimension
+        class_weights = datamodule.class_weights
 
         # Build the DataModule
         module = AggregateMultiClassProbe(
             in_features=in_features,
+            class_weights=class_weights,
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")

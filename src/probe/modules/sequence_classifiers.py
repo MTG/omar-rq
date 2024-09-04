@@ -218,6 +218,7 @@ class AggregateMultiClassProbe(L.LightningModule):
             lr: float,
             num_aggregations: int,
             in_features: int,
+            class_weights: torch.tensor,
     ):
         super(AggregateMultiClassProbe, self).__init__()
 
@@ -237,8 +238,7 @@ class AggregateMultiClassProbe(L.LightningModule):
             nn.Dropout(dropout),
             nn.Linear(hidden_size, num_classes, bias=bias),
         )
-
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss(weight=class_weights)
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
