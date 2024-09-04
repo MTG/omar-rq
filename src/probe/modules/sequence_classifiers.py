@@ -238,7 +238,7 @@ class AggregateMultiClassProbe(L.LightningModule):
             nn.Dropout(dropout),
             nn.Linear(hidden_size, num_classes, bias=bias),
         )
-        self.criterion = nn.CrossEntropyLoss(weight=class_weights)
+        self.criterion = nn.BCEWithLogitsLoss(weight=class_weights)
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -268,7 +268,8 @@ class AggregateMultiClassProbe(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y_true = batch
         logits = self.forward(x)
-        loss = self.criterion(logits.view(-1, logits.size(-1)), y_true.view(-1))
+        y_true_one_hot = self._one_hot(y_true, x.shape, x.device)
+        loss = self.criterion(logits, y_true_one_hot)
         self.log("train_loss", loss)
         return loss
 
@@ -276,8 +277,9 @@ class AggregateMultiClassProbe(L.LightningModule):
         x, y_true = batch
         logits = self.forward(x)
         logits = logits.reshape(-1, logits.shape[-1])
-        loss = self.criterion(logits.view(-1, logits.size(-1)), y_true.view(-1))
-        self.log("val_loss", loss)
+        y_true_one_hot = self._one_hot(y_true.squeeze(0), logits.shape, logits.device)
+        # Calculate the loss for the track
+        loss = self.criterion(logits, y_true_one_hot)
         if return_predicted_class:
             predicted_class = torch.argmax(logits, dim=1)
             return logits, loss, predicted_class
@@ -339,3 +341,19 @@ class AggregateMultiClassProbe(L.LightningModule):
                 ax.text(j, i, int(conf_matrix[i, j].item()), ha='center', va='center', color='black')
 
         return fig
+
+    def _one_hot(self, y_true, shape_embedding, device):
+        if len(shape_embedding) == 3:
+            # 3D case
+            B, T, E = shape_embedding
+            y_true_one_hot = torch.zeros(B, T // 3, self.num_classes).to(device)
+            y_true_one_hot.scatter_(2, y_true.unsqueeze(2), 1)
+        elif len(shape_embedding) == 2:
+            # 2D case
+            T3, E = shape_embedding
+            y_true_one_hot = torch.zeros(T3, self.num_classes).to(device)
+            y_true_one_hot.scatter_(1, y_true.unsqueeze(1), 0)
+        else:
+            raise ValueError("shape_embedding must be either 2D or 3D")
+
+        return y_true_one_hot
