@@ -41,7 +41,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.num_frames_aggregate = num_frames_aggregate
 
         # Load the embeddings and labels
-        self.embeddings, self.labels, self.boundaries = [], [], []
+        self.embeddings, self.labels, self.boundaries, self.boundary_intervals = [], [], [], []
         filenames = [p.strip() for p in open(filelist).readlines()]
 
         for filename in filenames:
@@ -57,12 +57,13 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
                 self.embeddings.append(embedding)
                 path_structure =  gt_path / Path(filename + ".txt")
                 label = self.prepare_structure_class_annotations(path_structure, output_length=frames_length)
-                boundary = self.prepare_boundary_class_annotations(path_structure, output_length=frames_length)
+                boundary, boundary_intervals = self.prepare_boundary_class_annotations(path_structure, output_length=frames_length)
                 #assert N*F//3 == len(label), f"{N * F // 3} != {len(label)}"
                 label = torch.tensor(label)
                 self.labels.append(label)
                 boundary = torch.tensor(boundary).float()
                 self.boundaries.append(boundary)
+                self.boundary_intervals.append(boundary_intervals)
 
         class_counts = {label: 0 for label in range(0, 7)}
         for y_true in self.labels:
@@ -79,6 +80,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         embeddings = self.embeddings[idx]
         labels = self.labels[idx]# (N, F)
         boundaries = self.boundaries[idx]# (N, F)
+        boundary_intervals = self.boundary_intervals[idx]
         if self.mode == "train":  # If training, get a random chunk
             N, F, E = embeddings.shape
             random_int = random.randint(0, N - 1)
@@ -87,10 +89,9 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             random_fragment_jdx = random_fragment_idx + (F // 3)
             labels = labels[random_fragment_idx:random_fragment_jdx]
             boundaries = boundaries[random_fragment_idx:random_fragment_jdx]
-        # if labels is an empty list
-        if len(labels) == 0:
-            print()
-        return embeddings, labels, boundaries
+            return embeddings, labels, boundaries
+        else:
+            return embeddings, labels, boundaries, boundary_intervals
 
     def prepare_structure_class_annotations(self, file_path, output_length):
         timestamps = []
@@ -160,15 +161,24 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             # Update the previous label
             previous_label = current_label
 
+        boundary_intervals = []
+        for i in range(len(timestamps)):
+            if i == 0:
+                boundary_intervals.append((0, timestamps[i]))
+            else:
+                boundary_intervals.append((timestamps[i-1], timestamps[i]))
+        # add end interval
+        boundary_intervals.append((timestamps[-1], timestamps[-1] + output_length*0.064*self.num_frames_aggregate))
+
         # Return the binary boundary matrix (T x C), where C is 1
-        return output_boundaries
+        return output_boundaries, boundary_intervals
 
 
 def collate_fn_val_test(items):
     """Collate function to pack embeddings and labels for validation and testing."""
     assert len(items) == 1, "Validation and testing should have one track at a time."
-    embeddings, labels, boundaries = zip(*items)
-    return embeddings[0], labels[0].unsqueeze(0), boundaries[0].unsqueeze(0)
+    embeddings, labels, boundaries, boundary_intervals = zip(*items)
+    return embeddings[0], labels[0].unsqueeze(0), boundaries[0].unsqueeze(0), boundary_intervals[0]
 
 
 @gin.configurable
