@@ -47,15 +47,17 @@ train_probe.train_params = {
     "accelerator": "gpu",
     "devices": 1,
     "log_every_n_steps": 10,
-    "max_epochs": 1,
+    "max_epochs": 400,
     "num_sanity_val_steps": 0,
 }
 
 
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_classes = 7 # TODO
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.hidden_size = 512
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.bias = True
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.dropout = 0.0
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.lr = 0.0001
-probe.modules.sequence_classifiers.AggregateMultiClassProbe.num_aggregations = 3
+src.probe.modules.structure_probe.StructureClassProbe.num_classes = 7 # TODO
+src.probe.modules.structure_probe.StructureClassProbe.hidden_size = 512
+src.probe.modules.structure_probe.StructureClassProbe.bias = True
+src.probe.modules.structure_probe.StructureClassProbe.dropout = 0.0
+src.probe.modules.structure_probe.StructureClassProbe.lr = 0.0001
+src.probe.modules.structure_probe.StructureClassProbe.num_aggregations = 3
+src.probe.modules.structure_probe.StructureClassProbe.save_prediction = True
+
 

@@ -8,11 +8,6 @@ import torchmetrics
 from torch import nn
 import pytorch_lightning as L
 from torchmetrics import Accuracy, ConfusionMatrix
-from torchmetrics.classification import (
-    MultilabelAveragePrecision,
-    MultilabelAUROC,
-    MultilabelConfusionMatrix,
-)
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
@@ -28,21 +23,15 @@ class SegmentDetectionMetric(torchmetrics.Metric):
 
     def update(self, reference_intervals, estimated_intervals):
         # NOTE IT IS WORKING FOR BATCHSIZE 1
-        # Convertir tensores a numpy arrays si es necesario
         if isinstance(reference_intervals, torch.Tensor):
             reference_intervals = reference_intervals.detach().cpu().numpy()
         if isinstance(estimated_intervals, torch.Tensor):
             estimated_intervals = estimated_intervals.detach().cpu().numpy()
-        # Calcular las métricas
         scores, _, _ = mir_eval.segment.detection(reference_intervals, estimated_intervals, 0.5)
         self.scores_list.append(scores)
 
     def compute(self):
-        # Promediar las métricas acumuladas
-        avg_scores = {}
-        for key in self.scores_list[0]:
-            avg_scores[key] = np.mean([score[key] for score in self.scores_list])
-        return avg_scores
+        return torch.mean(torch.tensor(self.scores_list))
 
 
 @gin.configurable
@@ -63,8 +52,9 @@ class StructureClassProbe(L.LightningModule):
             num_aggregations: int,
             in_features: int,
             class_weights: torch.tensor,
+            save_prediction: bool = False,
     ):
-        super(AggregateMultiClassProbe, self).__init__()
+        super(StructureClassProbe, self).__init__()
 
         self.in_features = in_features
         self.num_classes = num_classes
@@ -74,6 +64,7 @@ class StructureClassProbe(L.LightningModule):
         self.lr = lr
         self.num_aggregations = num_aggregations
         self.avg = nn.AvgPool1d(kernel_size=num_aggregations, stride=num_aggregations)
+        self.save_prediction = save_prediction
 
         self.model = nn.Sequential(
             nn.Dropout(dropout),
@@ -84,7 +75,7 @@ class StructureClassProbe(L.LightningModule):
         self.frame_output = nn.Linear(hidden_size, num_classes, bias=bias)
         self.boundary_output = nn.Linear(hidden_size, 1, bias=bias)
         self.criterion = nn.BCEWithLogitsLoss(weight=class_weights)
-        self.criterion_boundaries = nn.BCEWithLogitsLoss()
+        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([20]))
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -129,7 +120,7 @@ class StructureClassProbe(L.LightningModule):
         return loss + loss_boundaries
 
     def predict(self, batch):
-        x, y_true, boundaries, _ = batch
+        x, y_true, boundaries, _, _ = batch
         logits, logits_boundaries = self.forward(x)
         # frame
         logits = logits.reshape(-1, logits.shape[-1])
@@ -159,11 +150,24 @@ class StructureClassProbe(L.LightningModule):
         logits, loss, _, logits_boundaries, loss_boundaries = self.predict(batch)
         self.log("test_loss", loss + loss_boundaries)
         y_true = batch[1].int().squeeze(0)
+        path = batch[4]
+
+        if self.save_prediction:
+            torch.save(
+                {
+                    "logits_frames": logits,
+                    "logits_boundaries": logits_boundaries,
+                    "y_true": y_true,
+                    "boundaries_intervals": batch[3],
+                    "path": path,
+                },
+                f"src/probe/visualize_probe/{path}.pt"
+            )
 
         # postprocessing
-        peaks = peak_picking(logits_boundaries, 0.068*self.num_aggregations)
-        peaks = thresholding(peaks, 0.0)
-        normalized_frames, boundary_prediction = normalize_frames_with_peaks(peaks, logits, 0.068*self.num_aggregations)
+        peaks = peak_picking(logits_boundaries, 0.064*self.num_aggregations)
+        peaks = thresholding(peaks, 0.42)
+        normalized_frames, boundary_prediction = normalize_frames_with_peaks(peaks, logits, 0.064*self.num_aggregations)
         self.test_metrics["test-acc"].update(normalized_frames, y_true)
         boundary_intervals = batch[3]
         self.test_metrics["test_boundaries"].update(np.array(boundary_prediction), np.array(boundary_intervals))
@@ -265,8 +269,12 @@ def normalize_frames_with_peaks(peaks, function_probabilities, frame_size):
     num_labels = function_probabilities.size(1)
     assigned_labels = []
 
-    # Adding a boundary for the last segment
-    peaks = [0] + peaks + [num_frames]
+    # if not present add a boundary for first segment
+    if peaks[0] != 0:
+        peaks = [0] + peaks
+    # if not present add a boundary add a boundary for the last segment
+    if peaks[-1] != num_frames:
+        peaks = peaks + [num_frames]
 
     for i in range(len(peaks) - 1):
         start = peaks[i]
@@ -293,7 +301,7 @@ def normalize_frames_with_peaks(peaks, function_probabilities, frame_size):
     assert len(final_labels) == num_frames, f"Length of assigned labels {len(final_labels)} != {num_frames}"
 
     # TODO I AM NOT CLEAR WHEN FINISH THE BOUNDARY IN THE NEW FRAME OR IN THE PREVIOUS FRAME
-    boundaries = [(start*frame_size, end*frame_size) for start, end, _ in assigned_labels if start != end]
+    boundaries = [(start*frame_size, end*frame_size) for start, end, _ in assigned_labels]
 
     return torch.tensor(final_labels).to(function_probabilities.device), boundaries
 

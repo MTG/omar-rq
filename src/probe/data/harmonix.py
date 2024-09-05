@@ -41,7 +41,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.num_frames_aggregate = num_frames_aggregate
 
         # Load the embeddings and labels
-        self.embeddings, self.labels, self.boundaries, self.boundary_intervals = [], [], [], []
+        self.embeddings, self.labels, self.boundaries, self.boundary_intervals, self.paths = [], [], [], [], []
         filenames = [p.strip() for p in open(filelist).readlines()]
 
         for filename in filenames:
@@ -64,6 +64,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
                 boundary = torch.tensor(boundary).float()
                 self.boundaries.append(boundary)
                 self.boundary_intervals.append(boundary_intervals)
+                self.paths.append(filename)
 
         class_counts = {label: 0 for label in range(0, 7)}
         for y_true in self.labels:
@@ -81,6 +82,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         labels = self.labels[idx]# (N, F)
         boundaries = self.boundaries[idx]# (N, F)
         boundary_intervals = self.boundary_intervals[idx]
+        path = self.paths[idx]
         if self.mode == "train":  # If training, get a random chunk
             N, F, E = embeddings.shape
             random_int = random.randint(0, N - 1)
@@ -91,7 +93,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             boundaries = boundaries[random_fragment_idx:random_fragment_jdx]
             return embeddings, labels, boundaries
         else:
-            return embeddings, labels, boundaries, boundary_intervals
+            return embeddings, labels, boundaries, boundary_intervals, path
 
     def prepare_structure_class_annotations(self, file_path, output_length):
         timestamps = []
@@ -141,6 +143,9 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         # Initialize the previous label for boundary detection
         previous_label = None
 
+        if "0066" in file_path.stem:
+            print()
+
         # Iterate through each time step to detect boundaries
         for step in range(output_length):
             current_time = step * 0.064 * self.num_frames_aggregate
@@ -164,7 +169,8 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         boundary_intervals = []
         for i in range(len(timestamps)):
             if i == 0:
-                boundary_intervals.append((0, timestamps[i]))
+                if timestamps[i] != 0:
+                    boundary_intervals.append((0, timestamps[i]))
             else:
                 boundary_intervals.append((timestamps[i-1], timestamps[i]))
         # add end interval
@@ -177,8 +183,8 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
 def collate_fn_val_test(items):
     """Collate function to pack embeddings and labels for validation and testing."""
     assert len(items) == 1, "Validation and testing should have one track at a time."
-    embeddings, labels, boundaries, boundary_intervals = zip(*items)
-    return embeddings[0], labels[0].unsqueeze(0), boundaries[0].unsqueeze(0), boundary_intervals[0]
+    embeddings, labels, boundaries, boundary_intervals, path = zip(*items)
+    return embeddings[0], labels[0].unsqueeze(0), boundaries[0].unsqueeze(0), boundary_intervals[0], path[0]
 
 
 @gin.configurable
