@@ -398,10 +398,8 @@ class Conformer(nn.Module):
         self.use_deepnorm = use_deepnorm
         self.use_rope = use_rope
 
-        # TODO guarrada de @oguz para que no pete (if seconds or representation is changed we have to change this)
-        self.num_patches = 469
+        self.input_dropout = nn.Dropout(self.dropout)
 
-        self.dropout = dropout
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(
             [
@@ -423,7 +421,7 @@ class Conformer(nn.Module):
 
     def forward(self, x):
         # Downsampling (preprocessing) -> patching and projection layer (model masking) -> here
-        x = F.dropout(x)
+        x = self.input_dropout(x)
 
         for layer in self.layers:
             x = layer(x)
