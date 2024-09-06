@@ -128,6 +128,7 @@ class StructureClassProbe(L.LightningModule):
 
     def predict(self, batch):
         x, y_true, boundaries, _, _ = batch
+        x = x[::10] # simplest and straightforward way to remove the overlap
         logits, logits_boundaries = self.forward(x)
         # frame
         logits = logits.reshape(-1, logits.shape[-1])
@@ -175,8 +176,9 @@ class StructureClassProbe(L.LightningModule):
             )
 
         # postprocessing
+        logits_boundaries = torch.Sigmoid(logits_boundaries)
         peaks = peak_picking(logits_boundaries, 0.064*self.num_aggregations)
-        peaks = thresholding(peaks, 0.1)
+        peaks = thresholding(peaks, logits_boundaries, 0.1)
         normalized_frames, boundary_prediction = normalize_frames_with_peaks(peaks, logits, 0.064*self.num_aggregations)
         self.test_metrics["test-acc"].update(normalized_frames, y_true)
         boundary_intervals = batch[3]
@@ -365,8 +367,8 @@ def peak_picking(boundary_activation_curve, frame_size):
 
     return peaks
 
-def thresholding(peaks, threshold):
-    return [frame_index for frame_index, peak_strength in peaks if peak_strength > threshold]
+def thresholding(peaks, curve, threshold):
+    return [frame_index for frame_index, peak_strength in peaks if curve[peak_strength] > threshold]
 
 
 # Function to plot the heatmap using matplotlib
