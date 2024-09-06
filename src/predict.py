@@ -42,6 +42,7 @@ def predict(
     embeddings_dir: Path,
     device_dict: dict,
     embedding_layer: List[int],
+    overlap_ratio: float,
 ):
     """Wrapper function. Basically overrides some train parameters."""
 
@@ -55,6 +56,7 @@ def predict(
         embeddings_dir=embeddings_dir,
         device_dict=device_dict,
         embedding_layer=embedding_layer,
+        overlap_ratio=overlap_ratio,
     )
 
 
@@ -64,6 +66,7 @@ def train(
     params: dict,
     device_dict: dict,
     embedding_layer: List[int],
+    overlap_ratio: float,
     wandb_params=None,
 ):
     """The name is train, but we are actually predicting the embeddings for
@@ -86,6 +89,9 @@ def train(
 
     # Set the embedding layer
     module.downstream_embedding_layer = embedding_layer
+
+    # Set the overlap ratio
+    module.overlap_ratio = overlap_ratio
 
     # Get the data module
     data_module = AudioEmbeddingDataModule()

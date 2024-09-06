@@ -64,6 +64,7 @@ class MaskingModel(L.LightningModule):
         self.tokens_coverage = []
         self.first_coverage = True
         self.downstream_embedding_layer = [-1]
+        self.overlap_ratio = 0.5
 
         if (
             hasattr(representation, "sr")
@@ -295,6 +296,7 @@ class MaskingModel(L.LightningModule):
         self,
         audio: torch.Tensor,
         layer: List[int] = None,
+        overlap_ratio: float = None,
     ):
         """Extract audio embeddings using the model.
 
@@ -320,6 +322,11 @@ class MaskingModel(L.LightningModule):
             layer = self.downstream_embedding_layer
         assert isinstance(layer, list), "Layer must be a list."
         assert layer == [-1], "Only last layer is supported for now."
+        if overlap_ratio is None:
+            overlap_ratio = self.overlap_ratio
+        assert (
+            overlap_ratio >= 0 and overlap_ratio < 1
+        ), "Overlap ratio must be between 0 and 1."
 
         # Compute the representation
         x = self.representation(audio)  # (F, Tm)
@@ -332,8 +339,7 @@ class MaskingModel(L.LightningModule):
 
         # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
-        # We use an overlap of 50%
-        hop_len = chunk_len // 2
+        hop_len = int(chunk_len * (1 - overlap_ratio))
 
         # Number of chunks
         Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
