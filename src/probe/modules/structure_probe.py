@@ -75,7 +75,7 @@ class StructureClassProbe(L.LightningModule):
         self.frame_output = nn.Linear(hidden_size, num_classes, bias=bias)
         self.boundary_output = nn.Linear(hidden_size, 1, bias=bias)
         self.criterion = nn.BCEWithLogitsLoss(weight=class_weights)
-        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([20]))
+        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([0.05]))
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -113,11 +113,18 @@ class StructureClassProbe(L.LightningModule):
         loss = self.criterion(logits_frame, y_true_one_hot)
         # boundaries loss
         boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3)
+        # normalize boundaries between 0 and 1
+        if torch.sum(boundaries_smoothed) != 0:
+            boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (boundaries_smoothed.max() - boundaries_smoothed.min())
+
+        # boundaries_smoothed
         loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
+        # normalize
+        loss_boundaries = loss_boundaries / x.shape[1]
         self.log("train_loss", loss + loss_boundaries)
         self.log("train_loss_frame", loss)
         self.log("train_loss_boundaries", loss_boundaries)
-        return loss + loss_boundaries
+        return 0.1*loss + 0.9*loss_boundaries
 
     def predict(self, batch):
         x, y_true, boundaries, _, _ = batch
@@ -129,6 +136,9 @@ class StructureClassProbe(L.LightningModule):
         # boundaries
         logits_boundaries = logits_boundaries.reshape(-1, 1)
         boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3).squeeze(0)
+        # normalize boundaries between 0 and 1
+        boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (
+                    boundaries_smoothed.max() - boundaries_smoothed.min())
         loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
         predicted_class = torch.argmax(logits, dim=1)
         return logits, loss, predicted_class, logits_boundaries, loss_boundaries
@@ -150,23 +160,23 @@ class StructureClassProbe(L.LightningModule):
         logits, loss, _, logits_boundaries, loss_boundaries = self.predict(batch)
         self.log("test_loss", loss + loss_boundaries)
         y_true = batch[1].int().squeeze(0)
-        path = batch[4]
 
         if self.save_prediction:
             torch.save(
                 {
+                    "embedding": batch[0],
                     "logits_frames": logits,
                     "logits_boundaries": logits_boundaries,
                     "y_true": y_true,
                     "boundaries_intervals": batch[3],
-                    "path": path,
+                    "path": batch[4],
                 },
-                f"src/probe/visualize_probe/{path}.pt"
+                f"src/probe/visualize_probe/embedding_structure/{batch[4]}.pt"
             )
 
         # postprocessing
         peaks = peak_picking(logits_boundaries, 0.064*self.num_aggregations)
-        peaks = thresholding(peaks, 0.42)
+        peaks = thresholding(peaks, 0.1)
         normalized_frames, boundary_prediction = normalize_frames_with_peaks(peaks, logits, 0.064*self.num_aggregations)
         self.test_metrics["test-acc"].update(normalized_frames, y_true)
         boundary_intervals = batch[3]

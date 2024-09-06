@@ -12,6 +12,7 @@ predict.embedding_layer = [-1]
 
 predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
+predict.overlap_ratio = 0.1
 
 
 # Audio Loader for embedding extraction
