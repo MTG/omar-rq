@@ -384,6 +384,7 @@ class Conformer(nn.Module):
         beta_deepnorm: float,
         use_deepnorm: bool,
         use_rope: bool,
+        num_patches: int = 469,
     ):
         super(Conformer, self).__init__()
         self.patch_size = patch_size
@@ -400,6 +401,7 @@ class Conformer(nn.Module):
         self.use_rope = use_rope
 
         self.input_dropout = nn.Dropout(input_dropout)
+        self.num_patches = 469
 
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(
