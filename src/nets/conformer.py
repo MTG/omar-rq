@@ -379,6 +379,7 @@ class Conformer(nn.Module):
         mlp_residual_factor: float,
         num_heads: int,
         dropout: float,
+        input_dropout: float,
         alpha_deepnorm: float,
         beta_deepnorm: float,
         use_deepnorm: bool,
@@ -398,7 +399,7 @@ class Conformer(nn.Module):
         self.use_deepnorm = use_deepnorm
         self.use_rope = use_rope
 
-        self.input_dropout = nn.Dropout(self.dropout)
+        self.input_dropout = nn.Dropout(input_dropout)
 
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(
