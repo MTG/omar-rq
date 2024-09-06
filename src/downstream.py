@@ -46,9 +46,7 @@ def build_module_and_datamodule(
         )
     elif dataset_name == "harmonix":
         # Build the datamodule
-        datamodule = HarmonixEmbeddingLoadingDataModule(
-            embeddings_dir
-        )
+        datamodule = HarmonixEmbeddingLoadingDataModule(embeddings_dir)
 
         # Get the number of features from the dataloader
         in_features = datamodule.embedding_dimension

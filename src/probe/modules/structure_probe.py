@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import gin
@@ -14,8 +13,6 @@ import wandb
 import torch.nn.functional as F
 
 
-
-
 class SegmentDetectionMetric(torchmetrics.Metric):
     def __init__(self):
         super().__init__()
@@ -27,7 +24,9 @@ class SegmentDetectionMetric(torchmetrics.Metric):
             reference_intervals = reference_intervals.detach().cpu().numpy()
         if isinstance(estimated_intervals, torch.Tensor):
             estimated_intervals = estimated_intervals.detach().cpu().numpy()
-        scores, _, _ = mir_eval.segment.detection(reference_intervals, estimated_intervals, 0.5)
+        scores, _, _ = mir_eval.segment.detection(
+            reference_intervals, estimated_intervals, 0.5
+        )
         self.scores_list.append(scores)
 
     def compute(self):
@@ -43,16 +42,16 @@ class StructureClassProbe(L.LightningModule):
     """
 
     def __init__(
-            self,
-            num_classes: int,
-            hidden_size: int,
-            bias: bool,
-            dropout: float,
-            lr: float,
-            num_aggregations: int,
-            in_features: int,
-            class_weights: torch.tensor,
-            save_prediction: bool = False,
+        self,
+        num_classes: int,
+        hidden_size: int,
+        bias: bool,
+        dropout: float,
+        lr: float,
+        num_aggregations: int,
+        in_features: int,
+        class_weights: torch.tensor,
+        save_prediction: bool = False,
     ):
         super(StructureClassProbe, self).__init__()
 
@@ -70,7 +69,7 @@ class StructureClassProbe(L.LightningModule):
             nn.Dropout(dropout),
             nn.Linear(in_features, hidden_size, bias=bias),
             nn.ReLU(),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
         self.frame_output = nn.Linear(hidden_size, num_classes, bias=bias)
         self.boundary_output = nn.Linear(hidden_size, 1, bias=bias)
@@ -115,20 +114,24 @@ class StructureClassProbe(L.LightningModule):
         boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3)
         # normalize boundaries between 0 and 1
         if torch.sum(boundaries_smoothed) != 0:
-            boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (boundaries_smoothed.max() - boundaries_smoothed.min())
+            boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (
+                boundaries_smoothed.max() - boundaries_smoothed.min()
+            )
 
         # boundaries_smoothed
-        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
+        loss_boundaries = self.criterion_boundaries(
+            logits_boundaries, boundaries_smoothed
+        )
         # normalize
         loss_boundaries = loss_boundaries / x.shape[1]
         self.log("train_loss", loss + loss_boundaries)
         self.log("train_loss_frame", loss)
         self.log("train_loss_boundaries", loss_boundaries)
-        return 0.1*loss + 0.9*loss_boundaries
+        return 0.1 * loss + 0.9 * loss_boundaries
 
     def predict(self, batch):
         x, y_true, boundaries, _, _ = batch
-        x = x[::10] # simplest and straightforward way to remove the overlap
+        x = x[::10]  # simplest and straightforward way to remove the overlap
         logits, logits_boundaries = self.forward(x)
         # frame
         logits = logits.reshape(-1, logits.shape[-1])
@@ -136,11 +139,16 @@ class StructureClassProbe(L.LightningModule):
         loss = self.criterion(logits, y_true_one_hot)
         # boundaries
         logits_boundaries = logits_boundaries.reshape(-1, 1)
-        boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3).squeeze(0)
+        boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3).squeeze(
+            0
+        )
         # normalize boundaries between 0 and 1
         boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (
-                    boundaries_smoothed.max() - boundaries_smoothed.min())
-        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
+            boundaries_smoothed.max() - boundaries_smoothed.min()
+        )
+        loss_boundaries = self.criterion_boundaries(
+            logits_boundaries, boundaries_smoothed
+        )
         predicted_class = torch.argmax(logits, dim=1)
         return logits, loss, predicted_class, logits_boundaries, loss_boundaries
 
@@ -172,17 +180,21 @@ class StructureClassProbe(L.LightningModule):
                     "boundaries_intervals": batch[3],
                     "path": batch[4],
                 },
-                f"src/probe/visualize_probe/embedding_structure/{batch[4]}.pt"
+                f"src/probe/visualize_probe/embedding_structure/{batch[4]}.pt",
             )
 
         # postprocessing
         logits_boundaries = torch.Sigmoid(logits_boundaries)
-        peaks = peak_picking(logits_boundaries, 0.064*self.num_aggregations)
+        peaks = peak_picking(logits_boundaries, 0.064 * self.num_aggregations)
         peaks = thresholding(peaks, logits_boundaries, 0.1)
-        normalized_frames, boundary_prediction = normalize_frames_with_peaks(peaks, logits, 0.064*self.num_aggregations)
+        normalized_frames, boundary_prediction = normalize_frames_with_peaks(
+            peaks, logits, 0.064 * self.num_aggregations
+        )
         self.test_metrics["test-acc"].update(normalized_frames, y_true)
         boundary_intervals = batch[3]
-        self.test_metrics["test_boundaries"].update(np.array(boundary_prediction), np.array(boundary_intervals))
+        self.test_metrics["test_boundaries"].update(
+            np.array(boundary_prediction), np.array(boundary_intervals)
+        )
         # Update the confusion matrix metric
         self.conf_matrix.update(normalized_frames, y_true)
 
@@ -217,7 +229,14 @@ class StructureClassProbe(L.LightningModule):
         # Annotate the confusion matrix
         for i in range(self.num_classes):
             for j in range(self.num_classes):
-                ax.text(j, i, int(conf_matrix[i, j].item()), ha='center', va='center', color='black')
+                ax.text(
+                    j,
+                    i,
+                    int(conf_matrix[i, j].item()),
+                    ha="center",
+                    va="center",
+                    color="black",
+                )
 
         return fig
 
@@ -233,7 +252,9 @@ class StructureClassProbe(L.LightningModule):
             T3, E = shape_embedding
             y_true_one_hot = torch.zeros(T3, self.num_classes).to(device)
             y_true_one_hot.scatter_(1, y_true.unsqueeze(1), 0)
-            y_true_one_hot = apply_moving_average(y_true_one_hot.unsqueeze(0)).squeeze(0)
+            y_true_one_hot = apply_moving_average(y_true_one_hot.unsqueeze(0)).squeeze(
+                0
+            )
         else:
             raise ValueError("shape_embedding must be either 2D or 3D")
 
@@ -248,15 +269,21 @@ def apply_moving_average(matrix, filter_size=10):
     matrix_torch = matrix.transpose(1, 2)  # Shape: (B, C, T)
 
     # Define the moving average filter (simple averaging kernel) for each channel
-    filter_kernel = torch.ones(C, 1, filter_size) / filter_size  # Shape: (C, 1, filter_size)
+    filter_kernel = (
+        torch.ones(C, 1, filter_size) / filter_size
+    )  # Shape: (C, 1, filter_size)
     filter_kernel = filter_kernel.to(matrix_torch.device)
 
     # Apply the convolution (moving average) along the time axis (T) using grouped convolution
-    smoothed_matrix_torch = F.conv1d(matrix_torch, filter_kernel, padding=filter_size // 2, groups=C)
+    smoothed_matrix_torch = F.conv1d(
+        matrix_torch, filter_kernel, padding=filter_size // 2, groups=C
+    )
 
     # Trim the extra time step if the output size is larger than the input
     if smoothed_matrix_torch.shape[2] > T:
-        smoothed_matrix_torch = smoothed_matrix_torch[:, :, :T]  # Trim to match original T
+        smoothed_matrix_torch = smoothed_matrix_torch[
+            :, :, :T
+        ]  # Trim to match original T
 
     # Transpose back to original shape (B x T x C)
     smoothed_matrix = smoothed_matrix_torch.transpose(1, 2)
@@ -310,10 +337,14 @@ def normalize_frames_with_peaks(peaks, function_probabilities, frame_size):
         for j in range(start, end + 1):
             final_labels.append(label)
 
-    assert len(final_labels) == num_frames, f"Length of assigned labels {len(final_labels)} != {num_frames}"
+    assert (
+        len(final_labels) == num_frames
+    ), f"Length of assigned labels {len(final_labels)} != {num_frames}"
 
     # TODO I AM NOT CLEAR WHEN FINISH THE BOUNDARY IN THE NEW FRAME OR IN THE PREVIOUS FRAME
-    boundaries = [(start*frame_size, end*frame_size) for start, end, _ in assigned_labels]
+    boundaries = [
+        (start * frame_size, end * frame_size) for start, end, _ in assigned_labels
+    ]
 
     return torch.tensor(final_labels).to(function_probabilities.device), boundaries
 
@@ -346,18 +377,28 @@ def peak_picking(boundary_activation_curve, frame_size):
 
     peaks = []
 
-    for i in range(window_size_past, len(boundary_activation_curve) - window_size_future):
+    for i in range(
+        window_size_past, len(boundary_activation_curve) - window_size_future
+    ):
         current_value = boundary_activation_curve[i]
 
         # Every output value that is not surpassed within ±6 seconds is a boundary candidate
-        local_max = torch.max(boundary_activation_curve[i - window_size_future:i + window_size_future + 1])
+        local_max = torch.max(
+            boundary_activation_curve[
+                i - window_size_future : i + window_size_future + 1
+            ]
+        )
 
         # Check if the current value is a local peak
         if current_value == local_max:
             # From each candidate value we subtract the average of the activation curve
             # in the past 12 and future 6 seconds, to compensate for long-term trends
-            past_average = torch.mean(boundary_activation_curve[max(0, i - window_size_past):i])
-            future_average = torch.mean(boundary_activation_curve[i + 1:i + 1 + window_size_future])
+            past_average = torch.mean(
+                boundary_activation_curve[max(0, i - window_size_past) : i]
+            )
+            future_average = torch.mean(
+                boundary_activation_curve[i + 1 : i + 1 + window_size_future]
+            )
 
             # Compensate for long-term trends
             compensated_value = current_value - (past_average + future_average) / 2
@@ -367,8 +408,13 @@ def peak_picking(boundary_activation_curve, frame_size):
 
     return peaks
 
+
 def thresholding(peaks, curve, threshold):
-    return [frame_index for frame_index, peak_strength in peaks if curve[peak_strength] > threshold]
+    return [
+        frame_index
+        for frame_index, peak_strength in peaks
+        if curve[peak_strength] > threshold
+    ]
 
 
 # Function to plot the heatmap using matplotlib
@@ -377,12 +423,12 @@ def plot_labels(matrix):
     fig, ax = plt.subplots(figsize=(8, 6))
 
     # Display the heatmap using imshow
-    ax.imshow(matrix, cmap='Blues', interpolation='nearest')
+    ax.imshow(matrix, cmap="Blues", interpolation="nearest")
 
     # Adding labels
-    ax.set_title('Heatmap of Binary Matrix')
-    ax.set_xlabel('Class')
-    ax.set_ylabel('Time Step')
+    ax.set_title("Heatmap of Binary Matrix")
+    ax.set_xlabel("Class")
+    ax.set_ylabel("Time Step")
 
     # Adding grid lines
     ax.set_xticks(np.arange(matrix.shape[1]))
