@@ -1,5 +1,6 @@
 import math
 import os
+import pdb
 import random
 from collections import Counter
 from typing import List
@@ -339,7 +340,7 @@ class MaskingModel(L.LightningModule):
 
         # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
-        hop_len = int(chunk_len * (1 - overlap_ratio))
+        hop_len = int(chunk_len * overlap_ratio)
 
         # Number of chunks
         Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
@@ -358,6 +359,8 @@ class MaskingModel(L.LightningModule):
         # TODO: support multiple layers
         x_chunks = self.net(x_chunks)  # (B, N, Cout)
         x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
+
+        print(x_chunks.shape)
 
         return x_chunks
 

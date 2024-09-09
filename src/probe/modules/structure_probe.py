@@ -173,7 +173,7 @@ class StructureClassProbe(L.LightningModule):
         if self.save_prediction:
             torch.save(
                 {
-                    "embedding": batch[0],
+                    "embedding": batch[0][::10],
                     "logits_frames": logits,
                     "logits_boundaries": logits_boundaries,
                     "y_true": y_true,

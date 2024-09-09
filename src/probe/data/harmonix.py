@@ -31,6 +31,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         filelist: Path,
         mode: str,
         num_frames_aggregate: int,
+        overlap: float,
     ):
         """filelist is a text file with one filename per line without extensions."""
 
@@ -39,6 +40,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.filelist = filelist
         self.mode = mode
         self.num_frames_aggregate = num_frames_aggregate
+        self.overlap = overlap
 
         # Load the embeddings and labels
         (
@@ -58,9 +60,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
                 # shape embeddings: (1, N, F, D)
                 embedding = torch.load(emb_path, map_location="cpu")
                 _, N, F, D = embedding.shape
-                frames_length = embedding.shape[1] * (
-                    embedding.shape[2] // num_frames_aggregate
-                )
+                frames_length = int(embedding.shape[1] * embedding.shape[2] // num_frames_aggregate // self.overlap)
                 embedding = torch.squeeze(embedding, 0)
                 self.embeddings.append(embedding)
                 path_structure = gt_path / Path(filename + ".txt")
@@ -99,8 +99,8 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             N, F, E = embeddings.shape
             random_int = random.randint(0, N - 1)
             embeddings = embeddings[random_int]
-            random_fragment_idx = random_int * (F // self.num_frames_aggregate)
-            random_fragment_jdx = random_fragment_idx + (F // 3)
+            random_fragment_idx = random_int * F // self.num_frames_aggregate // self.overlap
+            random_fragment_jdx = random_fragment_idx + (F // 3 // self.overlap)
             labels = labels[random_fragment_idx:random_fragment_jdx]
             boundaries = boundaries[random_fragment_idx:random_fragment_jdx]
             return embeddings, labels, boundaries
@@ -124,7 +124,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         label_index = 0
 
         for step in range(output_length):
-            current_time = step * 0.064 * self.num_frames_aggregate
+            current_time = step * 0.064 * self.num_frames_aggregate * self.overlap
             if (
                 label_index < len(timestamps)
                 and current_time >= timestamps[label_index]
@@ -167,7 +167,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
 
         # Iterate through each time step to detect boundaries
         for step in range(output_length):
-            current_time = step * 0.064 * self.num_frames_aggregate
+            current_time = step * 0.064 * self.num_frames_aggregate * self.overlap
 
             # Check if it's time to switch to a new label
             if (
@@ -236,6 +236,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
         batch_size: int,
         num_workers: int,
         num_frames_aggregate: int,
+        overlap: float,
     ):
         super().__init__()
         self.embeddings_dir = embeddings_dir
@@ -247,6 +248,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.num_frames_aggregate = num_frames_aggregate
         self.num_classes = 8  # this number is not going to be modified
+        self.overlap = overlap
 
         # Load one embedding to get the dimension
         # NOTE: I tried doing this inside self.setup() but those are
@@ -266,6 +268,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.train_filelist,
                 num_frames_aggregate=self.num_frames_aggregate,
                 mode="train",
+                overlap=self.overlap,
             )
             print("\nSetting up Validation dataset...")
             self.val_dataset = HarmonixEmbeddingLoadingDataset(
@@ -273,6 +276,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.gt_path,
                 self.val_filelist,
                 num_frames_aggregate=self.num_frames_aggregate,
+                overlap=self.overlap,
                 mode="val",
             )
         if stage == "test":
@@ -281,6 +285,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.embeddings_dir,
                 self.gt_path,
                 self.test_filelist,
+                overlap=self.overlap,
                 num_frames_aggregate=self.num_frames_aggregate,
                 mode="test",
             )

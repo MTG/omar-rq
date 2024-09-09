@@ -35,6 +35,7 @@ HarmonixEmbeddingLoadingDataModule.test_filelist = "data/harmonix/test.txt"
 HarmonixEmbeddingLoadingDataModule.batch_size = 16
 HarmonixEmbeddingLoadingDataModule.num_frames_aggregate = 3
 HarmonixEmbeddingLoadingDataModule.num_workers = 0
+HarmonixEmbeddingLoadingDataModule.overlap = 0.1
 
 train_probe.wandb_params = {
     "project": "structure",
