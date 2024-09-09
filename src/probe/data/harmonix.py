@@ -57,156 +57,143 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             emb_path = self.embeddings_dir / Path(str(emb_name)[:3]) / emb_name
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
-                # shape embeddings: (1, N, F, D)
-                embedding = torch.load(emb_path, map_location="cpu")
-                _, N, F, D = embedding.shape
-                frames_length = int(embedding.shape[1] * embedding.shape[2] // num_frames_aggregate // self.overlap)
-                embedding = torch.squeeze(embedding, 0)
-                self.embeddings.append(embedding)
-                path_structure = gt_path / Path(filename + ".txt")
-                label = self.prepare_structure_class_annotations(
-                    path_structure, output_length=frames_length
-                )
-                boundary, boundary_intervals = self.prepare_boundary_class_annotations(
-                    path_structure, output_length=frames_length
-                )
-                # assert N*F//3 == len(label), f"{N * F // 3} != {len(label)}"
-                label = torch.tensor(label)
-                self.labels.append(label)
-                boundary = torch.tensor(boundary).float()
-                self.boundaries.append(boundary)
-                self.boundary_intervals.append(boundary_intervals)
+                self.embeddings.append(emb_path)
                 self.paths.append(filename)
 
-        class_counts = {label: 0 for label in range(0, 7)}
-        for y_true in self.labels:
-            for label in y_true.flatten():
-                class_counts[label.item()] += 1
-        print(class_counts)
-        self.class_counts = class_counts
+        if self.mode == "test":
+            # iterate all the dataset
+
+            class_counts = {label: 0 for label in range(0, 7)}
+            for idx in range(len(self.embeddings)):
+                emb_path = self.embeddings[idx]
+                path = self.paths[idx]
+                embeddings = torch.load(emb_path, map_location="cpu")
+                _, N, F, D = embeddings.shape
+                y_true = self._get_val_test_data(path, embeddings, N, F)[1]
+
+                for label in y_true.flatten():
+                    class_counts[label.item()] += 1
+            print(class_counts)
+            self.class_counts = class_counts
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.embeddings)
 
     def __getitem__(self, idx):
         """Loads the labels and the processed embeddings for a given index."""
-        embeddings = self.embeddings[idx]
-        labels = self.labels[idx]  # (N, F)
-        boundaries = self.boundaries[idx]  # (N, F)
-        boundary_intervals = self.boundary_intervals[idx]
+        emb_path = self.embeddings[idx]
         path = self.paths[idx]
-        if self.mode == "train":  # If training, get a random chunk
-            N, F, E = embeddings.shape
-            random_int = random.randint(0, N - 1)
-            embeddings = embeddings[random_int]
-            random_fragment_idx = random_int * F // self.num_frames_aggregate // self.overlap
-            random_fragment_jdx = random_fragment_idx + (F // 3 // self.overlap)
-            labels = labels[random_fragment_idx:random_fragment_jdx]
-            boundaries = boundaries[random_fragment_idx:random_fragment_jdx]
-            return embeddings, labels, boundaries
+        embeddings = torch.load(emb_path, map_location="cpu")
+        _, N, F, D = embeddings.shape
+        embeddings = torch.squeeze(embeddings, 0)
+
+        if self.mode in ["val", "test"]:
+            return self._get_val_test_data(path, embeddings, N, F)
+        elif self.mode == "train":
+            return self._get_train_data(path, embeddings, N, F)
         else:
-            return embeddings, labels, boundaries, boundary_intervals, path
+            raise ValueError(f"Invalid mode: {self.mode}")
 
-    def prepare_structure_class_annotations(self, file_path, output_length):
-        timestamps = []
-        labels = []
+    def _get_val_test_data(self, path, embeddings, N, F):
+        frames_length = F // self.num_frames_aggregate * math.ceil(N * 0.1)
+        path_structure = self.gt_path / Path(path + ".txt")
 
-        with open(file_path, "r") as f:
-            for line in f:
-                parts = line.strip().split()
-                if len(parts) == 2:
-                    timestamp = float(parts[0])
-                    label = parts[1]
-                    timestamps.append(timestamp)
-                    labels.append(label)
+        labels = self.prepare_structure_class_annotations(path_structure, frames_length, 1)
+        boundaries, boundary_intervals = self.prepare_boundary_class_annotations(path_structure, frames_length, 1)
 
-        output_labels = []
-        label_index = 0
+        labels = torch.tensor(labels)
+        boundaries = torch.tensor(boundaries).float()
 
-        for step in range(output_length):
-            current_time = step * 0.064 * self.num_frames_aggregate * self.overlap
-            if (
-                label_index < len(timestamps)
-                and current_time >= timestamps[label_index]
-            ):
-                current_label = labels[label_index]
-                label_index += 1
-            else:
-                current_label = (
-                    labels[label_index - 1] if label_index > 0 else labels[0]
-                )
+        return embeddings, labels, boundaries, boundary_intervals, path
 
-            label_number = label_to_number.get(
-                current_label, label_to_number["silence"]
-            )
-            output_labels.append(label_number)
+    def _get_train_data(self, path, embeddings, N, F):
+        frames_length = int(embeddings.shape[1] * embeddings.shape[2] // self.num_frames_aggregate // self.overlap)
+
+        random_int = random.randint(0, N - 1)
+        embeddings = embeddings[random_int]
+        random_fragment_idx = int(random_int * F // self.num_frames_aggregate // self.overlap)
+        fragment_size = F // 3
+
+        path_structure = self.gt_path / Path(path + ".txt")
+
+        labels = self.prepare_structure_class_annotations(path_structure, frames_length, self.overlap,
+                                                          random_fragment_idx, fragment_size)
+        boundaries, boundary_intervals = self.prepare_boundary_class_annotations(path_structure, frames_length,
+                                                                                 self.overlap, random_fragment_idx,
+                                                                                 fragment_size)
+
+        labels = torch.tensor(labels)
+        boundaries = torch.tensor(boundaries).float()
+
+        return embeddings, labels, boundaries
+
+    def prepare_structure_class_annotations(self, file_path, output_length, overlap, start=0, fragment_size=None):
+        timestamps, labels = self._read_annotation_file(file_path)
+        output_labels = self._generate_output_labels(timestamps, labels, output_length, overlap, start, fragment_size)
         return output_labels
 
-    def prepare_boundary_class_annotations(self, file_path, output_length):
+    def prepare_boundary_class_annotations(self, file_path, output_length, overlap, start=0, fragment_size=None):
+        timestamps, labels = self._read_annotation_file(file_path)
+        output_boundaries = self._generate_output_boundaries(timestamps, labels, output_length, overlap, start,
+                                                             fragment_size)
+        boundary_intervals = self._generate_boundary_intervals(timestamps, output_length)
+        return output_boundaries, boundary_intervals
+
+    def _read_annotation_file(self, file_path):
         timestamps = []
         labels = []
-
-        # Read the structure class annotations from the file
         with open(file_path, "r") as f:
             for line in f:
                 parts = line.strip().split()
                 if len(parts) == 2:
-                    timestamp = float(parts[0])
-                    label = parts[1]
-                    timestamps.append(timestamp)
-                    labels.append(label)
+                    timestamps.append(float(parts[0]))
+                    labels.append(parts[1])
+        return timestamps, labels
 
-        output_boundaries = []
+    def _generate_output_labels(self, timestamps, labels, output_length, overlap, start, fragment_size):
+        output_labels = []
         label_index = 0
+        initial_time = start * 0.064 * self.num_frames_aggregate * overlap
+        range_end = start + (fragment_size if fragment_size is not None else output_length)
 
-        # Initialize the previous label for boundary detection
-        previous_label = None
-
-        if "0066" in file_path.stem:
-            print()
-
-        # Iterate through each time step to detect boundaries
-        for step in range(output_length):
-            current_time = step * 0.064 * self.num_frames_aggregate * self.overlap
-
-            # Check if it's time to switch to a new label
-            if (
-                label_index < len(timestamps)
-                and current_time >= timestamps[label_index]
-            ):
+        for step in range(start, range_end):
+            current_time = initial_time + (step * 0.064 * self.num_frames_aggregate)
+            if label_index < len(timestamps) and current_time >= timestamps[label_index]:
                 current_label = labels[label_index]
                 label_index += 1
             else:
-                current_label = (
-                    labels[label_index - 1] if label_index > 0 else labels[0]
-                )
+                current_label = labels[label_index - 1] if label_index > 0 else labels[0]
+            label_number = label_to_number.get(current_label, label_to_number["silence"])
+            output_labels.append(label_number)
 
-            # Check if the current label is different from the previous label
-            if current_label != previous_label:
-                output_boundaries.append(1)  # Boundary detected (C=1)
+        return output_labels
+
+    def _generate_output_boundaries(self, timestamps, labels, output_length, overlap, start, fragment_size):
+        output_boundaries = []
+        previous_label = None
+        label_index = 0
+        initial_time = start * 0.064 * self.num_frames_aggregate * overlap
+        range_end = start + (fragment_size if fragment_size is not None else output_length)
+
+        for step in range(start, min(range_end, output_length)):
+            current_time = initial_time + (step * 0.064 * self.num_frames_aggregate)
+            if label_index < len(timestamps) and current_time >= timestamps[label_index]:
+                current_label = labels[label_index]
+                label_index += 1
             else:
-                output_boundaries.append(0)  # No boundary (C=0)
+                current_label = labels[label_index - 1] if label_index > 0 else labels[0]
 
-            # Update the previous label
+            output_boundaries.append(1 if current_label != previous_label else 0)
             previous_label = current_label
 
-        boundary_intervals = []
-        for i in range(len(timestamps)):
-            if i == 0:
-                if timestamps[i] != 0:
-                    boundary_intervals.append((0, timestamps[i]))
-            else:
-                boundary_intervals.append((timestamps[i - 1], timestamps[i]))
-        # add end interval
-        boundary_intervals.append(
-            (
-                timestamps[-1],
-                timestamps[-1] + output_length * 0.064 * self.num_frames_aggregate,
-            )
-        )
+        return output_boundaries
 
-        # Return the binary boundary matrix (T x C), where C is 1
-        return output_boundaries, boundary_intervals
+    def _generate_boundary_intervals(self, timestamps, output_length):
+        boundary_intervals = [(0, timestamps[0])] if timestamps[0] != 0 else []
+        for i in range(1, len(timestamps)):
+            boundary_intervals.append((timestamps[i - 1], timestamps[i]))
+        boundary_intervals.append((timestamps[-1], timestamps[-1] + output_length * 0.064 * self.num_frames_aggregate))
+        return boundary_intervals
 
 
 def collate_fn_val_test(items):
