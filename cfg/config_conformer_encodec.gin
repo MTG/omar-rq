@@ -34,10 +34,10 @@ AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 24000
 AudioDataset.mono = True
 AudioDataset.half_precision = False
-AudioDataModule.num_workers = 80
+AudioDataModule.num_workers = 40
 
 # Discogs datamodule parameters
-DiscotubeAudioDataModule.batch_size = 128
+DiscotubeAudioDataModule.batch_size = 64
 DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
 DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
 DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
@@ -48,6 +48,8 @@ CosineAnnealingCallback.eta_min = 1e-7
 
 # Encodec parameters
 nets.encodec.EnCodec.weights_path = "/gpfs/scratch/upf97/model_weights/encodec_24khz/"
+nets.encodec.EnCodec.norm_type = "global"
+nets.encodec.EnCodec.stats_path = "/gpfs/scratch/upf97/dataset_stats/discotube23/input_stats_1K_steps.json"
 
 # MaskingModel parameters
 modules.maskingmodel.MaskingModel.num_codebooks = 4
