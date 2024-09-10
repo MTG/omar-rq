@@ -52,7 +52,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         ) = ([], [], [], [], [])
         filenames = [p.strip() for p in open(filelist).readlines()]
 
-        for filename in filenames[:10]:
+        for filename in filenames:
             emb_name = Path(filename + ".pt")
             emb_path = self.embeddings_dir / Path(str(emb_name)[:3]) / emb_name
             # If the embedding exists, add it to the filelist
@@ -98,7 +98,9 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             raise ValueError(f"Invalid mode: {self.mode}")
 
     def _get_val_test_data(self, path, embeddings, N, F):
-        frames_length = F // self.num_frames_aggregate * math.ceil(N * 0.1)
+        # TODO AQUI HAY UN ERROR
+        frames_length = F // self.num_frames_aggregate * math.ceil(N * self.overlap)
+
         path_structure = self.gt_path / Path(path + ".txt")
 
         labels = self.prepare_structure_class_annotations(path_structure, frames_length, 1)
@@ -110,7 +112,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         return embeddings, labels, boundaries, boundary_intervals, path
 
     def _get_train_data(self, path, embeddings, N, F):
-        frames_length = int(embeddings.shape[1] * embeddings.shape[2] // self.num_frames_aggregate // self.overlap)
+        frames_length = embeddings.shape[1] * embeddings.shape[2] // self.num_frames_aggregate
 
         random_int = random.randint(0, N - 1)
         embeddings = embeddings[random_int]
@@ -203,10 +205,11 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
 
     def _generate_output_boundaries(self, timestamps, labels, output_length, overlap, start, fragment_size):
         output_boundaries = []
-        previous_label = None
-        label_index = 0
         initial_time = start * 30 * overlap
         range_end = start + (fragment_size if fragment_size is not None else output_length)
+        label_index = 0 if start == 0 else next(
+            (i for i, timestamp in enumerate(timestamps) if timestamp >= initial_time), len(timestamps)) - 1
+        previous_label = labels[label_index]
 
         for step in range(range_end - start):
             current_time = initial_time + (step * 0.064 * self.num_frames_aggregate)
