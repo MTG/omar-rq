@@ -80,17 +80,13 @@ class EnCodec(torch.nn.Module):
                 )
 
             reps = self.net.encoder(waveform)
-            rstats = torch.mean(reps, dim=-1)
-            print(rstats[0])
 
             if self.norm_type == "dimensionwise":
-                reps = (reps - self.mean[:, None]) / self.std[: , None]
+                reps = (reps - self.mean[:, None]) / self.std[:, None]
 
             elif self.norm_type == "global":
                 reps = (reps - self.mean) / self.std
 
         reps = reps.squeeze(0)
-
-        rstats = torch.mean(reps, dim=-1)
 
         return reps
