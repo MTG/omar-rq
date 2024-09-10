@@ -66,9 +66,6 @@ def compute_input_stats(
 
         n_batches += 1
 
-        if n_batches > 1000:
-            break
-
     acc_mean /= n_batches
     acc_std /= n_batches
     acc_mean_dims /= n_batches
