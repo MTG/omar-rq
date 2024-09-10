@@ -121,13 +121,14 @@ class StructureClassProbe(L.LightningModule):
         # boundaries_smoothed
         loss_boundaries = self.criterion_boundaries(
             logits_boundaries, boundaries_smoothed
-        )
-        # normalize
-        loss_boundaries = loss_boundaries / x.shape[1]
-        self.log("train_loss", loss + loss_boundaries)
+        ) * 1e2
+        loss = 0.1 * loss
+        loss_boundaries = 0.9 * loss_boundaries
+        train_loss = loss + loss_boundaries
+        self.log("train_loss", train_loss)
         self.log("train_loss_frame", loss)
         self.log("train_loss_boundaries", loss_boundaries)
-        return 0.1 * loss + 0.9 * loss_boundaries
+        return train_loss
 
     def predict(self, batch):
         x, y_true, boundaries, _, _ = batch
@@ -147,13 +148,16 @@ class StructureClassProbe(L.LightningModule):
         )
         loss_boundaries = self.criterion_boundaries(
             logits_boundaries, boundaries_smoothed
-        )
+        ) * 1e2
         predicted_class = torch.argmax(logits, dim=1)
         return logits, loss, predicted_class, logits_boundaries, loss_boundaries
 
     def validation_step(self, batch, batch_idx):
         logits, loss, preds, logits_boundaries, loss_boundaries = self.predict(batch)
-        self.log("val_loss", loss + loss_boundaries)
+        loss = 0.1 * loss
+        loss_boundaries = 0.9 * loss_boundaries
+        val_loss = loss + loss_boundaries
+        self.log("val_loss", val_loss)
         self.log("val_loss_frame", loss)
         self.log("val_loss_boundaries", loss_boundaries)
         y_true = batch[1].int().squeeze(0)
