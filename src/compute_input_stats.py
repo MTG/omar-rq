@@ -43,7 +43,6 @@ def compute_input_stats(
     acc_mean_dims = torch.Tensor([])
     acc_std_dims = torch.Tensor([])
 
-
     for batch in tqdm(datamodule.train_dataloader()):
         x = batch[0].cuda()
         rep_batch = module.representation(x)
@@ -71,7 +70,6 @@ def compute_input_stats(
     acc_mean_dims /= n_batches
     acc_std_dims /= n_batches
 
-
     acc_mean_dims = acc_mean_dims.tolist()
     acc_std_dims = acc_std_dims.tolist()
 
@@ -87,8 +85,6 @@ def compute_input_stats(
         json.dump(stats, f)
 
 
-
-
 if __name__ == "__main__":
     parser = ArgumentParser("Train SSL models using gin config")
     parser.add_argument(
@@ -98,7 +94,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
 
     try:
         gin.parse_config_file(args.train_config, skip_unknown=True)
