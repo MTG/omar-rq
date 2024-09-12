@@ -4,11 +4,9 @@ from pathlib import Path
 import gin.torch
 import numpy
 import torch
-import torchaudio
 import pytorch_lightning as L
 from torch.utils.data import Dataset, DataLoader
 from torchaudio.transforms import Resample
-from pathlib import Path
 
 
 @gin.configurable
