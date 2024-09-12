@@ -27,3 +27,41 @@ AudioEmbeddingDataModule.num_workers = 20
 
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
+
+HarmonixEmbeddingLoadingDataModule.gt_path =  "data/harmonix/segments_norm"
+HarmonixEmbeddingLoadingDataModule.train_filelist = "data/harmonix/train.txt"
+HarmonixEmbeddingLoadingDataModule.val_filelist = "data/harmonix/validation.txt"
+HarmonixEmbeddingLoadingDataModule.test_filelist = "data/harmonix/test.txt"
+HarmonixEmbeddingLoadingDataModule.batch_size = 16
+HarmonixEmbeddingLoadingDataModule.num_frames_aggregate = 3
+HarmonixEmbeddingLoadingDataModule.num_workers = 16
+HarmonixEmbeddingLoadingDataModule.overlap = 0.1
+HarmonixEmbeddingLoadingDataModule.precompute = True
+
+train_probe.wandb_params = {
+    "project": "structure",
+    "name": "my_first_structure_classifier",
+    "offline": True,
+    "entity": "mtg-upf",
+    "save_dir": "/gpfs/projects/upf97/logs/"
+}
+
+train_probe.train_params = {
+    "accelerator": "gpu",
+    "devices": 1,
+    "log_every_n_steps": 10,
+    "max_epochs": 200,
+    "num_sanity_val_steps": 0,
+}
+
+
+probe.modules.structure_probe.StructureClassProbe.num_classes = 7 # TODO
+probe.modules.structure_probe.StructureClassProbe.hidden_size = 512
+probe.modules.structure_probe.StructureClassProbe.bias = True
+probe.modules.structure_probe.StructureClassProbe.dropout = 0.0
+probe.modules.structure_probe.StructureClassProbe.lr = 0.0001
+probe.modules.structure_probe.StructureClassProbe.num_aggregations = 3
+probe.modules.structure_probe.StructureClassProbe.save_prediction = True
+
+
+

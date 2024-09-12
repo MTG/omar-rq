@@ -36,6 +36,7 @@ HarmonixEmbeddingLoadingDataModule.batch_size = 16
 HarmonixEmbeddingLoadingDataModule.num_frames_aggregate = 3
 HarmonixEmbeddingLoadingDataModule.num_workers = 4
 HarmonixEmbeddingLoadingDataModule.overlap = 0.1
+HarmonixEmbeddingLoadingDataModule.precompute = False
 
 train_probe.wandb_params = {
     "project": "structure",
@@ -54,12 +55,12 @@ train_probe.train_params = {
 }
 
 
-src.probe.modules.structure_probe.StructureClassProbe.num_classes = 7 # TODO
-src.probe.modules.structure_probe.StructureClassProbe.hidden_size = 512
-src.probe.modules.structure_probe.StructureClassProbe.bias = True
-src.probe.modules.structure_probe.StructureClassProbe.dropout = 0.1
-src.probe.modules.structure_probe.StructureClassProbe.lr = 0.0001
-src.probe.modules.structure_probe.StructureClassProbe.num_aggregations = 3
-src.probe.modules.structure_probe.StructureClassProbe.save_prediction = True
+probe.modules.structure_probe.StructureClassProbe.num_classes = 7 # TODO
+probe.modules.structure_probe.StructureClassProbe.hidden_size = 512
+probe.modules.structure_probe.StructureClassProbe.bias = True
+probe.modules.structure_probe.StructureClassProbe.dropout = 0.1
+probe.modules.structure_probe.StructureClassProbe.lr = 0.0001
+probe.modules.structure_probe.StructureClassProbe.num_aggregations = 3
+probe.modules.structure_probe.StructureClassProbe.save_prediction = True
 
 

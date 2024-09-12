@@ -32,6 +32,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         mode: str,
         num_frames_aggregate: int,
         overlap: float,
+        precompute: bool = False
     ):
         """filelist is a text file with one filename per line without extensions."""
 
@@ -41,6 +42,7 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
         self.mode = mode
         self.num_frames_aggregate = num_frames_aggregate
         self.overlap = overlap
+        self.precompute = precompute
 
         # Load the embeddings and labels
         (
@@ -57,20 +59,32 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
             emb_path = self.embeddings_dir / Path(str(emb_name)[:3]) / emb_name
             # If the embedding exists, add it to the filelist
             if emb_path.exists():
-                self.embeddings.append(emb_path)
-                self.paths.append(filename)
+                if self.precompute:
+                    embeddings = torch.load(emb_path, map_location="cpu")
+                    _, N, F, D = embeddings.shape
+                    embeddings = torch.squeeze(embeddings, 0)
+                    self.embeddings.append(embeddings)
+                    self.paths.append(filename)
+                else:
+                    self.embeddings.append(emb_path)
+                    self.paths.append(filename)
 
         if self.mode == "train":
-            # iterate all the dataset
+            # iterate all the train dataset
             class_counts = {label: 0 for label in range(0, 7)}
             for idx in range(len(self.embeddings)):
+                # load embedding
                 emb_path = self.embeddings[idx]
                 path = self.paths[idx]
-                embeddings = torch.load(emb_path, map_location="cpu")
-                _, N, F, D = embeddings.shape
+                if self.precompute:
+                    embeddings = self.embeddings[idx]
+                    N, F, D = embeddings.shape
+                else:
+                    embeddings = torch.load(emb_path, map_location="cpu")
+                    _, N, F, D = embeddings.shape
+                # compute the classes for the song
                 labels_song = [0 for _ in range(7)]
                 for index in range(N):
-
                     y_true = self._get_labels_train(path, embeddings, index, F)
                     for label in y_true.flatten():
                         labels_song[label.item()] += 1
@@ -84,11 +98,16 @@ class HarmonixEmbeddingLoadingDataset(Dataset):
 
     def __getitem__(self, idx):
         """Loads the labels and the processed embeddings for a given index."""
-        emb_path = self.embeddings[idx]
-        path = self.paths[idx]
-        embeddings = torch.load(emb_path, map_location="cpu")
-        _, N, F, D = embeddings.shape
-        embeddings = torch.squeeze(embeddings, 0)
+        if not self.precompute:
+            emb_path = self.embeddings[idx]
+            path = self.paths[idx]
+            embeddings = torch.load(emb_path, map_location="cpu")
+            _, N, F, D = embeddings.shape
+            embeddings = torch.squeeze(embeddings, 0)
+        else:
+            embeddings = self.embeddings[idx]
+            path = self.paths[idx]
+            N, F, D = embeddings.shape
 
         if self.mode in ["val", "test"]:
             return self._get_val_test_data(path, embeddings, N, F)
@@ -245,6 +264,7 @@ def collate_fn_val_test(items):
     )
 
 
+
 @gin.configurable
 class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
     """DataModule for loading embeddings and labels from the Magnatagatune dataset."""
@@ -260,6 +280,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
         num_workers: int,
         num_frames_aggregate: int,
         overlap: float,
+        precompute: bool
     ):
         super().__init__()
         self.embeddings_dir = embeddings_dir
@@ -272,6 +293,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
         self.num_frames_aggregate = num_frames_aggregate
         self.num_classes = 8  # this number is not going to be modified
         self.overlap = overlap
+        self.precompute = precompute
 
         # Load one embedding to get the dimension
         # NOTE: I tried doing this inside self.setup() but those are
@@ -289,6 +311,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.embeddings_dir,
                 self.gt_path,
                 self.train_filelist,
+                precompute=self.precompute,
                 num_frames_aggregate=self.num_frames_aggregate,
                 mode="train",
                 overlap=self.overlap,
@@ -298,6 +321,7 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.embeddings_dir,
                 self.gt_path,
                 self.val_filelist,
+                precompute=self.precompute,
                 num_frames_aggregate=self.num_frames_aggregate,
                 overlap=self.overlap,
                 mode="val",
@@ -308,9 +332,10 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
                 self.embeddings_dir,
                 self.gt_path,
                 self.test_filelist,
+                precompute=self.precompute,
                 overlap=self.overlap,
                 num_frames_aggregate=self.num_frames_aggregate,
-                mode="test",
+                mode="test"
             )
 
     @property
@@ -318,8 +343,10 @@ class HarmonixEmbeddingLoadingDataModule(L.LightningDataModule):
         self.setup("fit")
         weights = []
         for key in self.train_dataset.class_counts.keys():
-            weights.append(1 / (self.train_dataset.class_counts[key] + 1))
-        return torch.tensor(weights) * 1e6
+            weights.append(1 / (self.train_dataset.class_counts[key]))
+        weights = torch.tensor(weights)
+        weights = weights / weights.sum()
+        return weights
 
     def train_dataloader(self):
         return DataLoader(

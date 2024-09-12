@@ -1,3 +1,4 @@
+import pdb
 from pathlib import Path
 
 import gin
@@ -74,7 +75,7 @@ class StructureClassProbe(L.LightningModule):
         self.frame_output = nn.Linear(hidden_size, num_classes, bias=bias)
         self.boundary_output = nn.Linear(hidden_size, 1, bias=bias)
         self.criterion = nn.BCEWithLogitsLoss(weight=class_weights)
-        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([0.05]))
+        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([0.01]))
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -96,6 +97,16 @@ class StructureClassProbe(L.LightningModule):
         # Confusion matrix metric
         self.conf_matrix = ConfusionMatrix(num_classes=num_classes, task="multiclass")
 
+        self.class_weights_history = []  # Store the class weights for each epoch
+        self.class_weights_history_global = []  # Store the class weights for each epoch
+        self.class_inverse_weights = class_weights
+
+    def _compute_class_weights(self, y_true):
+        """Compute class weights based on the current batch."""
+        class_counts = torch.bincount(y_true.flatten(), minlength=self.num_classes)
+        weights = class_counts.float()
+        return weights
+
     def forward(self, x):
         x = self.avg(x.transpose(1, 2))
         x = x.transpose(1, 2)
@@ -106,22 +117,22 @@ class StructureClassProbe(L.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y_true, boundaries = batch
+
+        # Compute class weights based on y_true
+        current_class_weights = self._compute_class_weights(y_true)
+        self.class_weights_history.append(current_class_weights.cpu().numpy())
+
         logits_frame, logits_boundaries = self.forward(x)
         # frame loss
         y_true_one_hot = self._one_hot(y_true, x.shape, x.device)
         loss = self.criterion(logits_frame, y_true_one_hot)
         # boundaries loss
-        boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3)
-        # normalize boundaries between 0 and 1
-        if torch.sum(boundaries_smoothed) != 0:
-            boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (
-                boundaries_smoothed.max() - boundaries_smoothed.min()
-            )
+        boundaries_smoothed = smooth_boundaries(boundaries)
 
         # boundaries_smoothed
         loss_boundaries = self.criterion_boundaries(
             logits_boundaries, boundaries_smoothed
-        ) * 1e2
+        )
         loss = 0.1 * loss
         loss_boundaries = 0.9 * loss_boundaries
         train_loss = loss + loss_boundaries
@@ -129,6 +140,40 @@ class StructureClassProbe(L.LightningModule):
         self.log("train_loss_frame", loss)
         self.log("train_loss_boundaries", loss_boundaries)
         return train_loss
+
+    def on_train_epoch_end(self):
+        """Print the calculated and inverse class weights at the end of each epoch."""
+        self.print_class_weights(self.class_weights_history, self.current_epoch)
+        self.print_inverse_weights(self.class_inverse_weights, self.current_epoch)
+        self.class_weights_history = []  # Clear the class weights history
+
+
+    def print_class_weights(self, class_weights, epoch):
+        """Print the calculated class weights as percentages."""
+        class_weights = torch.tensor(class_weights).mean(dim=0)
+        class_weights_percent = 1 / class_weights
+        class_weights_percent = class_weights_percent / class_weights_percent.sum() * 100
+        self.class_weights_history_global.append(class_weights_percent)
+        print(f"Epoch {epoch} - Calculated Class Weights (%):")
+        for i, weight in enumerate(class_weights_percent):
+            print(f"Class {i}: {weight:.2f}%")
+
+    def print_inverse_weights(self, inverse_weights, epoch):
+        """Print the inverse class weights being used during training as percentages."""
+        inverse_weights_percent = inverse_weights / inverse_weights.sum() * 100
+        print(f"Epoch {epoch} - Default Weights (%):")
+        for i, weight in enumerate(inverse_weights_percent):
+            print(f"Class {i}: {weight:.2f}%")
+
+    def print_global_weights(self):
+        class_weights = torch.stack(self.class_weights_history_global).mean(dim=0)
+        class_weights_percent = 1 / class_weights
+        class_weights_percent = class_weights_percent / class_weights_percent.sum()
+        print(class_weights_percent)
+        class_weights_percent = class_weights_percent * 100
+        print(f"Global Class Weights (%):")
+        for i, weight in enumerate(class_weights_percent):
+            print(f"Class {i}: {weight:.2f}%")
 
     def predict(self, batch):
         x, y_true, boundaries, _, _ = batch
@@ -139,16 +184,10 @@ class StructureClassProbe(L.LightningModule):
         loss = self.criterion(logits, y_true_one_hot)
         # boundaries
         logits_boundaries = logits_boundaries.reshape(-1, 1)
-        boundaries_smoothed = apply_moving_average(boundaries.unsqueeze(-1), 3).squeeze(
-            0
-        )
-        # normalize boundaries between 0 and 1
-        boundaries_smoothed = (boundaries_smoothed - boundaries_smoothed.min()) / (
-            boundaries_smoothed.max() - boundaries_smoothed.min()
-        )
+        boundaries_smoothed = smooth_boundaries(boundaries).squeeze(0)
         loss_boundaries = self.criterion_boundaries(
             logits_boundaries, boundaries_smoothed
-        ) * 1e2
+        )
         predicted_class = torch.argmax(logits, dim=1)
         return logits, loss, predicted_class, logits_boundaries, loss_boundaries
 
@@ -176,10 +215,10 @@ class StructureClassProbe(L.LightningModule):
         if self.save_prediction:
             torch.save(
                 {
-                    "embedding": batch[0][::10],
                     "logits_frames": logits,
                     "logits_boundaries": logits_boundaries,
                     "y_true": y_true,
+                    "boundaries": batch[2],
                     "boundaries_intervals": batch[3],
                     "path": batch[4],
                 },
@@ -211,6 +250,7 @@ class StructureClassProbe(L.LightningModule):
         wandb.log({"confusion_matrix": wandb.Image(fig)})
         # Clear the confusion matrix for potential future test runs
         self.conf_matrix.reset()
+        self.print_global_weights()
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
@@ -292,6 +332,39 @@ def apply_moving_average(matrix, filter_size=10):
     smoothed_matrix = smoothed_matrix_torch.transpose(1, 2)
 
     return smoothed_matrix
+
+
+def smooth_boundaries(tensor):
+    # Create a copy of the tensor to modify it
+    smoothed_tensor = tensor.clone()
+
+    if tensor.dim() == 1:
+        smoothed_tensor = smoothed_tensor.unsqueeze(0)
+
+    # Iterate through each batch (row) in the tensor
+    for batch_idx in range(tensor.size(0)):
+        # Find the indices where the tensor is equal to 1
+        indices = torch.nonzero(tensor[batch_idx] == 1).squeeze()
+
+        # Ensure indices is iterable (even if only one index is found)
+        if indices.dim() == 0:
+            indices = indices.unsqueeze(0)
+
+        # Apply smoothing around the 1's
+        for index in indices:
+            index = index.item()  # Convert to Python scalar
+
+            # Smooth values around the current index while handling boundaries
+            if index > 0:
+                smoothed_tensor[batch_idx, index - 1] = 0.7  # Smooth to the left (index - 1)
+            if index < len(tensor[batch_idx]) - 1:
+                smoothed_tensor[batch_idx, index + 1] = 0.7  # Smooth to the right (index + 1)
+
+            if index > 1:
+                smoothed_tensor[batch_idx, index - 2] = 0.3  # Smooth two positions to the left (index - 2)
+            if index < len(tensor[batch_idx]) - 2:
+                smoothed_tensor[batch_idx, index + 2] = 0.3  # Smooth two positions to the right (index + 2)
+    return smoothed_tensor.unsqueeze(-1)
 
 
 def normalize_frames_with_peaks(peaks, function_probabilities, frame_size):

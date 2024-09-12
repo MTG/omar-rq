@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from scipy.signal import find_peaks
 
-from src.probe.modules.structure_probe import peak_picking
+from src.probe.modules.structure_probe import peak_picking, apply_moving_average, smooth_boundaries
 
 
 def check_random_file():
@@ -17,14 +17,16 @@ def check_random_file():
 
     data = torch.load(os.path.join(random_path, random_file))
 
-    embedding = data["embedding"]  # Shape: (10, 469, 512)
+    # embedding = data["embedding"]  # Shape: (10, 469, 512)
     logits_frames = data["logits_frames"]  # Shape: (4690, 7)
     logits_frames = torch.sigmoid(logits_frames)  # Normalizar logits
+    boundaries = data["boundaries"]
     frames_true = data["y_true"]  # Shape: (4690,)
+
     logits_boundaries = data["logits_boundaries"]  # Shape: (4690,)
     logits_boundaries = torch.sigmoid(logits_boundaries)  # Normalizar logits boundaries
 
-    print("Embedding shape: ", embedding.shape)
+    # print("Embedding shape: ", embedding.shape)
     print("Logits frames shape: ", logits_frames.shape)
     print("Frames true shape: ", frames_true.shape)
     print("Logits boundaries shape: ", logits_boundaries.shape)
@@ -95,9 +97,13 @@ def check_random_file():
     axs[1].set_ylabel("Logits")
 
     # 3er subplot: Graficar una única curva (por ejemplo, la primera en logits_frames), ajustando el eje x
+
+    # boundaries loss
+    boundaries_smoothed = smooth_boundaries(boundaries)
+
     axs[2].plot(
         np.linspace(0, num_frames, num_frames),
-        logits_boundaries_np,
+        boundaries_smoothed.cpu().detach().numpy().flatten(),
         color="blue",
         label=number_to_label[0],
     )
@@ -112,9 +118,9 @@ def check_random_file():
         color="orange",
         label="Logits Boundaries",
     )
-    axs[3].scatter(
-        peaks, logits_boundaries_np[peaks], color="red", label="Peaks", zorder=5
-    )
+    # axs[3].scatter(
+    #     peaks, logits_boundaries_np[peaks], color="red", label="Peaks", zorder=5
+    # )
     axs[3].set_title("Logits Boundaries with Peaks")
     axs[3].legend()
     axs[3].set_xlabel("Frames")

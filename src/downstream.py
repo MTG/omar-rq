@@ -18,7 +18,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
 from probe.data.harmonix import HarmonixEmbeddingLoadingDataModule
-from src.probe.modules import StructureClassProbe
+from probe.modules import StructureClassProbe
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
 from probe.data import MTTEmbeddingLoadingDataModule
