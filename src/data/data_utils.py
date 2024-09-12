@@ -43,11 +43,7 @@ class AudioDataset(Dataset):
         file_path = self.data_dir / self.filelist[idx]
 
         # load audio
-        audio, sr = self.load_audio(file_path, frame_offset=self.frame_offset)
-
-        # work with 16-bit precission
-        if self.half_precision:
-            audio = audio.half()
+        audio = self.load_audio(file_path, frame_offset=self.frame_offset)
 
         # downmix to mono if necessary
         if audio.shape[0] > 1 and self.mono:
@@ -58,6 +54,12 @@ class AudioDataset(Dataset):
             audio = self.resample_audio(audio, sr)
 
         audio = audio.squeeze(0)
+
+        # work with 16-bit precission
+        if self.half_precision:
+            audio = audio.half()
+        else:
+            audio = audio.float()
 
         return [audio]
 
