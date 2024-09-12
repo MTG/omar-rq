@@ -109,12 +109,7 @@ class AudioDataset(Dataset):
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
 
-        return torch.from_numpy(audio), self.new_freq
-
-    def resample_audio(self, audio, sr):
-        if self.resample.orig_freq != sr:
-            self.resample = Resample(new_freq=self.new_freq, orig_freq=sr)
-        return self.resample(audio)
+        return torch.from_numpy(audio)
 
     @staticmethod
     def get_audio_duration(filepath: Path):
@@ -195,7 +190,7 @@ class MultiViewAudioDataset(AudioDataset):
 
             views = dict()
             for i, offset in enumerate(offsets):
-                audio, sr = self.load_audio(file_path, frame_offset=offset)
+                audio = self.load_audio(file_path, frame_offset=offset)
                 # audio = audio_full[:, offset : offset + self.num_frames]
 
                 # downmix to mono if necessary
@@ -203,8 +198,8 @@ class MultiViewAudioDataset(AudioDataset):
                     audio = torch.mean(audio, dim=0, keepdim=False)
 
                 # resample if necessary
-                if sr != self.new_freq:
-                    audio = self.resample_audio(audio, sr)
+                if self.orig_freq != self.new_freq:
+                    audio = self.resample(audio)
 
                 views[f"view_{i}"] = audio.squeeze(0)
 
