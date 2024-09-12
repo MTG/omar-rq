@@ -50,8 +50,10 @@ class AudioDataset(Dataset):
             audio = torch.mean(audio, dim=0, keepdim=False)
 
         # resample if necessary
-        if sr != self.new_freq:
-            audio = self.resample_audio(audio, sr)
+        if self.orig_freq != self.new_freq:
+            # only works with float tensors
+            audio = audio.float()
+            audio = self.resample(audio)
 
         audio = audio.squeeze(0)
 
