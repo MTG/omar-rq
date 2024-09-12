@@ -78,3 +78,4 @@ Transformer.depth = 12
 Transformer.num_heads = 12
 Transformer.mlp_ratio=4.0
 Transformer.dropout=0.1
+Transformer.input_dropout=0.1

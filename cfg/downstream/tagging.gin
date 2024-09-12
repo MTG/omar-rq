@@ -9,6 +9,7 @@ predict.device_dict = {
 
 # Embedding taking location from the neural network
 predict.embedding_layer = [-1]
+predict.overlap_ratio = 0.5
 
 predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name

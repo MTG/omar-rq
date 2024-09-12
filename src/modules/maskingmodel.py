@@ -64,6 +64,7 @@ class MaskingModel(L.LightningModule):
         self.tokens_coverage = []
         self.first_coverage = True
         self.downstream_embedding_layer = [-1]
+        self.overlap_ratio = 0.5
 
         if (
             hasattr(representation, "sr")
@@ -295,6 +296,7 @@ class MaskingModel(L.LightningModule):
         self,
         audio: torch.Tensor,
         layer: List[int] = None,
+        overlap_ratio: float = None,
     ):
         """Extract audio embeddings using the model.
 
@@ -315,34 +317,40 @@ class MaskingModel(L.LightningModule):
 
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
 
+        # If a layer is not provided, use the layer specified at initialization
         if layer is None:
             layer = self.downstream_embedding_layer
         assert isinstance(layer, list), "Layer must be a list."
         assert layer == [-1], "Only last layer is supported for now."
+        if overlap_ratio is None:
+            overlap_ratio = self.overlap_ratio
+        assert (
+            overlap_ratio >= 0 and overlap_ratio < 1
+        ), "Overlap ratio must be between 0 and 1."
 
         # Compute the representation
         x = self.representation(audio)  # (F, Tm)
 
         # TODO: what if in Frequency axis we need to aggregate?
-        assert x.size()[0] == self.patch_size[0], (
+        assert x.shape[0] == self.patch_size[0], (
             f"Frequency patching is not implemented yet!"
             f"Expected {self.patch_size[0]} but got {x.shape[0]}"
         )
 
         # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
+        hop_len = int(chunk_len * (1 - overlap_ratio))
 
-        # NOTE: this will pad the representation even if it is
-        # very close to the context length
-        if x.shape[1] % chunk_len != 0:
-            # Pad the representation to fit the context length
-            pad_len = chunk_len - x.shape[1] % chunk_len
-            x = torch.nn.functional.pad(x, (0, pad_len), mode="constant", value=0)
+        # Number of chunks
+        Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
 
-        # TODO overlap half
-        # Chunk the representation and batch it
-        x_chunks = torch.split(x, chunk_len, dim=1)
-        x_chunks = torch.stack(x_chunks, dim=0)
+        # Create the chunks
+        x_chunks = torch.zeros(
+            (Nc, x.shape[0], chunk_len), device=x.device, dtype=x.dtype
+        )
+        for i in range(Nc):
+            chunk = x[:, i * hop_len : i * hop_len + chunk_len]
+            x_chunks[i, :, : chunk.shape[1]] = chunk
 
         # Embed the representation
         x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
