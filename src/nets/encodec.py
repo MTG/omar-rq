@@ -4,7 +4,7 @@ from pathlib import Path
 
 import gin.torch
 import torch
-from transformers import EncodecModel 
+from transformers import EncodecModel
 
 
 @gin.configurable
@@ -35,8 +35,8 @@ class EnCodec(torch.nn.Module):
             else:
                 raise ValueError(f"Invalid norm_type: {self.norm_type}")
 
-            self.register_buffer('mean', mean)
-            self.register_buffer('std', std)
+            self.register_buffer("mean", mean)
+            self.register_buffer("std", std)
 
         # Hardcoded values, not parameters
         self.sr = 24000
