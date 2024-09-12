@@ -1,7 +1,7 @@
 import math
 import os
 import random
-from collections import Counter
+from collections import defaultdict
 from typing import List
 
 import gin
@@ -61,7 +61,7 @@ class MaskingModel(L.LightningModule):
         self.seed = seed
         self.plot_tokens = plot_tokens
         self.weight_decay = weight_decay
-        self.tokens_coverage = []
+        self.tokens_accumulator = defaultdict(list)
         self.first_coverage = True
         self.downstream_embedding_layer = [-1]
         self.overlap_ratio = 0.5
@@ -263,17 +263,28 @@ class MaskingModel(L.LightningModule):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
         # log tokens coverage
-        if self.first_coverage and batch_idx < 1000:
-            self.tokens_coverage += target_tokens[0].flatten().cpu().tolist()
-        elif self.first_coverage and batch_idx == 1000:
+        first_coverage_steps = 100
+
+        if self.first_coverage and batch_idx < first_coverage_steps:
+            # collapse batch and time axes
+            tokens_c = target_tokens.view(-1, self.num_codebooks)
+
+            # log tokens
+            for i in range(self.num_codebooks):
+                self.tokens_accumulator[f"codebook_{i}"].extend(
+                    tokens_c[:, i].cpu().tolist()
+                )
+
+        elif self.first_coverage and batch_idx == first_coverage_steps:
             # Print the histogram you can check it in the wandb dashboard (log section)
-            print("Logged histogram image of token counts for the first 1000 steps.")
-            print(Counter(self.tokens_coverage))
-            self.logger.experiment.log(
-                {"histogram": wandb.Histogram(self.tokens_coverage)}
+            for key, value in self.tokens_accumulator.items():
+                self.logger.experiment.log({f"{key}_histogram": wandb.Histogram(value)})
+            print(
+                f"Logged histograms of token counts for the first {first_coverage_steps} steps."
             )
             self.first_coverage = False
-            self.tokens_coverage = []
+            del self.tokens_accumulator
+
         self.log("train_loss", loss, prog_bar=True)
         self.log("train_acc", accuracies)
         return loss
