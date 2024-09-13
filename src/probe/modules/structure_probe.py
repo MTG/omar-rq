@@ -153,7 +153,7 @@ class StructureClassProbe(L.LightningModule):
         class_weights = torch.tensor(class_weights).mean(dim=0)
         class_weights_percent = 1 / class_weights
         class_weights_percent = class_weights_percent / class_weights_percent.sum() * 100
-        self.class_weights_history_global.append(class_weights_percent)
+        self.class_weights_history_global.append(class_weights)
         print(f"Epoch {epoch} - Calculated Class Weights (%):")
         for i, weight in enumerate(class_weights_percent):
             print(f"Class {i}: {weight:.2f}%")
