@@ -27,31 +27,13 @@ def logsumexp(*args):
     return M
 
 
-def ctl_loss(frameProb, label, maxConcur=1, debug=False):
+def ctl_loss(frameProb, label, maxConcur=1, debug=False, class_weights=None):
     """
-    Compute the Connectionist Temporal Loss (CTL) for sequence labeling problems without seqLen (no padding handling).
+    Compute the Connectionist Temporal Loss (CTL) with optional class weights for sequence labeling problems.
 
-    Arguments:
-    - frameProb: A 3D tensor of shape [N_SEQS x N_FRAMES x N_CLASSES] containing the probability of each event
-                 occurring at each frame for each sequence.
-    - label: A list of label sequences, each containing the sequence of class labels (events) expected for each frame.
-    - maxConcur: (Optional) Maximum number of events that can be emitted simultaneously at any frame.
-                 Default is 1 (no concurrency).
-    - debug: (Optional) If set to True, the function also returns per-sequence log probabilities along with the total loss.
-
-    The function performs the following steps:
-    1. Converts frame-wise event probabilities into boundary probabilities (start and end of events).
-    2. Computes log probabilities for not emitting any event (blankLogProb) and for emitting each event (deltaLogProb).
-    3. Initializes an alpha trellis to compute the accumulated log probability of emitting tokens (events)
-       across the sequence using dynamic programming.
-    4. Iteratively updates the alpha matrix for each frame, considering the cases where no event is emitted and
-       where multiple events (up to maxConcur) are emitted concurrently.
-    5. Collects the final log probability for each sequence.
-    6. Computes the total loss as the negative log probability of all utterances (sequences).
-
-    Returns:
-    - If debug is False: the average loss across sequences.
-    - If debug is True: the average loss and the log probability of each individual sequence.
+    Additional Argument:
+    - class_weights: (Optional) A 1D tensor of shape [N_CLASSES] containing weights for each class.
+                     Default is None, which applies uniform weighting.
     """
 
     nSeqs, nFrames, nClasses = frameProb.size()
@@ -98,6 +80,12 @@ def ctl_loss(frameProb, label, maxConcur=1, debug=False):
 
         # Collect probability for ends of utterances
         uttLogProb = alpha[:, labelLen].clone()
+
+    # Apply class weights if provided
+    if class_weights is not None:
+        class_weights = variable(class_weights)
+        class_weights = class_weights[label]  # Apply weights for the specific classes in the label
+        uttLogProb *= class_weights.sum(dim=1)  # Adjust the log probabilities based on class weights
 
     # Return the negative log probability of all utterances (and per-utterance log probs if debug == True)
     loss = -uttLogProb.sum() / nSeqs

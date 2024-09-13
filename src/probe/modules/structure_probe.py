@@ -13,7 +13,7 @@ import numpy as np
 import wandb
 import torch.nn.functional as F
 
-from src.probe.modules.ctlloss import ctl_loss
+from probe.modules.ctlloss import ctl_loss
 
 
 class SegmentDetectionMetric(torchmetrics.Metric):
@@ -54,6 +54,7 @@ class StructureClassProbe(L.LightningModule):
         num_aggregations: int,
         in_features: int,
         class_weights: torch.tensor,
+        weight_decay: float = 0.001,
         save_prediction: bool = False,
     ):
         super(StructureClassProbe, self).__init__()
@@ -64,6 +65,7 @@ class StructureClassProbe(L.LightningModule):
         self.bias = bias
         self.dropout = dropout
         self.lr = lr
+        self.weight_decay = weight_decay
         self.num_aggregations = num_aggregations
         self.avg = nn.AvgPool1d(kernel_size=num_aggregations, stride=num_aggregations)
         self.save_prediction = save_prediction
@@ -77,7 +79,7 @@ class StructureClassProbe(L.LightningModule):
         self.frame_output = nn.Linear(hidden_size, num_classes, bias=bias)
         self.boundary_output = nn.Linear(hidden_size, 1, bias=bias)
         self.criterion = nn.BCEWithLogitsLoss(weight=class_weights)
-        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([0.01]))
+        self.criterion_boundaries = nn.BCEWithLogitsLoss(weight=torch.tensor([0.01]), reduction="sum")
 
         # Initialize the metrics
         self.val_metrics = nn.ModuleDict(
@@ -126,18 +128,19 @@ class StructureClassProbe(L.LightningModule):
 
         logits_frame, logits_boundaries = self.forward(x)
 
-        # Convert logits to probabilities for frame loss
-        frameProb = torch.softmax(logits_frame, dim=-1)  # Convert logits to probabilities
+        # TODO I AM NOT SURE
+        # frameProb = F.softmax(logits_frame, dim=2)
+        frameProb = logits_frame
 
         # Convert y_true (frame-wise labels) to unique labels for ctl_loss, handling each sequence in the batch
         label = [torch.unique_consecutive(y).tolist() for y in y_true]  # Process each sequence in the batch
 
         # Apply ctl_loss for frame loss
-        loss = ctl_loss(frameProb, label, maxConcur=1)
+        loss = ctl_loss(frameProb, label, maxConcur=1, class_weights=self.class_inverse_weights)
 
         # Boundaries loss remains the same
         boundaries_smoothed = smooth_boundaries(boundaries)
-        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
+        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed) * 50
 
         # Combine the losses
         loss = 0.1 * loss  # Scale for frame loss
@@ -263,7 +266,7 @@ class StructureClassProbe(L.LightningModule):
         self.print_global_weights()
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.lr)
+        return torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
     def plot_confusion_matrix(self, conf_matrix):
         fig, ax = plt.subplots(figsize=(10, 8))

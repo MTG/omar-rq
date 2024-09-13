@@ -1,2 +1,3 @@
 from .sequence_classifiers import SequenceMultiLabelClassificationProbe
 from .structure_probe import StructureClassProbe
+from .ctlloss import ctl_loss
