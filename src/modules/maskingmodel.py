@@ -53,18 +53,22 @@ class MaskingModel(L.LightningModule):
         self.patch_size = net.patch_size
         self.net = net
         self.representation = representation
+        self.lr = lr
+        self.seed = seed
+        self.weight_decay = weight_decay
+        self.tokens_coverage = []
+        self.first_coverage = True
+        self.plot_tokens = plot_tokens
+
+        # downstream evaluation params
+        self.downstream_embedding_layer = set([-1])
+        self.overlap_ratio = 0.5
+
+        # aux nets
         self.embedding_layer = nn.Linear(
             self.patch_size[0] * self.patch_size[1], self.net.embed_dim
         )
         self.linear = nn.Linear(self.net.embed_dim, codebook_size * num_codebooks)
-        self.lr = lr
-        self.seed = seed
-        self.plot_tokens = plot_tokens
-        self.weight_decay = weight_decay
-        self.tokens_coverage = []
-        self.first_coverage = True
-        self.downstream_embedding_layer = [-1]
-        self.overlap_ratio = 0.5
 
         if (
             hasattr(representation, "sr")
