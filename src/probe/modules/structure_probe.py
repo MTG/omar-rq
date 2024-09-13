@@ -13,6 +13,8 @@ import numpy as np
 import wandb
 import torch.nn.functional as F
 
+from src.probe.modules.ctlloss import ctl_loss
+
 
 class SegmentDetectionMetric(torchmetrics.Metric):
     def __init__(self):
@@ -123,22 +125,30 @@ class StructureClassProbe(L.LightningModule):
         self.class_weights_history.append(current_class_weights.cpu().numpy())
 
         logits_frame, logits_boundaries = self.forward(x)
-        # frame loss
-        y_true_one_hot = self._one_hot(y_true, x.shape, x.device)
-        loss = self.criterion(logits_frame, y_true_one_hot)
-        # boundaries loss
-        boundaries_smoothed = smooth_boundaries(boundaries)
 
-        # boundaries_smoothed
-        loss_boundaries = self.criterion_boundaries(
-            logits_boundaries, boundaries_smoothed
-        )
-        loss = 0.1 * loss
-        loss_boundaries = 0.9 * loss_boundaries
+        # Convert logits to probabilities for frame loss
+        frameProb = torch.softmax(logits_frame, dim=-1)  # Convert logits to probabilities
+
+        # Convert y_true (frame-wise labels) to unique labels for ctl_loss, handling each sequence in the batch
+        label = [torch.unique_consecutive(y).tolist() for y in y_true]  # Process each sequence in the batch
+
+        # Apply ctl_loss for frame loss
+        loss = ctl_loss(frameProb, label, maxConcur=1)
+
+        # Boundaries loss remains the same
+        boundaries_smoothed = smooth_boundaries(boundaries)
+        loss_boundaries = self.criterion_boundaries(logits_boundaries, boundaries_smoothed)
+
+        # Combine the losses
+        loss = 0.1 * loss  # Scale for frame loss
+        loss_boundaries = 0.9 * loss_boundaries  # Scale for boundaries loss
         train_loss = loss + loss_boundaries
+
+        # Logging the losses
         self.log("train_loss", train_loss)
         self.log("train_loss_frame", loss)
         self.log("train_loss_boundaries", loss_boundaries)
+
         return train_loss
 
     def on_train_epoch_end(self):
