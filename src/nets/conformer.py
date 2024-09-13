@@ -1,10 +1,8 @@
-import math
+from typing import Set
 
 import gin
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.cuda.amp import autocast, GradScaler
 from .common_former import DeepNorm
 from .rope import RotaryEmbedding
 
