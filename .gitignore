@@ -8,3 +8,5 @@ checkpoints/
 .idea/
 
 /figs/
+
+/venv/
