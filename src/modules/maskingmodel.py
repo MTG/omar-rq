@@ -41,6 +41,7 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
+        diff_input: bool,
         plot_tokens: bool = False,
     ):
         super(MaskingModel, self).__init__()
@@ -61,6 +62,9 @@ class MaskingModel(L.LightningModule):
         self.seed = seed
         self.plot_tokens = plot_tokens
         self.weight_decay = weight_decay
+        self.diff_input = diff_input
+
+        # debugging variables
         self.tokens_accumulator = defaultdict(list)
         self.first_coverage = True
         self.downstream_embedding_layer = [-1]
@@ -82,6 +86,7 @@ class MaskingModel(L.LightningModule):
                         codebook_dim,
                         codebook_size,
                         seed=seed + i,
+                        diff_input=self.diff_input,
                     )
                     for i in range(num_codebooks)
                 ]

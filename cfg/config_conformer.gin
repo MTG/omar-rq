@@ -72,6 +72,7 @@ modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6
 modules.maskingmodel.MaskingModel.seed = 0
 modules.maskingmodel.MaskingModel.plot_tokens = False
+modules.maskingmodel.MaskingModel.diff_input = False
 
 # Transformer parameters
 nets.conformer.Conformer.patch_size = (96, 4)
