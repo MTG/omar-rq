@@ -384,6 +384,7 @@ class Conformer(nn.Module):
         beta_deepnorm: float,
         use_deepnorm: bool,
         use_rope: bool,
+        num_patches: int,
     ):
         super(Conformer, self).__init__()
         self.patch_size = patch_size
@@ -398,6 +399,7 @@ class Conformer(nn.Module):
         self.beta_deepnorm = beta_deepnorm
         self.use_deepnorm = use_deepnorm
         self.use_rope = use_rope
+        self.num_patches = num_patches
 
         self.input_dropout = nn.Dropout(input_dropout)
 

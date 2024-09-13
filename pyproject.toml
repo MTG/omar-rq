@@ -11,6 +11,7 @@ dependencies = [
   "torchvision~=0.18",
   "wandb",
   "torchaudio",
+  "matplotlib",
 ]
 
 [project.optional-dependencies]
