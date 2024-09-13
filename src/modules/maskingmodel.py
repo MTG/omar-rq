@@ -2,7 +2,7 @@ import math
 import os
 import random
 from collections import Counter
-from typing import List
+from typing import Set
 
 import gin
 import torch
@@ -295,8 +295,8 @@ class MaskingModel(L.LightningModule):
     def extract_embeddings(
         self,
         audio: torch.Tensor,
-        layer: List[int] = None,
-        overlap_ratio: float = None,
+        layers: Set[int] | None = None,
+        overlap_ratio: float | None = None,
     ):
         """Extract audio embeddings using the model.
 
@@ -318,10 +318,10 @@ class MaskingModel(L.LightningModule):
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
 
         # If a layer is not provided, use the layer specified at initialization
-        if layer is None:
-            layer = self.downstream_embedding_layer
-        assert isinstance(layer, list), "Layer must be a list."
-        assert layer == [-1], "Only last layer is supported for now."
+        if layers is None:
+            layers = self.downstream_embedding_layer
+            layers = set(layers)
+        assert isinstance(layers, set), "Layer must be a set."
         if overlap_ratio is None:
             overlap_ratio = self.overlap_ratio
         assert (
@@ -356,7 +356,7 @@ class MaskingModel(L.LightningModule):
         x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
         x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
         # TODO: support multiple layers
-        x_chunks = self.net(x_chunks)  # (B, N, Cout)
+        x_chunks = self.net(x_chunks, layers=layers)  # (B, N, Cout)
         x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
 
         return x_chunks
