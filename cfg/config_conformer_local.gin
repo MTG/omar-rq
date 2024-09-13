@@ -87,3 +87,4 @@ nets.conformer.Conformer.use_deepnorm = True
 nets.conformer.Conformer.alpha_deepnorm = 2.21 # we can tune this number
 nets.conformer.Conformer.beta_deepnorm = 0.0026 # we can tune this number
 nets.conformer.Conformer.use_rope = True
+nets.conformer.Conformer.num_patches = None
