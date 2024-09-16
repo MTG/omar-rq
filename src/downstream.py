@@ -21,6 +21,7 @@ from bayes_opt import BayesianOptimization
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
 from probe.data import MTTEmbeddingLoadingDataModule
+from cosineannealingscheduler import CosineAnnealingCallback
 
 TRAINERS = []
 
@@ -115,8 +116,14 @@ def train_probe(
     # replace train_params with the opmized values
     train_params.update(kwargs)
 
+    # Create the callbacks
+    cosine_annealing_callback = CosineAnnealingCallback(
+        total_steps=train_params["max_steps"]
+    )
+    callbacks = [cosine_annealing_callback]
+
     # Define the trainer
-    trainer = Trainer(logger=wandb_logger, **train_params)
+    trainer = Trainer(logger=wandb_logger, callbacks=callbacks, **train_params)
 
     # Train the probe
     trainer.fit(model=module, datamodule=datamodule)
