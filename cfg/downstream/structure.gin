@@ -32,7 +32,7 @@ HarmonixEmbeddingLoadingDataModule.gt_path =  "data/harmonix/segments_norm"
 HarmonixEmbeddingLoadingDataModule.train_filelist = "data/harmonix/train.txt"
 HarmonixEmbeddingLoadingDataModule.val_filelist = "data/harmonix/validation.txt"
 HarmonixEmbeddingLoadingDataModule.test_filelist = "data/harmonix/test.txt"
-HarmonixEmbeddingLoadingDataModule.batch_size = 16
+HarmonixEmbeddingLoadingDataModule.batch_size = 128
 HarmonixEmbeddingLoadingDataModule.num_frames_aggregate = 3
 HarmonixEmbeddingLoadingDataModule.num_workers = 16
 HarmonixEmbeddingLoadingDataModule.overlap = 0.1
@@ -50,7 +50,7 @@ train_probe.train_params = {
     "accelerator": "gpu",
     "devices": 1,
     "log_every_n_steps": 10,
-    "max_epochs": 200,
+    "max_steps": 50000,
     "num_sanity_val_steps": 0,
 }
 
