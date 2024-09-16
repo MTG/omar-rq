@@ -4,11 +4,9 @@ from pathlib import Path
 import gin.torch
 import numpy
 import torch
-import torchaudio
 import pytorch_lightning as L
 from torch.utils.data import Dataset, DataLoader
 from torchaudio.transforms import Resample
-from pathlib import Path
 
 
 @gin.configurable
@@ -20,6 +18,7 @@ class AudioDataset(Dataset):
         data_dir: Path,
         filelist: Path,
         num_frames: int,
+        orig_freq: int,
         new_freq: int,
         mono: bool,
         half_precision: bool,
@@ -31,8 +30,9 @@ class AudioDataset(Dataset):
 
         self.num_frames = num_frames
         self.frame_offset = frame_offset
+        self.orig_freq = orig_freq
         self.new_freq = new_freq
-        self.resample = Resample(new_freq=self.new_freq)
+        self.resample = Resample(orig_freq=self.orig_freq, new_freq=self.new_freq)
         self.mono = mono
         self.half_precision = half_precision
 
@@ -43,21 +43,25 @@ class AudioDataset(Dataset):
         file_path = self.data_dir / self.filelist[idx]
 
         # load audio
-        audio, sr = self.load_audio(file_path, frame_offset=self.frame_offset)
-
-        # work with 16-bit precission
-        if self.half_precision:
-            audio = audio.half()
+        audio = self.load_audio(file_path, frame_offset=self.frame_offset)
 
         # downmix to mono if necessary
         if audio.shape[0] > 1 and self.mono:
             audio = torch.mean(audio, dim=0, keepdim=False)
 
         # resample if necessary
-        if sr != self.new_freq:
-            audio = self.resample_audio(audio, sr)
+        if self.orig_freq != self.new_freq:
+            # only works with float tensors
+            audio = audio.float()
+            audio = self.resample(audio)
 
         audio = audio.squeeze(0)
+
+        # work with 16-bit precission
+        if self.half_precision:
+            audio = audio.half()
+        else:
+            audio = audio.float()
 
         return [audio]
 
@@ -105,12 +109,7 @@ class AudioDataset(Dataset):
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
 
-        return torch.from_numpy(audio), self.new_freq
-
-    def resample_audio(self, audio, sr):
-        if self.resample.orig_freq != sr:
-            self.resample = Resample(new_freq=self.new_freq, orig_freq=sr)
-        return self.resample(audio)
+        return torch.from_numpy(audio)
 
     @staticmethod
     def get_audio_duration(filepath: Path):
@@ -191,7 +190,7 @@ class MultiViewAudioDataset(AudioDataset):
 
             views = dict()
             for i, offset in enumerate(offsets):
-                audio, sr = self.load_audio(file_path, frame_offset=offset)
+                audio = self.load_audio(file_path, frame_offset=offset)
                 # audio = audio_full[:, offset : offset + self.num_frames]
 
                 # downmix to mono if necessary
@@ -199,8 +198,8 @@ class MultiViewAudioDataset(AudioDataset):
                     audio = torch.mean(audio, dim=0, keepdim=False)
 
                 # resample if necessary
-                if sr != self.new_freq:
-                    audio = self.resample_audio(audio, sr)
+                if self.orig_freq != self.new_freq:
+                    audio = self.resample(audio)
 
                 views[f"view_{i}"] = audio.squeeze(0)
 
