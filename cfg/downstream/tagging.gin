@@ -58,8 +58,8 @@ optimize_probe.bound_conditions = {
     "dropout": (0.1, 0.5),
     "lr": (1e-5, 1e-3),
 }
-optimize_probe.init_points = 1
-optimize_probe.n_iter = 2
+optimize_probe.init_points = 5
+optimize_probe.n_iter = 25
 optimize_probe.seed = 1
 
 # "max_epochs": (10, 100),
