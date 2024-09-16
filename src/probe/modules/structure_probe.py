@@ -158,7 +158,7 @@ class StructureClassProbe(L.LightningModule):
         """Print the calculated and inverse class weights at the end of each epoch."""
         self.print_class_weights(self.class_weights_history, self.current_epoch)
         self.print_inverse_weights(self.class_inverse_weights, self.current_epoch)
-        self.class_weights_history = []  # Clear the class weights history
+        self.class_weights_history = []  
 
 
     def print_class_weights(self, class_weights, epoch):
