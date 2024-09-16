@@ -16,22 +16,23 @@ import gin.torch
 import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
+from bayes_opt import BayesianOptimization
 
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
 from probe.data import MTTEmbeddingLoadingDataModule
+
+TRAINERS = []
 
 
 @gin.configurable
 def build_module_and_datamodule(
     ssl_model_id: str, dataset_name: str, embeddings_dir: Path
 ):
-
     # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
     embeddings_dir = Path(embeddings_dir) / ssl_model_id / dataset_name
 
     if dataset_name == "magnatagatune":
-
         # Build the datamodule
         datamodule = MTTEmbeddingLoadingDataModule(
             embeddings_dir,
@@ -52,14 +53,58 @@ def build_module_and_datamodule(
 
 
 @gin.configurable
+def optimize_probe(
+    datamodule: L.LightningDataModule,
+    ssl_model_id: str,
+    bound_conditions: dict,
+    init_points: int,
+    n_iter: int,
+    seed: int,
+):
+    def train_probe_proxy(**kwargs):
+        kwargs["num_layers"] = round(kwargs["num_layers"])
+        kwargs["hidden_size"] = round(kwargs["hidden_size"])
+
+        module = SequenceMultiLabelClassificationProbe(
+            in_features=datamodule.embedding_dimension, **kwargs
+        )
+
+        print(f"Probe parameters:\n{kwargs}")
+
+        return train_probe(
+            module=module,
+            datamodule=datamodule,
+            ssl_model_id=ssl_model_id,
+            optim_process=True,
+        )
+
+    optimizer = BayesianOptimization(
+        f=train_probe_proxy,
+        pbounds=bound_conditions,
+        random_state=seed,
+    )
+
+    optimizer.maximize(init_points=init_points, n_iter=n_iter)
+
+    for i, res in enumerate(optimizer.res):
+        if res["target"] == optimizer.max["target"]:
+            TRAINERS[i].test(datamodule=datamodule, ckpt_path="best")
+
+            return True
+
+    return False
+
+
+@gin.configurable
 def train_probe(
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
     ssl_model_id: str,
     wandb_params: dict,
     train_params: dict,
+    optim_process: bool = False,
+    **kwargs,
 ):
-
     # Define the logger
     wandb_logger = WandbLogger(**wandb_params)
 
@@ -67,18 +112,24 @@ def train_probe(
     _gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
     wandb_logger.log_hyperparams({"ssl_model_id": ssl_model_id, **_gin_config_dict})
 
+    # replace train_params with the opmized values
+    train_params.update(kwargs)
+
     # Define the trainer
     trainer = Trainer(logger=wandb_logger, **train_params)
 
     # Train the probe
     trainer.fit(model=module, datamodule=datamodule)
 
+    if optim_process:
+        TRAINERS.append(trainer)
+        return trainer.callback_metrics["val_loss"]
+
     # Test the best probe
     trainer.test(datamodule=datamodule, ckpt_path="best")
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -102,8 +153,11 @@ if __name__ == "__main__":
         # Build the module and datamodule
         module, datamodule = build_module_and_datamodule(args.ssl_model_id)
 
-        # Train the probe
-        train_probe(module, datamodule, args.ssl_model_id)
+        optimized_probe = optimize_probe(datamodule, args.ssl_model_id)
+
+        # Train the probe with the default values if there was no optimization process
+        if not optimized_probe:
+            train_probe(module, datamodule, args.ssl_model_id)
 
     except Exception:
         traceback.print_exc()

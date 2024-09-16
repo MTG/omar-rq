@@ -52,11 +52,26 @@ train_probe.train_params = {
     "num_sanity_val_steps": 0,
 }
 
+optimize_probe.bound_conditions = {
+    "num_layers": (1, 2),
+    "hidden_size": (128, 512),
+    "dropout": (0.1, 0.5),
+    "lr": (1e-5, 1e-3),
+}
+optimize_probe.init_points = 1
+optimize_probe.n_iter = 2
+optimize_probe.seed = 1
+
+# "max_epochs": (10, 100),
+# "batch_size": (32, 128),
+
+# Warning: these parameters are ignored when the the Bayesian optimization is enabled
 SequenceMultiLabelClassificationProbe.num_layers = 2
-SequenceMultiLabelClassificationProbe.num_labels = 50 # TODO
 SequenceMultiLabelClassificationProbe.hidden_size = 512
-SequenceMultiLabelClassificationProbe.activation = "relu"
-SequenceMultiLabelClassificationProbe.bias = True
 SequenceMultiLabelClassificationProbe.dropout = 0.2
 SequenceMultiLabelClassificationProbe.lr = 0.0001
+
+SequenceMultiLabelClassificationProbe.activation = "relu"
+SequenceMultiLabelClassificationProbe.bias = True
+SequenceMultiLabelClassificationProbe.num_labels = 50
 SequenceMultiLabelClassificationProbe.labels = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"

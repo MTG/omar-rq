@@ -173,7 +173,6 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
     def plot_confusion_matrix(self, conf_matrix):
-
         conf_matrix = conf_matrix.cpu().numpy()
         fig, axes = plt.subplots(
             nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
