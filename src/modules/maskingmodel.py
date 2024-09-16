@@ -342,6 +342,7 @@ class MaskingModel(L.LightningModule):
         chunk_len = self.patch_size[1] * self.net.num_patches
         hop_len = int(chunk_len * overlap_ratio)
 
+
         # Number of chunks
         Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
 

@@ -22,6 +22,7 @@ AudioEmbeddingDataModule.new_freq = 16000 # TODO read from train cfg
 AudioEmbeddingDataModule.mono = True # TODO read from train cfg
 AudioEmbeddingDataModule.half_precision = True # TODO read from train cfg
 AudioEmbeddingDataModule.num_workers = 20
+AudioEmbeddingDataModule.pad_to30sec = True
 
 
 build_module_and_datamodule.dataset_name = %dataset_name
