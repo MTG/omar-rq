@@ -17,6 +17,7 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from bayes_opt import BayesianOptimization
+import wandb
 
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
@@ -130,6 +131,8 @@ def train_probe(
 
     if optim_process:
         TRAINERS.append(trainer)
+
+        wandb.finish()
         return trainer.callback_metrics["val_loss"]
 
     # Test the best probe
