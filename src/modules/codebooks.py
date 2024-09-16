@@ -18,12 +18,14 @@ class RandomProjectionQuantizer(nn.Module):
         codebook_dim,
         codebook_size,
         seed=142,
+        diff_input=False,
     ):
         super().__init__()
 
         self.codebook_dim = codebook_dim
         self.codebook_size = codebook_size
         self.input_dim = input_dim
+        self.diff_input = diff_input
 
         # random seed
         torch.manual_seed(seed)
@@ -61,6 +63,11 @@ class RandomProjectionQuantizer(nn.Module):
     def forward(self, x):
         # Set to evaluation mode
         self.eval()
+
+        if self.diff_input:
+            pad = torch.zeros(x.shape[0], x.shape[1], 1, device=x.device)
+            x = torch.diff(x, dim=2, prepend=pad)
+
         # Apply random projection
         x = einsum("b n d, d e -> b n e", x, self.random_projection)
         # Perform codebook lookup
