@@ -98,6 +98,8 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         )
         self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
 
+        self.best_val_metric = {metric: 0.0 for metric in self.val_metrics.keys()}
+
     def forward(self, x):
         # (B, F) -> (B, num_labels)
         logits = self.model(x)
@@ -145,6 +147,10 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
             self.log(name, metric, on_epoch=True)
+            # Save the best value
+            metric_value = metric.compute().cpu().numpy()
+            if metric_value > self.best_val_metric[name]:
+                self.best_val_metric[name] = metric_value
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
