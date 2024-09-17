@@ -64,7 +64,7 @@ optimize_probe.bound_conditions = {
 # "max_epochs": (10, 100)
 # "batch_size": (32, 128)
 
-optimize_probe.optim_process = False
+optimize_probe.optim_process = True
 optimize_probe.init_points = 5
 optimize_probe.n_iter = 50
 optimize_probe.seed = 1
