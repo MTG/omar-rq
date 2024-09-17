@@ -48,22 +48,26 @@ train_probe.train_params = {
     "accelerator": "gpu",
     "devices": 1,
     "log_every_n_steps": 50,
-    "max_steps": 30000,
+    "max_steps": 20000,
     "num_sanity_val_steps": 0,
+    "check_val_every_n_epoch": 3,
 }
+train_probe.monitor = "val-MAP-macro"
+train_probe.monitor_mode = "max"
 
 optimize_probe.bound_conditions = {
-    "num_layers": (1, 2),
-    "hidden_size": (128, 512),
-    "dropout": (0.1, 0.5),
+    "hidden_size": (64, 1024),
+    "dropout": (0.0, 0.5),
     "lr": (1e-5, 1e-3),
 }
-optimize_probe.init_points = 5
-optimize_probe.n_iter = 25
-optimize_probe.seed = 1
+# Other parameters to optimize:
+# "max_epochs": (10, 100)
+# "batch_size": (32, 128)
 
-# "max_epochs": (10, 100),
-# "batch_size": (32, 128),
+optimize_probe.optim_process = False
+optimize_probe.init_points = 5
+optimize_probe.n_iter = 50
+optimize_probe.seed = 1
 
 # Warning: these parameters are ignored when the the Bayesian optimization is enabled
 SequenceMultiLabelClassificationProbe.num_layers = 2
@@ -77,5 +81,5 @@ SequenceMultiLabelClassificationProbe.num_labels = 50
 SequenceMultiLabelClassificationProbe.labels = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"
 
 # CosineAnnealing scheduler
-CosineAnnealingCallback.warmup_steps = 3000
+CosineAnnealingCallback.warmup_steps = 2000
 CosineAnnealingCallback.eta_min = 1e-7
