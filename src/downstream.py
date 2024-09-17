@@ -61,22 +61,28 @@ def optimize_probe(
     init_points: int,
     n_iter: int,
     seed: int,
+    optim_process: bool,
 ):
-    def train_probe_proxy(**kwargs):
-        kwargs["num_layers"] = round(kwargs["num_layers"])
-        kwargs["hidden_size"] = round(kwargs["hidden_size"])
+    if not optim_process:
+        return False
+
+    def train_probe_proxy(**params):
+        # round discrete values
+        # kwargs["num_layers"] = round(kwargs["num_layers"])
+        params["hidden_size"] = round(params["hidden_size"])
 
         module = SequenceMultiLabelClassificationProbe(
-            in_features=datamodule.embedding_dimension, **kwargs
+            in_features=datamodule.embedding_dimension, **params
         )
-
-        print(f"Probe parameters:\n{kwargs}")
 
         return train_probe(
             module=module,
             datamodule=datamodule,
             ssl_model_id=ssl_model_id,
             optim_process=True,
+            enable_progress_bar=True,
+            enable_model_summary=False,
+            probe_params=params,
         )
 
     optimizer = BayesianOptimization(
@@ -97,7 +103,10 @@ def train_probe(
     ssl_model_id: str,
     wandb_params: dict,
     train_params: dict,
+    monitor: str,
+    monitor_mode: str,
     optim_process: bool = False,
+    probe_params: dict | None = None,
     **kwargs,
 ):
     # Define the logger
@@ -105,6 +114,10 @@ def train_probe(
 
     # Get the gin config as a dictionary and log it to wandb
     _gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
+
+    if probe_params:
+        _gin_config_dict.update({"probe_parameters": probe_params})
+
     wandb_logger.log_hyperparams({"ssl_model_id": ssl_model_id, **_gin_config_dict})
 
     # replace train_params with the opmized values
