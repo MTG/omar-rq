@@ -14,17 +14,16 @@ import argparse
 
 import gin.torch
 import pytorch_lightning as L
+import wandb
+from bayes_opt import BayesianOptimization
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from bayes_opt import BayesianOptimization
-import wandb
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
 from probe.data import MTTEmbeddingLoadingDataModule
 from cosineannealingscheduler import CosineAnnealingCallback
-
-TRAINERS = []
 
 
 @gin.configurable
@@ -121,7 +120,11 @@ def train_probe(
     cosine_annealing_callback = CosineAnnealingCallback(
         total_steps=train_params["max_steps"]
     )
-    callbacks = [cosine_annealing_callback]
+    checkpoint = ModelCheckpoint(
+        monitor=monitor,
+        mode=monitor_mode,
+    )
+    callbacks = [cosine_annealing_callback, checkpoint]
 
     # Define the trainer
     trainer = Trainer(logger=wandb_logger, callbacks=callbacks, **train_params)
