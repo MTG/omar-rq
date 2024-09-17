@@ -87,13 +87,7 @@ def optimize_probe(
 
     optimizer.maximize(init_points=init_points, n_iter=n_iter)
 
-    for i, res in enumerate(optimizer.res):
-        if res["target"] == optimizer.max["target"]:
-            TRAINERS[i].test(datamodule=datamodule, ckpt_path="best")
-
-            return True
-
-    return False
+    return True
 
 
 @gin.configurable
@@ -132,14 +126,13 @@ def train_probe(
     # Train the probe
     trainer.fit(model=module, datamodule=datamodule)
 
-    if optim_process:
-        TRAINERS.append(trainer)
-
-        wandb.finish()
-        return trainer.callback_metrics["val_loss"]
-
     # Test the best probe
     trainer.test(datamodule=datamodule, ckpt_path="best")
+
+    if optim_process:
+        wandb.finish()
+
+        return module.best_val_metric[monitor]
 
 
 if __name__ == "__main__":
