@@ -129,7 +129,7 @@ class StructureClassProbe(L.LightningModule):
         logits_frame, logits_boundaries = self.forward(x)
 
         # TODO I AM NOT SURE
-        # frameProb = F.softmax(logits_frame, dim=2)
+        # frameProb = F.Sigmoid(logits_frame, dim=2)
         frameProb = logits_frame
 
         # Convert y_true (frame-wise labels) to unique labels for ctl_loss, handling each sequence in the batch

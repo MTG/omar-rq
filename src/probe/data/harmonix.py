@@ -20,6 +20,16 @@ label_to_number = {
     "silence": 6,
 }
 
+label_to_number_end = {
+    "intro": 7,
+    "verse": 8,
+    "chorus": 9,
+    "bridge": 10,
+    "outro": 11,
+    "inst": 12,
+    "silence": 13,
+}
+
 
 class HarmonixEmbeddingLoadingDataset(Dataset):
     """Dataset for loading embeddings and labels from the Magnatagatune dataset."""
