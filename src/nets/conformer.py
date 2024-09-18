@@ -1,10 +1,8 @@
-import math
+from typing import Set
 
 import gin
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.cuda.amp import autocast, GradScaler
 from .common_former import DeepNorm
 from .rope import RotaryEmbedding
 
@@ -422,11 +420,25 @@ class Conformer(nn.Module):
             ]
         )
 
-    def forward(self, x):
+    def forward(
+        self,
+        x,
+        layers: Set[int] = set([-1]),
+    ):
         # Downsampling (preprocessing) -> patching and projection layer (model masking) -> here
         x = self.input_dropout(x)
 
-        for layer in self.layers:
-            x = layer(x)
+        # Convert to positive indices
+        l_avail = list(range(len(self.layers)))
+        layers = set([l_avail[l] for l in list(layers)])
 
-        return x
+        results = []
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i in layers:
+                results.append(x)
+
+        if len(results) == 1:
+            return results[0]
+        else:
+            return x
