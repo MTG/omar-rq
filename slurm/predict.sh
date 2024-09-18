@@ -16,7 +16,7 @@ train_cfg=$1
 predict_cfg=$2
 
 # e.g. python3 src/predict.py /gpfs/projects/upf97/logs/mtg-ssl/ws3pyty7/checkpoints/config_conformer.gin cfg/downstream/structure.gin
-# e.g. python3 src/predict.py /gpfs/projects/upf97/logs/mtg-ssl/ws3pyty7/checkpoints/config_conformer.gin cfg/downstream/structure.gin
+# e.g. python3 src/predict.py /gpfs/projects/upf97/logs/mtg-ssl/pyypqq7g/checkpoints/config_conformer.gin cfg/downstream/structure.gin
 
 
 python3 src/predict.py $train_cfg $predict_cfg

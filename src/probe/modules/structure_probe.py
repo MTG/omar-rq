@@ -132,7 +132,7 @@ class StructureClassProbe(L.LightningModule):
         # boundaries_smoothed
         loss_boundaries = self.criterion_boundaries(
             logits_boundaries, boundaries_smoothed
-        )
+        ) * 10
         loss = 0.1 * loss
         loss_boundaries = 0.9 * loss_boundaries
         train_loss = loss + loss_boundaries
@@ -187,7 +187,7 @@ class StructureClassProbe(L.LightningModule):
         boundaries_smoothed = smooth_boundaries(boundaries).squeeze(0)
         loss_boundaries = self.criterion_boundaries(
             logits_boundaries, boundaries_smoothed
-        )
+        ) * 10
         predicted_class = torch.argmax(logits, dim=1)
         return logits, loss, predicted_class, logits_boundaries, loss_boundaries
 
@@ -253,7 +253,7 @@ class StructureClassProbe(L.LightningModule):
         self.print_global_weights()
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.lr)
+        return torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=0.1)
 
     def plot_confusion_matrix(self, conf_matrix):
         fig, ax = plt.subplots(figsize=(10, 8))

@@ -42,7 +42,7 @@ def check_random_file():
         [
             pp
             for pp, _ in peak_picking(torch.from_numpy(logits_boundaries_np), step_size)
-            if logits_boundaries_np[pp] > 0.2
+            if logits_boundaries_np[pp] > 0.1
         ]
     )
 
@@ -118,9 +118,9 @@ def check_random_file():
         color="orange",
         label="Logits Boundaries",
     )
-    # axs[3].scatter(
-    #     peaks, logits_boundaries_np[peaks], color="red", label="Peaks", zorder=5
-    # )
+    axs[3].scatter(
+        peaks, logits_boundaries_np[peaks], color="red", label="Peaks", zorder=5
+    )
     axs[3].set_title("Logits Boundaries with Peaks")
     axs[3].legend()
     axs[3].set_xlabel("Frames")

@@ -69,7 +69,7 @@ def train_probe(
     datamodule: L.LightningDataModule,
     ssl_model_id: str,
     wandb_params: dict,
-    train_params: dict,
+    train_params: dict
 ):
 
     # Define the logger
@@ -79,8 +79,11 @@ def train_probe(
     _gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
     wandb_logger.log_hyperparams({"ssl_model_id": ssl_model_id, **_gin_config_dict})
 
+    # early stopping 2 epochs
+    early_stopping = L.callbacks.EarlyStopping(monitor="val_loss", patience=200)
+
     # Define the trainer
-    trainer = Trainer(logger=wandb_logger, **train_params)
+    trainer = Trainer(logger=wandb_logger, callbacks=[early_stopping], **train_params)
 
     # Train the probe
     trainer.fit(model=module, datamodule=datamodule)

@@ -10,3 +10,5 @@ checkpoints/
 /figs/
 /src/probe/visualize_probe/embedding_structure/
 /src/probe/visualize_probe/embedding_structure/
+
+/venv/

@@ -1,1 +1,1 @@
-rsync alogin1:/home/upf/upf537122/ssl-mtg/src/probe/visualize_probe/embedding_structure cd ./
+rsync alogin1:/home/upf/upf537122/ssl-mtg/src/probe/visualize_probe/embedding_structure/* ./embedding_structure
