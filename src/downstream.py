@@ -80,7 +80,7 @@ def train_probe(
     wandb_logger.log_hyperparams({"ssl_model_id": ssl_model_id, **_gin_config_dict})
 
     # early stopping 2 epochs
-    early_stopping = L.callbacks.EarlyStopping(monitor="val_loss", patience=200)
+    early_stopping = L.callbacks.EarlyStopping(monitor="val_loss", patience=4)
 
     # Define the trainer
     trainer = Trainer(logger=wandb_logger, callbacks=[early_stopping], **train_params)
