@@ -11,7 +11,6 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=pablo.alonso@upf.edu
 
-module load anaconda
 source /gpfs/projects/upf97/envs/mtg-bsc-codecs/bin/activate
 
-python3 src/train.py cfg/config_conformer_encodec.gin
+srun --cpus-per-task=80 python3 src/train.py cfg/config_conformer_encodec.gin
