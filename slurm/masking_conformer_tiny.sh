@@ -5,8 +5,7 @@
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
 #SBATCH --nodes=1 # This needs to match Trainer(num_nodes=...)
-#SBATCH --ntasks-per-node=4 # This needs to match Trainer(devices=...)
-#SBATCH --cpus-per-task=20
+#SBATCH --cpus-per-task=80
 #SBATCH --gres=gpu:4
 #SBATCH --time=72:00:00
 #SBATCH --output=debug_%j_output.txt
