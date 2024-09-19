@@ -21,6 +21,7 @@ build_dev_datamodule.datamodule = @discotube
 train.params = {
     "accelerator": "gpu",
     "devices": 4,
+    "num_nodes": 1,
     "max_steps": 400000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
@@ -34,7 +35,7 @@ AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 24000
 AudioDataset.mono = True
 AudioDataset.half_precision = False
-AudioDataModule.num_workers = 80
+AudioDataModule.num_workers = 20
 
 # Discogs datamodule parameters
 DiscotubeAudioDataModule.batch_size = 64
