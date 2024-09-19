@@ -1,7 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "mask_conformer_rope_multi4",
+    "name": "mask_conformer_speed_test",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -34,7 +34,7 @@ AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 80
+AudioDataModule.num_workers = 160
 
 # Discogs datamodule parameters
 DiscotubeAudioDataModule.batch_size = 128
@@ -63,10 +63,10 @@ nets.melspectrogram.MelSpectrogram.freq_mask_param = 0
 nets.melspectrogram.MelSpectrogram.time_mask_param = 0
 
 # MaskingModel parameters
-modules.maskingmodel.MaskingModel.num_codebooks = 4
+modules.maskingmodel.MaskingModel.num_codebooks = 16
 modules.maskingmodel.MaskingModel.lr = 1e-4
 modules.maskingmodel.MaskingModel.weight_decay = 1e-2
-modules.maskingmodel.MaskingModel.codebook_size = 8192
+modules.maskingmodel.MaskingModel.codebook_size = 2048
 modules.maskingmodel.MaskingModel.codebook_dim = 16
 modules.maskingmodel.MaskingModel.mask_seconds = 0.4
 modules.maskingmodel.MaskingModel.mask_prob = 0.6

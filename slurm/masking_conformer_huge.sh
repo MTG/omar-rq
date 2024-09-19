@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name masking_conformer_big
+#SBATCH --job-name masking_conformer_large
 #SBATCH --account=upf97
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
@@ -12,8 +12,7 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=pablo.alonso@upf.edu
 
-module load anaconda
 source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 
 
-srun --cpus-per-task=80 python3 src/train.py cfg/config_masking_conformer_big.gin
+srun --cpus-per-task=80 python3 src/train.py cfg/config_masking_conformer_huge.gin
