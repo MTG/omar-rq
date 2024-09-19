@@ -16,4 +16,4 @@ module load anaconda
 source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 
 
-srun python3 src/train.py cfg/config_masking_conformer_big.gin
+srun --cpus-per-task=80 python3 src/train.py cfg/config_masking_conformer_big.gin
