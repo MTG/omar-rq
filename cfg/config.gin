@@ -26,6 +26,7 @@ train.params = {
 
 # Dataloader
 AudioDataset.num_frames = 48000 # 3 seconds
+AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 16000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
@@ -77,3 +78,4 @@ Transformer.depth = 12
 Transformer.num_heads = 12
 Transformer.mlp_ratio=4.0
 Transformer.dropout=0.1
+Transformer.input_dropout=0.1

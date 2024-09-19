@@ -118,6 +118,7 @@ class Transformer(Net):
         num_patches=1,
         mlp_ratio=4.0,
         dropout=0.1,
+        input_dropout=0.1,
         alpha_deepnorm=0.1,
         beta_deepnorm=0.1,
         do_classification=False,
@@ -147,7 +148,7 @@ class Transformer(Net):
         # Updated and stored in self.num_patches during the forward pass
         # It will be written to the gin config file
         self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches, embed_dim))
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(input_dropout)
 
         self.transformer = nn.ModuleList(
             [
@@ -167,7 +168,6 @@ class Transformer(Net):
         self.head = nn.Linear(embed_dim, head_dims)
 
     def forward(self, x):
-
         # Embed the patches. If do_vit_tokenization is False, the input
         # is already tokenized and the patch_embed layer is an identity
         x = self.patch_embed(x)

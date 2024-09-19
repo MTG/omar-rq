@@ -1,8 +1,8 @@
 import math
 import os
 import random
-from collections import Counter
-from time import sleep
+from collections import defaultdict
+from typing import List
 
 import gin
 import torch
@@ -41,6 +41,7 @@ class MaskingModel(L.LightningModule):
         mask_seconds: float,
         mask_prob: float,
         seed: int,
+        diff_input: bool,
         plot_tokens: bool = False,
     ):
         super(MaskingModel, self).__init__()
@@ -61,17 +62,22 @@ class MaskingModel(L.LightningModule):
         self.seed = seed
         self.plot_tokens = plot_tokens
         self.weight_decay = weight_decay
-        self.tokens_coverage = []
+        self.diff_input = diff_input
+
+        # debugging variables
+        self.tokens_accumulator = defaultdict(list)
         self.first_coverage = True
+        self.downstream_embedding_layer = [-1]
+        self.overlap_ratio = 0.5
 
         if (
             hasattr(representation, "sr")
             and hasattr(representation, "hop_len")
-            and hasattr(representation, "n_mel")
+            and hasattr(representation, "rep_dims")
         ):
             self.sr = representation.sr
             self.hop_length = representation.hop_len
-            self.n_mel = representation.n_mel
+            self.rep_dims = representation.rep_dims
             # Create a ModuleList to hold the quantizers
             self.quantizers = nn.ModuleList(
                 [
@@ -80,13 +86,14 @@ class MaskingModel(L.LightningModule):
                         codebook_dim,
                         codebook_size,
                         seed=seed + i,
+                        diff_input=self.diff_input,
                     )
                     for i in range(num_codebooks)
                 ]
             )
         else:
             raise NotImplementedError(
-                f"Representation {type(self.representation)} is supported"
+                f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
             )
 
         # loss function
@@ -209,7 +216,7 @@ class MaskingModel(L.LightningModule):
         windows_tokens = (
             len_masking_spec_frames
             // self.patch_size[1]
-            * (self.n_mel // self.patch_size[0])
+            * (self.rep_dims // self.patch_size[0])
         )
 
         # Generate random mask indices
@@ -261,17 +268,28 @@ class MaskingModel(L.LightningModule):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
         # log tokens coverage
-        if self.first_coverage and batch_idx < 1000:
-            self.tokens_coverage += target_tokens[0].flatten().cpu().tolist()
-        elif self.first_coverage and batch_idx == 1000:
+        first_coverage_steps = 100
+
+        if self.first_coverage and batch_idx < first_coverage_steps:
+            # collapse batch and time axes
+            tokens_c = target_tokens.view(-1, self.num_codebooks)
+
+            # log tokens
+            for i in range(self.num_codebooks):
+                self.tokens_accumulator[f"codebook_{i}"].extend(
+                    tokens_c[:, i].cpu().tolist()
+                )
+
+        elif self.first_coverage and batch_idx == first_coverage_steps:
             # Print the histogram you can check it in the wandb dashboard (log section)
-            print("Logged histogram image of token counts for the first 1000 steps.")
-            print(Counter(self.tokens_coverage))
-            self.logger.experiment.log(
-                {"histogram": wandb.Histogram(self.tokens_coverage)}
+            for key, value in self.tokens_accumulator.items():
+                self.logger.experiment.log({f"{key}_histogram": wandb.Histogram(value)})
+            print(
+                f"Logged histograms of token counts for the first {first_coverage_steps} steps."
             )
             self.first_coverage = False
-            self.tokens_coverage = []
+            del self.tokens_accumulator
+
         self.log("train_loss", loss, prog_bar=True)
         self.log("train_acc", accuracies)
         return loss
@@ -283,7 +301,6 @@ class MaskingModel(L.LightningModule):
         self.log(f"val_acc", accuracies)
         return loss
 
-    # TODO: how to control the embedding layer in Lightning?
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, _ = batch
         # If the input is all zeros, return None to give signal
@@ -293,14 +310,16 @@ class MaskingModel(L.LightningModule):
 
     def extract_embeddings(
         self,
-        audio,
-        layer=[-1],
+        audio: torch.Tensor,
+        layer: List[int] = None,
+        overlap_ratio: float = None,
     ):
         """Extract audio embeddings using the model.
 
         Parameters:
             audio (torch.Tensor): 1D audio tensor.
             layer (list): List of layer indices to extract embeddings from.
+            By default, it extracts embeddings from the last layer.
 
         Output:
             torch.Tensor: Extracted embeddings.
@@ -313,32 +332,41 @@ class MaskingModel(L.LightningModule):
         """
 
         assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
+
+        # If a layer is not provided, use the layer specified at initialization
+        if layer is None:
+            layer = self.downstream_embedding_layer
         assert isinstance(layer, list), "Layer must be a list."
         assert layer == [-1], "Only last layer is supported for now."
+        if overlap_ratio is None:
+            overlap_ratio = self.overlap_ratio
+        assert (
+            overlap_ratio >= 0 and overlap_ratio < 1
+        ), "Overlap ratio must be between 0 and 1."
 
         # Compute the representation
         x = self.representation(audio)  # (F, Tm)
 
         # TODO: what if in Frequency axis we need to aggregate?
-        assert x.size()[0] == self.patch_size[0], (
+        assert x.shape[0] == self.patch_size[0], (
             f"Frequency patching is not implemented yet!"
             f"Expected {self.patch_size[0]} but got {x.shape[0]}"
         )
 
         # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
+        hop_len = int(chunk_len * (1 - overlap_ratio))
 
-        # NOTE: this will pad the representation even if it is
-        # very close to the context length
-        if x.shape[1] % chunk_len != 0:
-            # Pad the representation to fit the context length
-            pad_len = chunk_len - x.shape[1] % chunk_len
-            x = torch.nn.functional.pad(x, (0, pad_len), mode="constant", value=0)
+        # Number of chunks
+        Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
 
-        # TODO overlap half
-        # Chunk the representation and batch it
-        x_chunks = torch.split(x, chunk_len, dim=1)
-        x_chunks = torch.stack(x_chunks, dim=0)
+        # Create the chunks
+        x_chunks = torch.zeros(
+            (Nc, x.shape[0], chunk_len), device=x.device, dtype=x.dtype
+        )
+        for i in range(Nc):
+            chunk = x[:, i * hop_len : i * hop_len + chunk_len]
+            x_chunks[i, :, : chunk.shape[1]] = chunk
 
         # Embed the representation
         x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
