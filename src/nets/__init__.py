@@ -4,6 +4,7 @@ from .melspectrogram import MelSpectrogram
 from .transformer import Transformer
 from .conformer import Conformer
 from .encodec import EnCodec
+from .cqt import CQT
 
 NETS = {
     "net": Net,
@@ -12,4 +13,5 @@ NETS = {
     "transformer": Transformer,
     "conformer": Conformer,
     "encodec": EnCodec,
+    "cqt": CQT,
 }
