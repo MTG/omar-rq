@@ -46,6 +46,10 @@ class AudioEmbeddingDataset(Dataset):
 
             # resample if necessary
             if sr != self.new_freq:
+                if sr != self.orig_freq:
+                    self.resample = Resample(orig_freq=sr, new_freq=self.new_freq)
+                    self.orig_freq = sr
+
                 audio = self.resample(audio)  # (C, T')
 
             # TODO: why don't we fix mono? The rest of the code is not ready for 2 channel audio
