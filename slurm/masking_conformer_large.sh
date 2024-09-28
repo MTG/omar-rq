@@ -16,7 +16,7 @@
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 export SRUN_NTASKS_PER_NODE=$SLURM_NTASKS_PER_NODE
 
-source /gpfs/projects/upf97/envs/mtg-bsc-codecs/bin/activate
+source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 
 
 srun python3 src/train.py cfg/config_masking_conformer_large.gin
