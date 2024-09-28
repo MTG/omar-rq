@@ -77,7 +77,7 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 modules.maskingmodel.MaskingModel.diff_input = False
 
 # Transformer parameters
-nets.conformer.Conformer.patch_size = (96, 4)
+nets.conformer.Conformer.patch_size = (144, 4)
 nets.conformer.Conformer.embed_dim = 512
 nets.conformer.Conformer.depth = 12
 nets.conformer.Conformer.conv_kernel_size = 5
