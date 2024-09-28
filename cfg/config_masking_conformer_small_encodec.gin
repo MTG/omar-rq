@@ -1,7 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "mask_conformer_rope_multi4_encodec",
+    "name": "mask_conformer_rope_multi4_small_encodec",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",

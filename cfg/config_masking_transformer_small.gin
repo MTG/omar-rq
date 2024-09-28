@@ -1,12 +1,12 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "masking_transformer_small_fixed_dn_42",
+    "name": "mask_transformer_small",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
     "entity": "mtg-upf",
-    "group": "masking_transformer_small_fixed_dn",
+    "group": "masking_transformer_small",
 }
 
 # modules to use
