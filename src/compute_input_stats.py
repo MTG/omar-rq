@@ -44,7 +44,7 @@ def compute_input_stats(
     acc_std_dims = torch.Tensor([])
 
     for batch in tqdm(datamodule.train_dataloader()):
-        x = batch[0].cuda()
+        x = batch[0].cuda().float()
         rep_batch = module.representation(x)
 
         mean = torch.mean(torch.mean(rep_batch, dim=(-2, -1)), dim=0).item()

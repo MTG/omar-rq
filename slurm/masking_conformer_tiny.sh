@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name masking_conformer_small
+#SBATCH --job-name masking_conformer_tiny
 #SBATCH --account=upf97
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
@@ -17,4 +17,4 @@ export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 
 
-srun python3 src/train.py cfg/config_conformer_encodec.gin
+srun python3 src/train.py cfg/config_masking_conformer_tiny.gin
