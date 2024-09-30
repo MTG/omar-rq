@@ -87,6 +87,6 @@ nets.conformer.Conformer.dropout = 0.2
 nets.conformer.Conformer.input_dropout = 0.0
 nets.conformer.Conformer.use_deepnorm = True
 nets.conformer.Conformer.alpha_deepnorm = 3.1811
-nets.conformer.Conformer.beta_deepnorm = 0.41914
+nets.conformer.Conformer.beta_deepnorm = 5.02973
 nets.conformer.Conformer.use_rope = True
 nets.conformer.Conformer.num_patches = None
