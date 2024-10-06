@@ -96,6 +96,12 @@ class MaskingModel(L.LightningModule):
                 f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
             )
 
+        # We do not support frequency patching yet
+        assert representation.rep_dims == self.patch_size[0], (
+            f"Representation should have n_bins equal to patch_size[0]."
+            f"Expected {self.patch_size[0]} but got {representation.n_bins}"
+        )
+
         # loss function
         self.loss = nn.CrossEntropyLoss()
 
