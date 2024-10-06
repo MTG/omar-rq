@@ -47,6 +47,13 @@ def compute_input_stats(
     magnitude = gin.query_parameter("nets.cqt.CQT.magnitude")
     logC = gin.query_parameter("nets.cqt.CQT.logC")
 
+    print(f"Computing input stats for CQT with parameters:")
+    print(f"bins_per_octave: {bins_per_octave}")
+    print(f"n_bins: {n_bins}")
+    print(f"f_min: {f_min}")
+    print(f"magnitude: {magnitude}")
+    print(f"logC: {logC}")
+
     # manually predict with module for the entire datamodule
     n_batches = 0
     acc_mean = 0
