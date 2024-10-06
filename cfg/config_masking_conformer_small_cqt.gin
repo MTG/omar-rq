@@ -47,7 +47,7 @@ DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt
 CosineAnnealingCallback.warmup_steps = 30000
 CosineAnnealingCallback.eta_min = 1e-7
 
-# MelSpectrogram parameters
+# CQT parameters
 nets.cqt.CQT.sr = 16000
 nets.cqt.CQT.hop_len = 256
 nets.cqt.CQT.power = 2
@@ -56,7 +56,7 @@ nets.cqt.CQT.n_bins = 144  # 6 octaves * 24 bins
 nets.cqt.CQT.f_min = 32.703  # C0
 nets.cqt.CQT.magnitude = True
 nets.cqt.CQT.logC = True
-nets.cqt.CQT.norm_std =  1.5939254082533876
+nets.cqt.CQT.norm_std = 1.5939254082533876
 nets.cqt.CQT.norm_mean = 5.485648599442211
 
 # data augmentation
