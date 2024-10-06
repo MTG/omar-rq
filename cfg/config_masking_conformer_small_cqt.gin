@@ -52,12 +52,12 @@ nets.cqt.CQT.sr = 16000
 nets.cqt.CQT.hop_len = 256
 nets.cqt.CQT.power = 2
 nets.cqt.CQT.bins_per_octave = 24
-nets.cqt.CQT.n_bins = 144  # 6 octaves * 24 bins
+nets.cqt.CQT.n_bins = 168 # 7 octaves * 24 bins
 nets.cqt.CQT.f_min = 32.703  # C0
 nets.cqt.CQT.magnitude = True
 nets.cqt.CQT.logC = True
-nets.cqt.CQT.norm_std = 1.5939254082533876
-nets.cqt.CQT.norm_mean = 5.485648599442211
+nets.cqt.CQT.norm_std = 1.7423775913273345
+nets.cqt.CQT.norm_mean = 5.14416386625088
 
 # data augmentation
 nets.melspectrogram.MelSpectrogram.stretch_factor = 1
@@ -77,7 +77,7 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 modules.maskingmodel.MaskingModel.diff_input = False
 
 # Transformer parameters
-nets.conformer.Conformer.patch_size = (96, 4)
+nets.conformer.Conformer.patch_size = (168, 4)
 nets.conformer.Conformer.embed_dim = 512
 nets.conformer.Conformer.depth = 12
 nets.conformer.Conformer.conv_kernel_size = 5
