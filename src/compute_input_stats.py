@@ -36,6 +36,17 @@ def compute_input_stats(
     module.freeze()
     datamodule.setup("fit")
 
+    # Disable standardization to not depend on the user
+    module.representation.mean = None
+    module.representation.std = None
+
+    # get the parameters for the CQT
+    bins_per_octave = gin.query_parameter("nets.cqt.CQT.bins_per_octave")
+    n_bins = gin.query_parameter("nets.cqt.CQT.n_bins")
+    f_min = gin.query_parameter("nets.cqt.CQT.f_min")
+    magnitude = gin.query_parameter("nets.cqt.CQT.magnitude")
+    logC = gin.query_parameter("nets.cqt.CQT.logC")
+
     # manually predict with module for the entire datamodule
     n_batches = 0
     acc_mean = 0
@@ -81,7 +92,14 @@ def compute_input_stats(
         "std_dims": acc_std_dims,
     }
 
-    with open("input_stats.json", "w") as f:
+    # print the stats
+    print(json.dumps(stats, indent=4))
+
+    # write the stats with the configuration in the filename
+    with open(
+        f"CQT-stats-bpo_{bins_per_octave}-nbins_{n_bins}-fmin_{f_min}-mag_{magnitude}-logc_{logC}.json",
+        "w",
+    ) as f:
         json.dump(stats, f)
 
 
