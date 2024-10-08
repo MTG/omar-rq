@@ -1,6 +1,7 @@
 import math
 import os
 import random
+import warnings
 from collections import defaultdict
 from typing import Set
 
@@ -356,10 +357,11 @@ class MaskingModel(L.LightningModule):
         x = self.representation(audio)  # (F, Tm)
 
         # TODO: what if in Frequency axis we need to aggregate?
-        assert x.shape[0] == self.patch_size[0], (
-            f"Frequency patching is not implemented yet!"
-            f"Expected {self.patch_size[0]} but got {x.shape[0]}"
-        )
+        if x.shape[0] == self.patch_size[0]:
+            warnings.warn(
+                f"Frequency patching is not implemented yet!"
+                f"Expected {self.patch_size[0]} but got {x.shape[0]}"
+            )
 
         # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
@@ -367,6 +369,10 @@ class MaskingModel(L.LightningModule):
 
         # Number of chunks
         Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
+
+        # Do not apply zero padding when we have a single chunk
+        if Nc == 1:
+            chunk_len = x.shape[1]
 
         # Create the chunks
         x_chunks = torch.zeros(
