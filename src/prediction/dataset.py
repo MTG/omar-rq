@@ -20,7 +20,6 @@ class AudioEmbeddingDataset(Dataset):
         mono: bool,
         half_precision: bool,
     ):
-
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
         assert len(self.filelist) > 0, f"No files found in {self.data_dir}"
@@ -36,7 +35,6 @@ class AudioEmbeddingDataset(Dataset):
         return len(self.filelist)
 
     def __getitem__(self, idx):
-
         # Get the file path
         file_path = self.data_dir / self.filelist[idx]
 
@@ -57,7 +55,6 @@ class AudioEmbeddingDataset(Dataset):
 
                 audio = audio.float()
                 audio = self.resample(audio)  # (C, T')
-
 
             # TODO: On CPU created problems with half precision
             # work with 16-bit precision
