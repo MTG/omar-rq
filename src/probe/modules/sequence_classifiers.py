@@ -129,9 +129,10 @@ class SequenceClassificationProbe(L.LightningModule):
         y_true = batch[1].int()
         for name, metric in self.val_metrics.items():
             if "acc" in name:
-                y_true = torch.argmax(y_true, dim=1)
-
-            metric.update(logits, y_true)
+                y_true_idx = torch.argmax(y_true, dim=1)
+                metric.update(logits, y_true_idx)
+            else:
+                metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
@@ -144,10 +145,17 @@ class SequenceClassificationProbe(L.LightningModule):
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
+
         # Update all metrics with the current batch
         y_true = batch[1].int()
-        for metric in self.test_metrics.values():
-            metric.update(logits, y_true)
+
+        for name, metric in self.test_metrics.items():
+            if "acc" in name:
+                y_true_idx = torch.argmax(y_true, dim=1)
+                metric.update(logits, y_true_idx)
+            else:
+                metric.update(logits, y_true)
+
         # Update the confusion matrix
         self.test_confusion_matrix.update(logits, y_true)
 
