@@ -13,6 +13,7 @@ NETS = {
     "melspectrogram": MelSpectrogram,
     "transformer": Transformer,
     "conformer": Conformer,
+    "xlstm": XLSTM,
     #"encodec": EnCodec,
     "cqt": CQT,
 }

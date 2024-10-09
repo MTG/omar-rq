@@ -23,8 +23,9 @@ train.params = {
     "devices": 1,
     "num_nodes": 1,
     "max_steps": 400000,
-    "log_every_n_steps": 50,
-    "precision": "bf16-mixed",
+    "log_every_n_steps": 5,
+    "precision": 16,
+    #"bf16-mixed",
     "strategy": "ddp_find_unused_parameters_true",
     "num_sanity_val_steps": 0
 }
@@ -38,7 +39,7 @@ AudioDataset.half_precision = True
 AudioDataModule.num_workers = 20
 
 # Discogs datamodule parameters
-DiscotubeAudioDataModule.batch_size = 128
+DiscotubeAudioDataModule.batch_size = 16
 DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
 DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
 DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
@@ -78,11 +79,11 @@ modules.maskingmodel.MaskingModel.diff_input = False
 # Transformer parameters
 nets.xlstm.XLSTM.patch_size = (96, 4)
 nets.xlstm.XLSTM.embed_dim = 512
-nets.xlstm.XLSTM.depth = 12
+nets.xlstm.XLSTM.depth = 2
 nets.xlstm.XLSTM.ker_size = 4
-nets.xlstm.XLSTM.signature = (7, 1)
-nets.xlstm.XLSTM.p_factor = (2, 1.333333)
-nets.xlstm.XLSTM.head_num = 8
-nets.xlstm.XLSTM.head_dim = 16
+nets.xlstm.XLSTM.signature = (11, 1)
+nets.xlstm.XLSTM.p_factor = (2, 1.3)
+nets.xlstm.XLSTM.head_num = 4
+nets.xlstm.XLSTM.head_dim = 96
 nets.xlstm.XLSTM.input_dropout = 0.0
 nets.xlstm.XLSTM.num_patches = None

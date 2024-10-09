@@ -36,8 +36,8 @@ Let's say you have a Conda environment called `mtg-bsc` and you want to use this
 1. Load the environment at BSC.
 
     ```bash
-    mkdir -p mtg-bsc-xlstm
-    tar -xzf mtg-bsc.tar.gz -C mtg-bsc-xlstm
+    mkdir -p mtg-bsc-xlstm_module
+    tar -xzf mtg-bsc.tar.gz -C mtg-bsc-xlstm_module
     module load anaconda
     source mtg-bsc/bin/activate
     python
@@ -46,7 +46,7 @@ Let's say you have a Conda environment called `mtg-bsc` and you want to use this
 1. Finally, save the environment to `/gpfs/projects/upf97/envs/`
 
     ```bash
-    cp -r mtg-bsc-xlstm /gpfs/projects/upf97/envs/
+    cp -r mtg-bsc-xlstm_module /gpfs/projects/upf97/envs/
     ```
 
 ### If you are using an environment already saved in the cluster

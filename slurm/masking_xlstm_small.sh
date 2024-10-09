@@ -14,7 +14,7 @@
 
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
-source /gpfs/projects/upf97/envs/mtg-bsc-xlstm/bin/activate
+source /gpfs/projects/upf97/envs/mtg-bsc/bin/activate
 
 
 srun python3 src/train.py cfg/config_masking_xlstm_small.gin

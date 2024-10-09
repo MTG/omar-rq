@@ -8,7 +8,17 @@ import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 from .common_former import DeepNorm
 from .rope import RotaryEmbedding
-from xlstm import xLSTM
+from .xlstm_module import xLSTM
+
+
+def small_init_init_(param: torch.Tensor, dim: int) -> torch.Tensor:
+    """Fills the input Tensor with values according to the method described in Transformers without Tears: Improving
+    the Normalization of Self-Attention - Nguyen, T. & Salazar, J. (2019), using a normal distribution.
+    Adopted from https://github.com/EleutherAI/gpt-neox/blob/main/megatron/model/init_functions.py.
+    """
+    std = math.sqrt(2 / (5 * dim))
+    torch.nn.init.normal_(param, mean=0.0, std=std)
+    return param
 
 
 
@@ -66,6 +76,6 @@ class XLSTM(nn.Module):
 
     def forward(self, x):
         x = self.input_dropout(x)
-        pdb.set_trace()
+        # pdb.set_trace()
         out, h = self.model(x)
         return out
