@@ -1,2 +1,2 @@
 from .magnatagatune import MTTEmbeddingLoadingDataModule
-from .nsynth import NSynthPitchEmbeddingLoadingDataModule
+from .nsynth_pitch import NSynthPitchEmbeddingLoadingDataModule

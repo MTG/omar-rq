@@ -21,7 +21,10 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from utils import gin_config_to_readable_dictionary
-from probe.modules import SequenceMultiLabelClassificationProbe
+from probe.modules import (
+    SequenceMultiLabelClassificationProbe,
+    SequenceMultiClassClassificationProbe,
+)
 from probe.data import (
     MTTEmbeddingLoadingDataModule,
     NSynthPitchEmbeddingLoadingDataModule,
@@ -60,7 +63,7 @@ def build_module_and_datamodule(
         in_features = datamodule.embedding_dimension
 
         # Build the DataModule
-        module = SequenceMultiLabelClassificationProbe(
+        module = SequenceMultiClassClassificationProbe(
             in_features=in_features,
         )
 

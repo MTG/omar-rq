@@ -155,10 +155,14 @@ class NSynthPitchEmbeddingLoadingDataModule(L.LightningDataModule):
         # Load one embedding to get the dimension
         # NOTE: I tried doing this inside self.setup() but those are
         # called when the trainer is used.
-        filename = np.load(train_filelist)[0]
-        _, filename = filename.split("\t")
-        emb_name = filename.split("/")[1].replace(".wav", ".pt")
-        emb_path = self.embeddings_dir / emb_name[:3] / emb_name
+        with open(train_filelist, "r") as f:
+            filename = f.readline().strip()
+            filename = Path(filename)
+
+        emb_sub = filename.stem[:3]
+        emb_fn = filename.stem + ".pt"
+        emb_path = self.embeddings_dir / emb_sub / emb_fn
+
         embedding = torch.load(emb_path, map_location="cpu")
         self.embedding_dimension = embedding.shape[-1]
 
