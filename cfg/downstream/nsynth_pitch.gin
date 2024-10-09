@@ -27,11 +27,11 @@ AudioEmbeddingDataModule.num_workers = 20
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_train_short.txt"
+NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
 NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
 NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
 NSynthPitchEmbeddingLoadingDataModule.batch_size = 64
-NSynthPitchEmbeddingLoadingDataModule.num_workers = 10
+NSynthPitchEmbeddingLoadingDataModule.num_workers = 0
 NSynthPitchEmbeddingLoadingDataModule.layer_aggregation = "none"
 NSynthPitchEmbeddingLoadingDataModule.granularity = "chunk"
 NSynthPitchEmbeddingLoadingDataModule.time_aggregation = "mean"
