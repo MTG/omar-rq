@@ -5,6 +5,7 @@ import torch
 from torch import nn
 import pytorch_lightning as L
 from torchmetrics.classification import (
+    Accuracy,
     MultilabelAveragePrecision,
     MultilabelAUROC,
     MultilabelConfusionMatrix,
@@ -15,7 +16,7 @@ import wandb
 
 
 @gin.configurable
-class SequenceMultiLabelClassificationProbe(L.LightningModule):
+class SequenceClassificationProbe(L.LightningModule):
     """Train a probe using the embeddings from a pre-trained model to predict the
     labels of a downstream dataset. The probe is trained for multi-label
     classification. The macro AUROC, Mean Average Precision metrics are calculated.
@@ -35,7 +36,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         labels: Path = None,
         plot_dir: Path = None,
     ):
-        super(SequenceMultiLabelClassificationProbe, self).__init__()
+        super(SequenceClassificationProbe, self).__init__()
 
         self.in_features = in_features
         self.num_labels = num_labels
@@ -76,29 +77,15 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
 
         # Initialize the metrics
-        self.val_metrics = nn.ModuleDict(
-            {
-                "val-AUROC-macro": MultilabelAUROC(
-                    num_labels=num_labels, average="macro"
-                ),
-                "val-MAP-macro": MultilabelAveragePrecision(
-                    num_labels=num_labels, average="macro"
-                ),
-            }
-        )
-        self.test_metrics = nn.ModuleDict(
-            {
-                "test-AUROC-macro": MultilabelAUROC(
-                    num_labels=num_labels, average="macro"
-                ),
-                "test-MAP-macro": MultilabelAveragePrecision(
-                    num_labels=num_labels, average="macro"
-                ),
-            }
-        )
-        self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
+
+        self.init_metrics()
 
         self.best_val_metric = {metric: 0.0 for metric in self.val_metrics.keys()}
+
+    def init_metrics_and_optim(self):
+        raise NotImplementedError(
+            "This method needs to be implemented in the sibling class."
+        )
 
     def forward(self, x):
         # (B, F) -> (B, num_labels)
@@ -129,7 +116,6 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
         # Calculate the loss for the track
         loss = self.criterion(logits, y_true)
-        self.log("val_loss", loss)
         if return_predicted_class:
             predicted_class = (torch.sigmoid(logits) > 0.5).int()
             return logits, loss, predicted_class
@@ -137,16 +123,20 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         logits, loss = self.predict(batch)
-        self.log("val_loss", loss)
+        self.log("val_loss", loss, prog_bar=True)
+
         # Update all metrics with the current batch
         y_true = batch[1].int()
-        for metric in self.val_metrics.values():
+        for name, metric in self.val_metrics.items():
+            if "acc" in name:
+                y_true = torch.argmax(y_true, dim=1)
+
             metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
-            self.log(name, metric, on_epoch=True)
+            self.log(name, metric, on_epoch=True, prog_bar=True)
             # Save the best value
             metric_value = metric.compute().cpu().numpy()
             if metric_value > self.best_val_metric[name]:
@@ -203,3 +193,47 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             ax.set_xlabel("Predicted Label")
             ax.set_ylabel("True Label")
         return fig
+
+
+class SequenceMultiLabelClassificationProbe(SequenceClassificationProbe):
+    def init_metrics(self):
+        self.val_metrics = nn.ModuleDict(
+            {
+                "val-AUROC-macro": MultilabelAUROC(
+                    num_labels=self.num_labels, average="macro"
+                ),
+                "val-MAP-macro": MultilabelAveragePrecision(
+                    num_labels=self.num_labels, average="macro"
+                ),
+            }
+        )
+        self.test_metrics = nn.ModuleDict(
+            {
+                "test-AUROC-macro": MultilabelAUROC(
+                    num_labels=self.num_labels, average="macro"
+                ),
+                "test-MAP-macro": MultilabelAveragePrecision(
+                    num_labels=self.num_labels, average="macro"
+                ),
+            }
+        )
+        self.test_confusion_matrix = MultilabelConfusionMatrix(
+            num_labels=self.num_labels
+        )
+
+
+class SequenceMultiClassClassificationProbe(SequenceClassificationProbe):
+    def init_metrics(self):
+        self.val_metrics = nn.ModuleDict(
+            {
+                "val-acc": Accuracy(task="multiclass", num_classes=self.num_labels),
+            }
+        )
+        self.test_metrics = nn.ModuleDict(
+            {
+                "test-acc": Accuracy(task="multiclass", num_classes=self.num_labels),
+            }
+        )
+        self.test_confusion_matrix = MultilabelConfusionMatrix(
+            num_labels=self.num_labels
+        )
