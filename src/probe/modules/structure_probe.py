@@ -63,7 +63,7 @@ class StructureClassProbe(L.LightningModule):
         self.dropout = dropout
         self.lr = lr
         self.num_aggregations = num_aggregations
-        self.avg = nn.AvgPool1d(kernel_size=num_aggregations, stride=num_aggregations)
+        self.avg = nn.AdaptiveAvgPool1d(469//3)
         self.save_prediction = save_prediction
 
         self.model = nn.Sequential(
@@ -253,7 +253,7 @@ class StructureClassProbe(L.LightningModule):
         self.print_global_weights()
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=0.1)
+        return torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=0.001)
 
     def plot_confusion_matrix(self, conf_matrix):
         fig, ax = plt.subplots(figsize=(10, 8))

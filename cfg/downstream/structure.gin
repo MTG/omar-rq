@@ -9,7 +9,7 @@ predict.device_dict = {
 }
 
 # Embedding taking location from the neural network
-predict.embedding_layer = [-1]
+predict.embedding_layer = [6]
 
 predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
@@ -43,7 +43,7 @@ HarmonixEmbeddingLoadingDataModule.precompute = True
 
 train_probe.wandb_params = {
     "project": "structure",
-    "name": "structure_50k",
+    "name": "structure_50k_d001",
     "offline": True,
     "entity": "mtg-upf",
     "save_dir": "/gpfs/projects/upf97/logs/"
@@ -63,7 +63,7 @@ train_probe.train_params = {
 probe.modules.structure_probe.StructureClassProbe.num_classes = 7 # TODO
 probe.modules.structure_probe.StructureClassProbe.hidden_size = 512
 probe.modules.structure_probe.StructureClassProbe.bias = True
-probe.modules.structure_probe.StructureClassProbe.dropout = 0.0
+probe.modules.structure_probe.StructureClassProbe.dropout = 0.001
 probe.modules.structure_probe.StructureClassProbe.lr = 0.0001
 probe.modules.structure_probe.StructureClassProbe.num_aggregations = 3
 probe.modules.structure_probe.StructureClassProbe.save_prediction = True

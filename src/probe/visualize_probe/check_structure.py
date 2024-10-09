@@ -14,6 +14,7 @@ def check_random_file():
     # Obtener una ruta aleatoria de ./embedding_structure
     random_path = os.path.join(os.getcwd(), "embedding_structure")
     random_file = os.listdir(random_path)[int(random() * len(os.listdir(random_path)))]
+    print(random_file)
 
     data = torch.load(os.path.join(random_path, random_file))
 
