@@ -52,12 +52,12 @@ nets.cqt.CQT.sr = 16000
 nets.cqt.CQT.hop_len = 256
 nets.cqt.CQT.power = 2
 nets.cqt.CQT.bins_per_octave = 24
-nets.cqt.CQT.n_bins = 188 # 7 octaves * 24 bins
-nets.cqt.CQT.f_min = 32.703  # C0
+nets.cqt.CQT.n_bins = 194 # 7 octaves * 24 bins
+nets.cqt.CQT.f_min = 27.500 # A0
 nets.cqt.CQT.magnitude = True
 nets.cqt.CQT.logC = True
-nets.cqt.CQT.norm_std = 1.9055732535255916
-nets.cqt.CQT.norm_mean = 4.754879065310596
+nets.cqt.CQT.norm_std = 2.203798750564434
+nets.cqt.CQT.norm_mean = 1.5768523743499168
 
 # data augmentation
 nets.melspectrogram.MelSpectrogram.stretch_factor = 1
