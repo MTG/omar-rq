@@ -1,11 +1,11 @@
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import numpy as np
-
-import torch
-import pytorch_lightning as L
-from torch.utils.data import Dataset, DataLoader
 import gin.torch
+import pytorch_lightning as L
+import torch
+from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 
 
 class NSynthPitchEmbeddingLoadingDataset(Dataset):
@@ -46,26 +46,60 @@ class NSynthPitchEmbeddingLoadingDataset(Dataset):
         self.granularity = granularity
         self.time_aggregation = time_aggregation
         self.mode = mode
+
+        # pitches to condiser
+        self.min_pitch = 21
+        self.max_pitch = 108
+        self.n_classes = 88
         # self.normalize = normalize # TODO?
 
         with open(filelist, "r") as f:
             filenames = [line.strip() for line in f.readlines()]
 
-        # Load the embeddings and labels
-        self.embeddings, self.labels = [], []
-        for fn in filenames:
-            emb_name = fn.split("/")[1].replace(".wav", ".pt")
-            emb_path = self.embeddings_dir / emb_name[:3] / emb_name
-            # If the embedding exists, add it to the filelist
-            if emb_path.exists():
-                embedding = torch.load(emb_path, map_location="cpu")
-                embedding = self.prepare_embedding(embedding)
-                self.embeddings.append(embedding)
+        self.embeddings, self.labels = self.parallel_loading(filenames)
 
-                # According to the NSynth dataset doc:
-                # A unique string identifier for the note in the format <instrument_str>-<pitch>-<velocity>
-                inst_str, pitch, velocity = fn.split("/")[1].split("-")
-                self.labels.append(torch.tensor(int(pitch)))
+    def process_file(self, fn):
+        fn = Path(fn)
+        emb_name = fn.stem + ".pt"
+        emb_path = self.embeddings_dir / emb_name[:3] / emb_name
+
+        # If the embedding exists, load and process it
+        if emb_path.exists():
+            embedding = torch.load(emb_path, map_location="cpu")
+            embedding = self.prepare_embedding(
+                embedding
+            )  # Assuming this is an instance method
+
+            inst_str, pitch, velocity = fn.stem.split("-")
+
+            # one-hot encode the pitch
+            pitch = torch.tensor(int(pitch))
+
+            if pitch < self.min_pitch or pitch > self.max_pitch:
+                return None, None
+
+            pitch_ohe = torch.nn.functional.one_hot(
+                pitch - self.min_pitch,
+                num_classes=self.n_classes,
+            ).float()
+
+            return embedding, pitch_ohe
+
+        return None, None
+
+    def parallel_loading(self, filenames):
+        embeddings, labels = [], []
+
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(self.process_file, fn): fn for fn in filenames}
+
+            for future in tqdm(as_completed(futures), total=len(filenames)):
+                embedding, label = future.result()
+                if embedding is not None:
+                    embeddings.append(embedding)
+                    labels.append(label)
+
+        return embeddings, labels
 
     def __len__(self):
         return len(self.labels)
