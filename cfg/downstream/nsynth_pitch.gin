@@ -47,9 +47,9 @@ train_probe.train_params = {
     "accelerator": "gpu",
     "devices": 1,
     "log_every_n_steps": 50,
-    "max_steps": 20000,
+    "max_steps": 50000,
     "num_sanity_val_steps": 0,
-    "check_val_every_n_epoch": 3,
+    "check_val_every_n_epoch": 1,
 }
 train_probe.monitor = "val-acc"
 train_probe.monitor_mode = "max"
@@ -75,7 +75,7 @@ SequenceClassificationProbe.dropout = 0.2
 SequenceClassificationProbe.lr = 0.0001
 SequenceClassificationProbe.activation = "relu"
 SequenceClassificationProbe.bias = True
-SequenceClassificationProbe.num_labels = 88
+SequenceClassificationProbe.num_labels = 128
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 2000
