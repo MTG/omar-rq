@@ -48,9 +48,9 @@ class NSynthPitchEmbeddingLoadingDataset(Dataset):
         self.mode = mode
 
         # pitches to condiser
-        self.min_pitch = 21
-        self.max_pitch = 108
-        self.n_classes = 88
+        self.min_pitch = 0
+        self.max_pitch = 128
+        self.n_classes = 128
         # self.normalize = normalize # TODO?
 
         with open(filelist, "r") as f:
