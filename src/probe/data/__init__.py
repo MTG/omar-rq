@@ -1,1 +1,2 @@
 from .magnatagatune import MTTEmbeddingLoadingDataModule
+from .harmonix import HarmonixEmbeddingLoadingDataModule

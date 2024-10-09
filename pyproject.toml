@@ -12,6 +12,9 @@ dependencies = [
   "wandb",
   "torchaudio",
   "matplotlib",
+  "bayesian_optimization~=1.5.1",
+  "scikit_learn~=1.5.2",
+  "scipy~=1.14.1",
 ]
 
 [project.optional-dependencies]

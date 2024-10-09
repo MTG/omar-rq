@@ -17,6 +17,8 @@ import pytorch_lightning as L
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
+from probe.data.harmonix import HarmonixEmbeddingLoadingDataModule
+from probe.modules import StructureClassProbe
 from utils import gin_config_to_readable_dictionary
 from probe.modules import SequenceMultiLabelClassificationProbe
 from probe.data import MTTEmbeddingLoadingDataModule
@@ -26,10 +28,8 @@ from probe.data import MTTEmbeddingLoadingDataModule
 def build_module_and_datamodule(
     ssl_model_id: str, dataset_name: str, embeddings_dir: Path
 ):
-
     # We saved the embeddings in <output_dir>/<model_id>/<dataset_name>/
     embeddings_dir = Path(embeddings_dir) / ssl_model_id / dataset_name
-
     if dataset_name == "magnatagatune":
 
         # Build the datamodule
@@ -44,7 +44,19 @@ def build_module_and_datamodule(
         module = SequenceMultiLabelClassificationProbe(
             in_features=in_features,
         )
+    elif dataset_name == "harmonix":
+        # Build the datamodule
+        datamodule = HarmonixEmbeddingLoadingDataModule(embeddings_dir)
 
+        # Get the number of features from the dataloader
+        in_features = datamodule.embedding_dimension
+        class_weights = datamodule.class_weights
+
+        # Build the DataModule
+        module = StructureClassProbe(
+            in_features=in_features,
+            class_weights=class_weights,
+        )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
@@ -57,7 +69,7 @@ def train_probe(
     datamodule: L.LightningDataModule,
     ssl_model_id: str,
     wandb_params: dict,
-    train_params: dict,
+    train_params: dict
 ):
 
     # Define the logger
@@ -67,8 +79,11 @@ def train_probe(
     _gin_config_dict = gin_config_to_readable_dictionary(gin.config._OPERATIVE_CONFIG)
     wandb_logger.log_hyperparams({"ssl_model_id": ssl_model_id, **_gin_config_dict})
 
+    # early stopping 2 epochs
+    early_stopping = L.callbacks.EarlyStopping(monitor="val_loss", patience=4)
+
     # Define the trainer
-    trainer = Trainer(logger=wandb_logger, **train_params)
+    trainer = Trainer(logger=wandb_logger, callbacks=[early_stopping], **train_params)
 
     # Train the probe
     trainer.fit(model=module, datamodule=datamodule)

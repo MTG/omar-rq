@@ -2,8 +2,10 @@ from pathlib import Path
 
 import gin
 import torch
+import torchmetrics
 from torch import nn
 import pytorch_lightning as L
+from torchmetrics import Accuracy, ConfusionMatrix
 from torchmetrics.classification import (
     MultilabelAveragePrecision,
     MultilabelAUROC,
@@ -12,6 +14,7 @@ from torchmetrics.classification import (
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+import torch.nn.functional as F
 
 
 @gin.configurable
@@ -98,6 +101,8 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         )
         self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
 
+        self.best_val_metric = {metric: 0.0 for metric in self.val_metrics.keys()}
+
     def forward(self, x):
         # (B, F) -> (B, num_labels)
         logits = self.model(x)
@@ -145,6 +150,10 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
             self.log(name, metric, on_epoch=True)
+            # Save the best value
+            metric_value = metric.compute().cpu().numpy()
+            if metric_value > self.best_val_metric[name]:
+                self.best_val_metric[name] = metric_value
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
@@ -173,7 +182,6 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
     def plot_confusion_matrix(self, conf_matrix):
-
         conf_matrix = conf_matrix.cpu().numpy()
         fig, axes = plt.subplots(
             nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True

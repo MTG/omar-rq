@@ -1,0 +1,9 @@
+0.0 intro
+15.83716 chorus
+47.496636 inst
+55.41536 chorus
+71.242464 inst
+87.075984 chorus
+126.646904 inst
+134.565624 chorus
+150.380448 end

@@ -202,7 +202,6 @@ class MultiViewAudioDataset(AudioDataset):
                     audio = self.resample(audio)
 
                 views[f"view_{i}"] = audio.squeeze(0)
-
             return views
 
         except Exception as e:

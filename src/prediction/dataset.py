@@ -19,6 +19,8 @@ class AudioEmbeddingDataset(Dataset):
         new_freq: int,
         mono: bool,
         half_precision: bool,
+        patch_size_sec: float,
+        overlap_ratio: float,
     ):
 
         self.data_dir = Path(data_dir)
@@ -31,6 +33,8 @@ class AudioEmbeddingDataset(Dataset):
         self.resample = Resample(self.orig_freq, self.new_freq)
         self.mono = mono
         self.half_precision = half_precision
+        self.patch_size_sec = patch_size_sec
+        self.overlap_ratio = overlap_ratio
 
     def __len__(self):
         return len(self.filelist)
@@ -58,10 +62,20 @@ class AudioEmbeddingDataset(Dataset):
             if self.half_precision:
                 audio = audio.half()
 
-                return audio, file_path
+            # pad audio
+            audio_len = audio.shape[-1] * self.new_freq
+            hop_size = (self.patch_size_sec * self.new_freq) * self.overlap_ratio
+            n_hops = audio_len // hop_size
+            rest = audio_len - (hop_size * n_hops)
+            pad_len = int(self.patch_size_sec * self.new_freq - rest)
+            audio = torch.nn.functional.pad(audio, (0, pad_len))
+            return audio, file_path
 
-        except Exception:
+
+
+        except Exception as e:
             print(f"Error loading file {file_path}")
+            print(e)
             return None, file_path
 
     @staticmethod
@@ -81,6 +95,8 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         mono: bool,
         half_precision: bool,
         num_workers: int,
+        patch_size_sec: float,
+        overlap_ratio: float
     ):
         super().__init__()
 
@@ -91,6 +107,9 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self.mono = mono
         self.half_precision = half_precision
         self.num_workers = num_workers
+        self.patch_size_sec = patch_size_sec
+        self.overlap_ratio = overlap_ratio
+
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
@@ -101,6 +120,8 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
                 new_freq=self.new_freq,
                 mono=self.mono,
                 half_precision=self.half_precision,
+                patch_size_sec=self.patch_size_sec,
+                overlap_ratio=self.overlap_ratio,
             )
 
     def predict_dataloader(self):

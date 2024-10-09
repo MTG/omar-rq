@@ -1,1 +1,2 @@
 from .sequence_classifiers import SequenceMultiLabelClassificationProbe
+from .structure_probe import StructureClassProbe

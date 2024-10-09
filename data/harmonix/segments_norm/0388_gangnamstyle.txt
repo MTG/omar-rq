@@ -1,0 +1,13 @@
+0.079 intro
+6.010905 chorus
+14.64726 verse
+43.283595 verse
+66.010845 chorus
+81.91992 chorus
+96.46536 verse
+125.101695 verse
+147.828945 chorus
+163.73802 chorus
+178.28346 verse
+196.46526 chorus
+212.82888 end

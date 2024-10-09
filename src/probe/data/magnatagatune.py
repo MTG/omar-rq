@@ -115,7 +115,6 @@ class MTTEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.mean(dim=(0, 1)).unsqueeze(0)  # (1, F)
             elif self.time_aggregation == "max":
                 embeddings = embeddings.max(dim=(0, 1)).unsqueeze(0)  # (1, F)
-
         return embeddings
 
 
@@ -165,39 +164,37 @@ class MTTEmbeddingLoadingDataModule(L.LightningDataModule):
         embedding = torch.load(emb_path, map_location="cpu")
         self.embedding_dimension = embedding.shape[-1]
 
-    def setup(self, stage: str):
-        if stage == "fit":
-            print("\nSetting up Train dataset...")
-            self.train_dataset = MTTEmbeddingLoadingDataset(
-                self.embeddings_dir,
-                self.gt_path,
-                self.train_filelist,
-                self.layer_aggregation,
-                self.granularity,
-                self.time_aggregation,
-                mode="train",
-            )
-            print("\nSetting up Validation dataset...")
-            self.val_dataset = MTTEmbeddingLoadingDataset(
-                self.embeddings_dir,
-                self.gt_path,
-                self.val_filelist,
-                self.layer_aggregation,
-                self.granularity,
-                self.time_aggregation,
-                mode="val",
-            )
-        if stage == "test":
-            print("Setting up the Test dataset...")
-            self.test_dataset = MTTEmbeddingLoadingDataset(
-                self.embeddings_dir,
-                self.gt_path,
-                self.test_filelist,
-                self.layer_aggregation,
-                self.granularity,
-                self.time_aggregation,
-                mode="test",
-            )
+        print("\nSetting up Train dataset...")
+        self.train_dataset = MTTEmbeddingLoadingDataset(
+            self.embeddings_dir,
+            self.gt_path,
+            self.train_filelist,
+            self.layer_aggregation,
+            self.granularity,
+            self.time_aggregation,
+            mode="train",
+        )
+        print("\nSetting up Validation dataset...")
+        self.val_dataset = MTTEmbeddingLoadingDataset(
+            self.embeddings_dir,
+            self.gt_path,
+            self.val_filelist,
+            self.layer_aggregation,
+            self.granularity,
+            self.time_aggregation,
+            mode="val",
+        )
+
+        print("Setting up the Test dataset...")
+        self.test_dataset = MTTEmbeddingLoadingDataset(
+            self.embeddings_dir,
+            self.gt_path,
+            self.test_filelist,
+            self.layer_aggregation,
+            self.granularity,
+            self.time_aggregation,
+            mode="test",
+        )
 
     def train_dataloader(self):
         return DataLoader(
