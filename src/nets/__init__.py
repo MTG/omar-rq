@@ -3,7 +3,8 @@ from .net import Net
 from .melspectrogram import MelSpectrogram
 from .transformer import Transformer
 from .conformer import Conformer
-from .encodec import EnCodec
+#from .encodec import EnCodec
+from .xlstm import XLSTM
 from .cqt import CQT
 
 NETS = {
@@ -12,6 +13,6 @@ NETS = {
     "melspectrogram": MelSpectrogram,
     "transformer": Transformer,
     "conformer": Conformer,
-    "encodec": EnCodec,
+    #"encodec": EnCodec,
     "cqt": CQT,
 }

@@ -1,18 +1,18 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "mask_conformer_speed_test",
+    "name": "mask_xlstm_speed_test",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
     "entity": "mtg-upf",
-    "group": "masking_conformer",
+    "group": "masking_xlstm",
 }
 
 # modules to use
 build_module.representation = @nets.melspectrogram.MelSpectrogram
 build_module.module = @modules.maskingmodel.MaskingModel
-build_module.net = @nets.conformer.Conformer
+build_module.net = @nets.xlstm.XLSTM
 
 # Choose the devalopment dataloader
 build_dev_datamodule.datamodule = @discotube
@@ -20,11 +20,11 @@ build_dev_datamodule.datamodule = @discotube
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 4,
+    "devices": 1,
     "num_nodes": 1,
     "max_steps": 400000,
     "log_every_n_steps": 50,
-    "precision": "16",
+    "precision": "bf16-mixed",
     "strategy": "ddp_find_unused_parameters_true",
     "num_sanity_val_steps": 0
 }
@@ -76,17 +76,13 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 modules.maskingmodel.MaskingModel.diff_input = False
 
 # Transformer parameters
-nets.conformer.Conformer.patch_size = (96, 4)
-nets.conformer.Conformer.embed_dim = 512
-nets.conformer.Conformer.depth = 12
-nets.conformer.Conformer.conv_kernel_size = 5
-nets.conformer.Conformer.num_heads = 8
-nets.conformer.Conformer.mlp_ratio = 4.0
-nets.conformer.Conformer.mlp_residual_factor = 4.0
-nets.conformer.Conformer.dropout = 0.2
-nets.conformer.Conformer.input_dropout = 0.0
-nets.conformer.Conformer.use_deepnorm = True
-nets.conformer.Conformer.alpha_deepnorm = 2.21 # we can tune this number
-nets.conformer.Conformer.beta_deepnorm = 0.0026 # we can tune this number
-nets.conformer.Conformer.use_rope = True
-nets.conformer.Conformer.num_patches = None
+nets.xlstm.XLSTM.patch_size = (96, 4)
+nets.xlstm.XLSTM.embed_dim = 512
+nets.xlstm.XLSTM.depth = 12
+nets.xlstm.XLSTM.ker_size = 4
+nets.xlstm.XLSTM.signature = (7, 1)
+nets.xlstm.XLSTM.p_factor = (2, 1.333333)
+nets.xlstm.XLSTM.head_num = 8
+nets.xlstm.XLSTM.head_dim = 16
+nets.xlstm.XLSTM.input_dropout = 0.0
+nets.xlstm.XLSTM.num_patches = None

@@ -1,4 +1,5 @@
 import math
+import pdb
 
 import gin
 import torch
@@ -65,5 +66,6 @@ class XLSTM(nn.Module):
 
     def forward(self, x):
         x = self.input_dropout(x)
+        pdb.set_trace()
         out, h = self.model(x)
         return out
