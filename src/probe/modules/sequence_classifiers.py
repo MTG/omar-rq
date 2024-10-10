@@ -9,6 +9,7 @@ from torchmetrics.classification import (
     MultilabelAveragePrecision,
     MultilabelAUROC,
     MultilabelConfusionMatrix,
+    MulticlassConfusionMatrix,
 )
 import matplotlib.pyplot as plt
 import numpy as np
@@ -242,6 +243,6 @@ class SequenceMultiClassClassificationProbe(SequenceClassificationProbe):
                 "test-acc": Accuracy(task="multiclass", num_classes=self.num_labels),
             }
         )
-        self.test_confusion_matrix = MultilabelConfusionMatrix(
-            num_labels=self.num_labels
+        self.test_confusion_matrix = MulticlassConfusionMatrix(
+            num_classes=self.num_labels
         )
