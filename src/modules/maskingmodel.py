@@ -74,9 +74,6 @@ class MaskingModel(L.LightningModule):
 
         # debugging variables
         self.tokens_accumulator = defaultdict(list)
-        self.first_coverage = True
-        self.downstream_embedding_layer = [-1]
-        self.overlap_ratio = 0.5
 
         if (
             hasattr(representation, "sr")
