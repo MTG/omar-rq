@@ -20,7 +20,6 @@ class AudioEmbeddingDataset(Dataset):
         mono: bool,
         half_precision: bool,
     ):
-
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
         assert len(self.filelist) > 0, f"No files found in {self.data_dir}"
@@ -36,7 +35,6 @@ class AudioEmbeddingDataset(Dataset):
         return len(self.filelist)
 
     def __getitem__(self, idx):
-
         # Get the file path
         file_path = self.data_dir / self.filelist[idx]
 
@@ -44,21 +42,28 @@ class AudioEmbeddingDataset(Dataset):
         try:
             audio, sr = torchaudio.load(file_path)  # (C, T)
 
-            # resample if necessary
-            if sr != self.new_freq:
-                audio = self.resample(audio)  # (C, T')
-
             # TODO: why don't we fix mono? The rest of the code is not ready for 2 channel audio
             # downmix to mono if necessary
             if audio.shape[0] > 1 and self.mono:
                 audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
 
+            # resample if necessary
+            if sr != self.new_freq:
+                if sr != self.orig_freq:
+                    self.resample = Resample(orig_freq=sr, new_freq=self.new_freq)
+                    self.orig_freq = sr
+
+                audio = audio.float()
+                audio = self.resample(audio)  # (C, T')
+
             # TODO: On CPU created problems with half precision
             # work with 16-bit precision
             if self.half_precision:
                 audio = audio.half()
+            else:
+                audio = audio.float()
 
-                return audio, file_path
+            return audio, file_path
 
         except Exception:
             print(f"Error loading file {file_path}")
