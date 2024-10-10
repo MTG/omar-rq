@@ -158,6 +158,9 @@ class SequenceClassificationProbe(L.LightningModule):
                 metric.update(logits, y_true)
 
         # Update the confusion matrix
+        if type(self.test_confusion_matrix) == MulticlassConfusionMatrix:
+            y_true = torch.argmax(y_true, dim=1)
+
         self.test_confusion_matrix.update(logits, y_true)
 
     def on_test_epoch_end(self):
@@ -166,7 +169,8 @@ class SequenceClassificationProbe(L.LightningModule):
             self.log(name, metric, on_epoch=True)
         # Compute the confusion matrix
         conf_matrix = self.test_confusion_matrix.compute()
-        fig = self.plot_confusion_matrix(conf_matrix)
+        multiclass = type(self.test_confusion_matrix) == MulticlassConfusionMatrix
+        fig = self.plot_confusion_matrix(conf_matrix, multiclass=multiclass)
         # Log the figure directly to wandb
         if self.logger:
             self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
@@ -177,30 +181,41 @@ class SequenceClassificationProbe(L.LightningModule):
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
-    def plot_confusion_matrix(self, conf_matrix):
+    def plot_confusion_matrix(self, conf_matrix, multiclass=False):
         conf_matrix = conf_matrix.cpu().numpy()
-        fig, axes = plt.subplots(
-            nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
-        )
-        axes = axes.flatten()
-        labels = [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
-        for ax, cm, label in zip(axes, conf_matrix, labels):
-            # Plot the confusion matrix in each subplot
-            im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-            ax.set_title(label, fontsize=15)
-            # Annotation inside the heatmap
-            for i in range(cm.shape[0]):
-                for j in range(cm.shape[1]):
-                    text = ax.text(
-                        j, i, cm[i, j], ha="center", va="center", color="red"
-                    )
 
-            ax.set_xticks(np.arange(cm.shape[1]))
-            ax.set_yticks(np.arange(cm.shape[0]))
-            ax.set_xticklabels(["False", "True"])
-            ax.set_yticklabels(["False", "True"])
+        if multiclass:
+            fig, ax = plt.subplots(figsize=(25, 25))
+            ax.imshow(conf_matrix, interpolation="nearest", cmap=plt.cm.Blues)
             ax.set_xlabel("Predicted Label")
             ax.set_ylabel("True Label")
+
+        else:
+            fig, axes = plt.subplots(
+                nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
+            )
+            axes = axes.flatten()
+            labels = (
+                [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
+            )
+            for ax, cm, label in zip(axes, conf_matrix, labels):
+                # Plot the confusion matrix in each subplot
+                im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+                ax.set_title(label, fontsize=15)
+                # Annotation inside the heatmap
+                for i in range(cm.shape[0]):
+                    for j in range(cm.shape[1]):
+                        text = ax.text(
+                            j, i, cm[i, j], ha="center", va="center", color="red"
+                        )
+
+                ax.set_xticks(np.arange(cm.shape[1]))
+                ax.set_yticks(np.arange(cm.shape[0]))
+                ax.set_xticklabels(["False", "True"])
+                ax.set_yticklabels(["False", "True"])
+                ax.set_xlabel("Predicted Label")
+                ax.set_ylabel("True Label")
+
         return fig
 
 
