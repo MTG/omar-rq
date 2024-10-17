@@ -94,9 +94,10 @@ class MaskingModel(L.LightningModule):
                     and hasattr(rep, "hop_len")
                     and hasattr(rep, "rep_dims")
                 ):
-                    self.sr = rep.sr
-                    self.hop_length = rep.hop_len
-                    self.rep_dims = rep.rep_dims
+                    if isinstance(rep, self.input_representation):
+                        self.sr = rep.sr
+                        self.hop_length = rep.hop_len
+                        self.rep_dims = rep.rep_dims
 
                     # Create a ModuleList to hold the quantizers
                     self.quantizers.append(
@@ -311,7 +312,16 @@ class MaskingModel(L.LightningModule):
                 if isinstance(rep, self.input_representation):
                     x_input = x_rep
 
+            # trim to the shortest
+            min_len = min([t.shape[1] for t in target_tokens_l])
+            max_len = max([t.shape[1] for t in target_tokens_l])
+            diff = max_len - min_len
+            assert diff < 3, f"diff {diff} is too big"
+
+            target_tokens_l = [t[:, :min_len] for t in target_tokens_l]
             target_tokens = torch.cat(target_tokens_l, dim=-1)
+            x_input = x_input[:, :min_len]
+
             x = x_input
 
         else:
@@ -322,12 +332,12 @@ class MaskingModel(L.LightningModule):
             )  # B x t x (16 x 4)
 
         # masking
+
         x, mask = self.random_masking(x)
 
         x = self.embedding_layer(x)
         x = self.net(x)
         logits = self.linear(x)
-        print(self.n_reps)
         logits = logits.view(
             B, -1, self.codebook_size, self.num_codebooks * self.n_reps
         )

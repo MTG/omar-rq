@@ -404,6 +404,7 @@ class CQT(torch.nn.Module):
         logC: bool,
         norm_mean: float | None,
         norm_std: float | None,
+        patch_size: Tuple[int, int],
         ###
         window_fn: Callable[..., Tensor] = torch.hann_window,
         resampling_method: str = "sinc_interp_hann",
@@ -419,6 +420,8 @@ class CQT(torch.nn.Module):
         self.logC = logC
         self.mean = norm_mean
         self.std = norm_std
+
+        self.patch_size = patch_size
 
         # CQT corresponds to a VQT with gamma set to 0
         self.transform = VQT(
