@@ -31,12 +31,22 @@ class AudioEmbeddingDataset(Dataset):
         self.mono = mono
         self.half_precision = half_precision
 
+        self.output_dir = Path("/gpfs/scratch/upf97/embeddings/ancfg1jo/nsynth/")
+
     def __len__(self):
         return len(self.filelist)
 
     def __getitem__(self, idx):
         # Get the file path
         file_path = self.data_dir / self.filelist[idx]
+
+        audio_name = file_path.stem
+        _output_dir = self.output_dir / audio_name[:3]
+        _output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = _output_dir / f"{audio_name}.pt"
+
+        if output_path.exists():
+            return None, file_path
 
         # load audio
         try:
