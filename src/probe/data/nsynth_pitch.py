@@ -64,26 +64,29 @@ class NSynthPitchEmbeddingLoadingDataset(Dataset):
         emb_path = self.embeddings_dir / emb_name[:3] / emb_name
 
         # If the embedding exists, load and process it
-        if emb_path.exists():
-            embedding = torch.load(emb_path, map_location="cpu")
-            embedding = self.prepare_embedding(
-                embedding
-            )  # Assuming this is an instance method
+        try:
+            if emb_path.exists():
+                embedding = torch.load(emb_path, map_location="cpu")
+                embedding = self.prepare_embedding(
+                    embedding
+                )  # Assuming this is an instance method
 
-            inst_str, pitch, velocity = fn.stem.split("-")
+                inst_str, pitch, velocity = fn.stem.split("-")
 
-            # one-hot encode the pitch
-            pitch = torch.tensor(int(pitch))
+                # one-hot encode the pitch
+                pitch = torch.tensor(int(pitch))
 
-            if pitch < self.min_pitch or pitch > self.max_pitch:
-                return None, None
+                if pitch < self.min_pitch or pitch > self.max_pitch:
+                    return None, None
 
-            pitch_ohe = torch.nn.functional.one_hot(
-                pitch - self.min_pitch,
-                num_classes=self.n_classes,
-            ).float()
+                pitch_ohe = torch.nn.functional.one_hot(
+                    pitch - self.min_pitch,
+                    num_classes=self.n_classes,
+                ).float()
 
-            return embedding, pitch_ohe
+                return embedding, pitch_ohe
+        except Exception as e:
+            print(f"Error processing {fn}: {e}")
 
         return None, None
 
@@ -99,6 +102,7 @@ class NSynthPitchEmbeddingLoadingDataset(Dataset):
                     embeddings.append(embedding)
                     labels.append(label)
 
+        print(f"Loaded {len(embeddings)} embeddings and labels.")
         return embeddings, labels
 
     def __len__(self):
