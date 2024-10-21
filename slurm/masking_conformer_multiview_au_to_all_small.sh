@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name masking_conformer_small
+#SBATCH --job-name a2a
 #SBATCH --account=upf97
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
