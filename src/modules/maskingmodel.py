@@ -52,7 +52,6 @@ class MaskingModel(L.LightningModule):
         self.mask_prob = mask_prob
         self.num_codebooks = num_codebooks
         self.codebook_size = codebook_size
-        self.patch_size = net.patch_size
         self.net = net
         self.representation = representation
         self.lr = lr
@@ -67,11 +66,6 @@ class MaskingModel(L.LightningModule):
         # downstream evaluation params
         self.downstream_embedding_layer = set([-1])
         self.overlap_ratio = 0.5
-
-        # aux nets
-        self.embedding_layer = nn.Linear(
-            self.patch_size[0] * self.patch_size[1], self.net.embed_dim
-        )
 
         n_reps = 1
         if isinstance(representation, nn.ModuleList):
@@ -98,6 +92,7 @@ class MaskingModel(L.LightningModule):
                         self.sr = rep.sr
                         self.hop_length = rep.hop_len
                         self.rep_dims = rep.rep_dims
+                        self.patch_size = rep.patch_size
 
                     # Create a ModuleList to hold the quantizers
                     self.quantizers.append(
@@ -144,6 +139,11 @@ class MaskingModel(L.LightningModule):
                 raise NotImplementedError(
                     f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
                 )
+
+        # aux nets
+        self.embedding_layer = nn.Linear(
+            self.patch_size[0] * self.patch_size[1], self.net.embed_dim
+        )
 
         # loss function
         self.loss = nn.CrossEntropyLoss()

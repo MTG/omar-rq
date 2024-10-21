@@ -369,7 +369,6 @@ class Conformer(nn.Module):
 
     def __init__(
         self,
-        patch_size,
         embed_dim: int,
         depth: int,
         conv_kernel_size: int,
@@ -385,7 +384,6 @@ class Conformer(nn.Module):
         num_patches: int,
     ):
         super(Conformer, self).__init__()
-        self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.depth = depth
         self.conv_kernel_size = conv_kernel_size
