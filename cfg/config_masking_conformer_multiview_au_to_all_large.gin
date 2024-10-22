@@ -10,7 +10,7 @@ train.wandb_params = {
 }
 
 # modules to use
-build_module.representation = [@nets.melspectrogram.MelSpectrogram, @nets.waveform.Waveform, @nets.cqt.CQT, @nets.encodec.EnCodec]
+build_module.representation = [@nets.cqt.CQT, @nets.encodec.EnCodec, @nets.melspectrogram.MelSpectrogram, @nets.waveform.Waveform]
 build_module.module = @modules.maskingmodel.MaskingModel
 build_module.net = @nets.conformer.Conformer
 
