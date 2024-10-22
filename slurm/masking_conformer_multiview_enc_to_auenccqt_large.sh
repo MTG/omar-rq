@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name a2weq
+#SBATCH --job-name e2weq
 #SBATCH --account=upf97
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
