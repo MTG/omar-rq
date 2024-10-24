@@ -3,13 +3,12 @@
 #SBATCH --account=upf97
 #SBATCH --qos=acc_resa
 #SBATCH --cpus-per-task=1
-#SBATCH --time=30:00:00
-#SBATCH --output=debug_${SLURM_ARRAY_TASK_ID}_output.txt
+#SBATCH --time=72:00:00
+#SBATCH --output=debug_%j_output.txt
 #SBATCH --mail-type=all
-#SBATCH --mail-user=pedro.ramoneda@upf.edu
+#SBATCH --mail-user=dmitry.bogdanov@upf.edu
 
 #RUN the du command
-module load anaconda
-source ../../essentia/bin/activate
+source /gpfs/projects/upf97/envs/essentia2/bin/activate
 
-python3 audio2rawbytes.py $SLURM_ARRAY_TASK_ID
+bash $1
