@@ -36,8 +36,8 @@ Let's say you have a Conda environment called `mtg-bsc` and you want to use this
 1. Load the environment at BSC.
 
     ```bash
-    mkdir -p mtg-bsc
-    tar -xzf mtg-bsc.tar.gz -C mtg-bsc
+    mkdir -p essentia2
+    tar -xzf essentia2.tar.gz -C essentia2
     module load anaconda
     source mtg-bsc/bin/activate
     python

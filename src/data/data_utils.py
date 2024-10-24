@@ -71,7 +71,7 @@ class AudioDataset(Dataset):
         if frame_offset == "random":
             n_samples = self.get_audio_duration(file_path)
             # if num samples is less than self.num_frames, we just return the audio and pad it
-            if n_samples < self.num_frames:
+            if n_samples <= self.num_frames:
                 offset_floats = 0
                 offset_bytes = 0
                 mmap = numpy.memmap(
