@@ -6,12 +6,12 @@
 #SBATCH --qos=acc_resa
 #SBATCH --nodes=4 # This needs to match Trainer(num_nodes=...)
 #SBATCH --ntasks-per-node=4 # This needs to match Trainer(devices=...)
-#SBATCH --cpus-per-task=80
 #SBATCH --gres=gpu:4
+#SBATCH --cpus-per-task=20
 #SBATCH --time=72:00:00
 #SBATCH --output=debug_%j_output.txt
 #SBATCH --mail-type=all
-#SBATCH --mail-user=pablo.alonso@upf.edu
+#SBATCH --mail-user=pedro.ramoneda@upf.edu
 
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 

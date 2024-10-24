@@ -321,7 +321,15 @@ class MaskingModel(L.LightningModule):
     ):
         """Extract audio embeddings using the model.
 
-        Parameters:
+        Parameters:mport Set
+
+import gin
+import torch
+import wandb
+from torch import nn
+import pytorch_lightning as L
+
+from modules.codebooks import Ra
             audio (torch.Tensor): 1D audio tensor.
             layer (list): List of layer indices to extract embeddings from.
             By default, it extracts embeddings from the last layer.

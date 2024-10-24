@@ -74,6 +74,12 @@ if __name__ == "__main__":
 
         gin.finalize()
 
-        train(module, datamodule, config_path=args.train_config, ckpt_path=ckpt_path)
+        train(
+            module,
+            datamodule,
+            config_path=args.train_config,
+            ckpt_path=ckpt_path
+        )
+
     except Exception:
         traceback.print_exc()
