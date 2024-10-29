@@ -12,7 +12,7 @@ By default, the embeddings won't be aggregated and will be saved as they are.
 import traceback
 import argparse
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
 import gin.torch
 import pytorch_lightning as L
@@ -65,7 +65,7 @@ def train(
     embeddings_dir: Path,
     params: dict,
     device_dict: dict,
-    embedding_layer: List[int],
+    embedding_layer: List[int] | Set[int],
     overlap_ratio: float,
     wandb_params=None,
 ):
@@ -88,7 +88,7 @@ def train(
     module, _ = build_module(trainer=trainer)
 
     # Set the embedding layer
-    module.downstream_embedding_layer = embedding_layer
+    module.downstream_embedding_layer = set(embedding_layer)
 
     # Set the overlap ratio
     module.overlap_ratio = overlap_ratio

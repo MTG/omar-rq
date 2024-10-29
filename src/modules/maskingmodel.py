@@ -2,7 +2,7 @@ import math
 import os
 import random
 from collections import defaultdict
-from typing import Set
+from typing import Set, List
 
 import gin
 import torch
@@ -316,15 +316,15 @@ class MaskingModel(L.LightningModule):
     def extract_embeddings(
         self,
         audio: torch.Tensor,
-        layers: Set[int] | None = None,
+        layers: Set[int] | List[int] | None = None,
         overlap_ratio: float | None = None,
     ):
         """Extract audio embeddings using the model.
 
         Parameters:
             audio (torch.Tensor): 1D audio tensor.
-            layer (list): List of layer indices to extract embeddings from.
-            By default, it extracts embeddings from the last layer.
+            layers (set | list): Layer indices to extract embeddings from.
+            By default, it extracts embeddings from only the last layer.
 
         Output:
             torch.Tensor: Extracted embeddings.
@@ -341,7 +341,7 @@ class MaskingModel(L.LightningModule):
         # If a layer is not provided, use the layer specified at initialization
         if layers is None:
             layers = self.downstream_embedding_layer
-        assert isinstance(layers, set), "Layer must be a set."
+        layers = set(layers)
         if overlap_ratio is None:
             overlap_ratio = self.overlap_ratio
         assert (
@@ -375,9 +375,11 @@ class MaskingModel(L.LightningModule):
         # Embed the representation
         x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
         x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
-        # TODO: support multiple layers
-        x_chunks = self.net(x_chunks, layers=layers)  # (B, N, Cout)
-        x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
+        x_chunks = self.net(x_chunks, layers=layers)  # List of (B, N, Cout) tensors or (B, N, Cout)
+        if len(layers) == 1: # (L, B, N, Cout)
+            x_chunks = x_chunks.unsqueeze(0)
+        else:
+            x_chunks = torch.stack(x_chunks)
 
         return x_chunks
 
