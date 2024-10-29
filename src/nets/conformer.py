@@ -423,7 +423,7 @@ class Conformer(nn.Module):
     def forward(
         self,
         x,
-        layers: Set[int] = set([-1]),
+        layers: Set[int] = {-1},
     ):
         # Downsampling (preprocessing) -> patching and projection layer (model masking) -> here
         x = self.input_dropout(x)
