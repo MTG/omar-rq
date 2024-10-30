@@ -4,11 +4,12 @@
 #SBATCH --account=upf97
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
-#SBATCH --nodes=1 # This needs to match Trainer(num_nodes=...)
-#SBATCH --cpus-per-task=80
+#SBATCH --nodes=2 # This needs to match Trainer(num_nodes=...)
+#SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:4
+#SBATCH --ntasks-per-node=4
 #SBATCH --time=72:00:00
-#SBATCH --output=debug_l8_%j_output.txt
+#SBATCH --output=debug_%j_output.txt
 #SBATCH --mail-type=all
 #SBATCH --mail-user=pedro.ramoneda@upf.edu
 
