@@ -215,7 +215,7 @@ class MaskingModel(L.LightningModule):
         plt.savefig(f"figs/spectrogram_with_tokens_{randint}.pdf")
         plt.close()
 
-    def vit_tokenization(self, spectrogram, quantizers, rep):
+    def vit_tokenization(self, spectrogram, rep, quantizers=None):
         B, F, T = spectrogram.shape
         num_patches_f = F // rep.patch_size[0]
         num_patches_t = T // rep.patch_size[1]
@@ -228,15 +228,22 @@ class MaskingModel(L.LightningModule):
         )
         # Flatten patches to tokens
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
-        # Return patches and tokens
-        tokens = torch.stack([quantizer(patches) for quantizer in quantizers], dim=-1)
-        if self.plot_tokens:
-            self.plot_spectrogram_with_tokens(
-                spectrogram[0].detach().cpu(),
-                num_patches_f,
-                num_patches_t,
-                tokens[0, :, 0].detach().cpu(),
+
+        # Apply quantization
+        if quantizers:
+            tokens = torch.stack(
+                [quantizer(patches) for quantizer in quantizers], dim=-1
             )
+            if self.plot_tokens:
+                self.plot_spectrogram_with_tokens(
+                    spectrogram[0].detach().cpu(),
+                    num_patches_f,
+                    num_patches_t,
+                    tokens[0, :, 0].detach().cpu(),
+                )
+        else:
+            tokens = None
+
         return patches, tokens
 
     def random_masking_simple(self, patches):
@@ -305,7 +312,7 @@ class MaskingModel(L.LightningModule):
             for i, rep in enumerate(self.representation):
                 x_rep = rep(x)
                 x_rep, target_tokens = self.vit_tokenization(
-                    x_rep, self.quantizers[i], rep
+                    x_rep, rep, self.quantizers[i]
                 )
                 target_tokens_l.append(target_tokens)
 
@@ -328,7 +335,7 @@ class MaskingModel(L.LightningModule):
             x = self.representation(x)
             # get target feature tokens
             x, target_tokens = self.vit_tokenization(
-                x, self.quantizers, self.representation
+                x, self.representation, self.quantizers
             )  # B x t x (16 x 4)
 
         # masking
@@ -449,7 +456,7 @@ class MaskingModel(L.LightningModule):
             x_chunks[i, :, : chunk.shape[1]] = chunk
 
         # Embed the representation
-        x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
+        x_chunks, _ = self.vit_tokenization(x_chunks, input_rep)  # (B, N, P1*P2)
         x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
         # TODO: support multiple layers
         x_chunks = self.net(x_chunks, layers=layers)  # (B, N, Cout)
