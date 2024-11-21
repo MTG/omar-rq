@@ -424,6 +424,9 @@ class MaskingModel(L.LightningModule):
         # If a layer is not provided, use the layer specified at initialization
         if layers is None:
             layers = self.downstream_embedding_layer
+
+        layers = set(layers)
+
         assert isinstance(layers, set), "Layer must be a set."
         if overlap_ratio is None:
             overlap_ratio = self.overlap_ratio
