@@ -28,7 +28,7 @@ class Waveform(torch.nn.Module):
         return (input_values - (self.mean)) / (self.std)
 
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
-        waveform = waveform.unsqueeze(1)
+        waveform = waveform.unsqueeze(-2)
 
         # normalize
         if self.mean is not None and self.std is not None:
