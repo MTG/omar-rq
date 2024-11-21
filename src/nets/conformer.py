@@ -1,4 +1,5 @@
-from typing import Set
+import warnings
+from typing import Set, Tuple
 
 import gin
 import torch
@@ -382,6 +383,7 @@ class Conformer(nn.Module):
         use_deepnorm: bool,
         use_rope: bool,
         num_patches: int,
+        patch_size: Tuple[int, int] | None = None,
     ):
         super(Conformer, self).__init__()
         self.embed_dim = embed_dim
@@ -398,6 +400,11 @@ class Conformer(nn.Module):
         self.num_patches = num_patches
 
         self.input_dropout = nn.Dropout(input_dropout)
+
+        if patch_size is not None:
+            warnings.warn(
+                "Deprecated: patch_size parameter was set. This behavior is deprecated since now the patch size should be set on each of the individual input representations."
+            )
 
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(
