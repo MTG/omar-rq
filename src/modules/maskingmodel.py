@@ -431,14 +431,28 @@ class MaskingModel(L.LightningModule):
             overlap_ratio >= 0 and overlap_ratio < 1
         ), "Overlap ratio must be between 0 and 1."
 
+        x = None
+        input_rep = None
+
         # Compute the representation
-        x = self.representation(audio)  # (F, Tm)
+        if isinstance(self.representation, nn.ModuleList):
+            assert (
+                self.input_representation is not None
+            ), "`input_representation` must be provided."
+            for rep in self.representation:
+                if isinstance(rep, self.input_representation):
+                    input_rep = rep
+                    x = rep(audio)
+        else:
+            x = self.representation(audio)  # (F, Tm)
 
         # TODO: what if in Frequency axis we need to aggregate?
         assert x.shape[0] == self.patch_size[0], (
             f"Frequency patching is not implemented yet!"
             f"Expected {self.patch_size[0]} but got {x.shape[0]}"
         )
+
+        assert x is not None, "Representation not found."
 
         # Chunk the representation using the model's context length
         chunk_len = self.patch_size[1] * self.net.num_patches
