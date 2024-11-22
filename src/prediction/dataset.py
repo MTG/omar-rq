@@ -57,15 +57,18 @@ class AudioEmbeddingDataset(Dataset):
 
         i = 0
         for filepath in tqdm(self.filelist):
-            hop_size = self.n_seconds * self.overlap_ratio
+            try:
+                hop_size = self.n_seconds * self.overlap_ratio
 
-            metadata = torchaudio.info(self.data_dir / filepath)
-            mtt_dur = metadata.num_frames / metadata.sample_rate
-            n_segments = int(mtt_dur / hop_size)
+                metadata = torchaudio.info(self.data_dir / filepath)
+                mtt_dur = metadata.num_frames / metadata.sample_rate
+                n_segments = int(mtt_dur / hop_size)
 
-            for j in range(n_segments):
-                self.index[i] = (filepath, j)
-                i += 1
+                for j in range(n_segments):
+                    self.index[i] = (filepath, j)
+                    i += 1
+            except Exception as e:
+                print(f"Error processing file {filepath}: {e}")
 
     def __len__(self):
         return len(self.index)
