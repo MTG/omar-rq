@@ -15,22 +15,25 @@ predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
 
 # Audio Loader for embedding extraction
-AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/"
+AudioEmbeddingDataModule.data_dir = "/data0/palonso/ssl-mtg/downstream_datasets/magnatagatune/"
 AudioEmbeddingDataModule.file_format = "mp3"
 AudioEmbeddingDataModule.orig_freq = 16000
 AudioEmbeddingDataModule.new_freq = 16000 # TODO read from train cfg
 AudioEmbeddingDataModule.mono = True # TODO read from train cfg
 AudioEmbeddingDataModule.half_precision = True # TODO read from train cfg
 AudioEmbeddingDataModule.num_workers = 20
+AudioEmbeddingDataModule.batch_size = 64
+AudioEmbeddingDataModule.overlap_ratio = 0.5
+AudioEmbeddingDataModule.num_frames = 480000
 
 
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-MTTEmbeddingLoadingDataModule.gt_path = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/binary.npy"
-MTTEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/train.npy"
-MTTEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/valid.npy"
-MTTEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/test.npy"
+MTTEmbeddingLoadingDataModule.gt_path = "/data0/palonso/ssl-mtg/downstream_datasets/magnatagatune/metadata/mtat/binary.npy"
+MTTEmbeddingLoadingDataModule.train_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/magnatagatune/metadata/mtat/train.npy"
+MTTEmbeddingLoadingDataModule.val_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/magnatagatune/metadata/mtat/valid.npy"
+MTTEmbeddingLoadingDataModule.test_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/magnatagatune/metadata/mtat/test.npy"
 MTTEmbeddingLoadingDataModule.batch_size = 64
 MTTEmbeddingLoadingDataModule.num_workers = 10
 MTTEmbeddingLoadingDataModule.layer_aggregation = "none"
