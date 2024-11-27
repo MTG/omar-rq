@@ -93,10 +93,13 @@ def train(
     # Set the overlap ratio
     module.overlap_ratio = overlap_ratio
 
+    # Get AudioDataset waveform realted parameters
+    audio_ds = gin.get_bindings(AudioDataset)
+
     # Get the data module
     data_module = AudioEmbeddingDataModule(
-        orig_freq=module.orig_freq,
-        new_freq=module.new_freq,
+        orig_freq=audio_ds["orig_freq"],
+        new_freq=audio_ds["new_freq"],
         mono=module.mono,
     )
 
@@ -125,7 +128,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-
         # Parse the gin configs.
         for config_file in [args.train_config, args.predict_config]:
             gin.parse_config_file(config_file, skip_unknown=True)
