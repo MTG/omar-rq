@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import json
 import math
 from pathlib import Path
@@ -5,6 +7,7 @@ from pathlib import Path
 import gin.torch
 import torch
 from transformers import EncodecModel
+from torchaudio.transforms import Resample
 
 
 @gin.configurable
@@ -14,12 +17,15 @@ class EnCodec(torch.nn.Module):
         weights_path: Path,
         norm_type: str | None,
         stats_path: Path,
+        orig_sr: int,
+        patch_size: Tuple[int, int],
     ):
         super().__init__()
 
         self.net = EncodecModel.from_pretrained(weights_path)
-
         self.norm_type = norm_type
+        self.orig_sr = orig_sr
+        self.patch_size = patch_size
 
         if self.norm_type is not None:
             with open(stats_path, "r") as f:
@@ -43,8 +49,13 @@ class EnCodec(torch.nn.Module):
         self.hop_len = 320
         self.rep_dims = 128
 
+        self.resample = Resample(orig_freq=self.orig_sr, new_freq=self.sr)
+
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
         # We do not consider finetuning EnCodec for now
+
+        if self.orig_sr != self.sr:
+            waveform = self.resample(waveform)
 
         with torch.no_grad():
             self.eval()
