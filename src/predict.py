@@ -18,6 +18,7 @@ import gin.torch
 import pytorch_lightning as L
 
 from data import DATASETS
+from data.data_utils import AudioDataset
 from modules import MODULES
 from nets import NETS
 from utils import build_module
@@ -100,7 +101,8 @@ def train(
     data_module = AudioEmbeddingDataModule(
         orig_freq=audio_ds["orig_freq"],
         new_freq=audio_ds["new_freq"],
-        mono=module.mono,
+        mono=audio_ds["mono"],
+        half_precision=audio_ds["half_precision"],
     )
 
     # Extract embeddings with the model
