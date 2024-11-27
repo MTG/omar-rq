@@ -88,8 +88,9 @@ class AudioEmbeddingDataset(Dataset):
 
             # TODO: why don't we fix mono? The rest of the code is not ready for 2 channel audio
             # downmix to mono if necessary
-            if audio.shape[0] > 1 and self.mono:
-                audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
+            if self.mono:
+                # Do not keep the channel dimension for consistency with the training dataloader
+                audio = torch.mean(audio, dim=0, keepdim=False)  # (T')
 
             # resample if necessary
             if sr != self.new_freq:
@@ -98,7 +99,9 @@ class AudioEmbeddingDataset(Dataset):
                     self.orig_freq = sr
 
                 audio = audio.float()
-                audio = self.resample(audio)  # (C, T')
+                audio = self.resample(
+                    audio
+                )  # (T') | (C, T'), only the former is supported for now
 
             # TODO: On CPU created problems with half precision
             # work with 16-bit precision
