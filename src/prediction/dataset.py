@@ -61,14 +61,14 @@ class AudioEmbeddingDataset(Dataset):
                 hop_size = self.n_seconds * self.overlap_ratio
 
                 metadata = torchaudio.info(self.data_dir / filepath)
-                mtt_dur = metadata.num_frames / metadata.sample_rate
-                n_segments = int(mtt_dur / hop_size)
+                seconds = metadata.num_frames / metadata.sample_rate
+                n_segments = int(seconds / hop_size)
 
                 for j in range(n_segments):
                     self.index[i] = (filepath, j)
                     i += 1
             except Exception as e:
-                print(f"Error processing file {filepath}: {e}")
+                print(f"Error processing file {filepath}")
 
     def __len__(self):
         return len(self.index)
