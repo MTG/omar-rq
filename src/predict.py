@@ -94,7 +94,11 @@ def train(
     module.overlap_ratio = overlap_ratio
 
     # Get the data module
-    data_module = AudioEmbeddingDataModule()
+    data_module = AudioEmbeddingDataModule(
+        orig_freq=module.orig_freq,
+        new_freq=module.new_freq,
+        mono=module.mono,
+    )
 
     # Extract embeddings with the model
     trainer.predict(
