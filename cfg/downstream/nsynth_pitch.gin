@@ -1,5 +1,5 @@
 dataset_name = "nsynth"
-embeddings_dir = "/gpfs/scratch/upf97/embeddings/"
+embeddings_dir = "/data0/palonso/ssl-mtg/embeddings/"
 
 # Lighting Trainer parameters, overwrites the training config
 predict.device_dict = {
@@ -15,21 +15,24 @@ predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
 
 # Audio Loader for embedding extraction
-AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/nsynth/"
+AudioEmbeddingDataModule.data_dir = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/"
 AudioEmbeddingDataModule.file_format = "wav"
 AudioEmbeddingDataModule.orig_freq = 16000
 AudioEmbeddingDataModule.new_freq = 16000
 AudioEmbeddingDataModule.mono = True
 AudioEmbeddingDataModule.half_precision = True
 AudioEmbeddingDataModule.num_workers = 20
+AudioEmbeddingDataModule.batch_size = 128
+AudioEmbeddingDataModule.overlap_ratio = 0.5
+AudioEmbeddingDataModule.num_frames = 480000
 
 
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
-NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
-NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
+NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
+NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
+NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
 NSynthPitchEmbeddingLoadingDataModule.batch_size = 64
 NSynthPitchEmbeddingLoadingDataModule.num_workers = 0
 NSynthPitchEmbeddingLoadingDataModule.layer_aggregation = "none"
@@ -40,7 +43,7 @@ train_probe.wandb_params = {
     "project": "nsynth",
     "offline": True,
     "entity": "mtg-upf",
-    "save_dir": "/gpfs/projects/upf97/logs/",
+    "save_dir": "/data0/palonso/ssl-mtg/logs/",
 }
 
 train_probe.train_params = {
