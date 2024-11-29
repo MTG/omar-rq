@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 
 import gin.torch
 import pytorch_lightning as L
@@ -26,7 +27,7 @@ def gin_config_to_readable_dictionary(gin_config: dict):
 
 @gin.configurable
 def build_module(
-    representation: nn.Module,
+    representation: nn.Module | List,
     net: nn.Module,
     module: L.LightningModule,
     trainer: L.Trainer = None,
@@ -37,7 +38,11 @@ def build_module(
     Lightning Trainer can use it to restore the training."""
 
     # Evaluate the provided references, i.e. convert the strings to the actual objects
-    representation = representation()
+    if isinstance(representation, list):
+        representation = nn.ModuleList([r() for r in representation])
+    else:
+        representation = representation()
+
     net = net()
 
     if ckpt_path is not None:  # Load the checkpoint if provided

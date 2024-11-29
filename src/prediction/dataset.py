@@ -6,6 +6,7 @@ import gin.torch
 import pytorch_lightning as L
 from torch.utils.data import Dataset, DataLoader
 from torchaudio.transforms import Resample
+from tqdm import tqdm
 
 
 class AudioEmbeddingDataset(Dataset):
@@ -19,6 +20,8 @@ class AudioEmbeddingDataset(Dataset):
         new_freq: int,
         mono: bool,
         half_precision: bool,
+        overlap_ratio: float,
+        num_frames: int,
     ):
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
@@ -31,14 +34,49 @@ class AudioEmbeddingDataset(Dataset):
         self.mono = mono
         self.half_precision = half_precision
 
-        self.output_dir = Path("/gpfs/scratch/upf97/embeddings/ancfg1jo/nsynth/")
+        self.index = dict()  # idx: (file_path, seg)
+
+        self.overlap_ratio = overlap_ratio
+
+        self.n_frames = num_frames
+        self.n_seconds = self.n_frames / self.orig_freq
+
+        assert (
+            self.overlap_ratio >= 0 and self.overlap_ratio < 1
+        ), "Overlap ratio must be between 0 and 1."
+
+        self.compute_segments_per_file()
+
+        print(f"Found {len(self)} segments in {len(self.filelist)} files.")
+
+    def compute_segments_per_file(self):
+        self.index = dict()
+        self.track2idx = dict()
+
+        print("Computing segments per file...")
+
+        i = 0
+        for filepath in tqdm(self.filelist):
+            try:
+                hop_size = self.n_seconds * self.overlap_ratio
+
+                metadata = torchaudio.info(self.data_dir / filepath)
+                seconds = metadata.num_frames / metadata.sample_rate
+                n_segments = int(seconds / hop_size)
+
+                for j in range(n_segments):
+                    self.index[i] = (filepath, j)
+                    i += 1
+            except Exception as e:
+                print(f"Error processing file {filepath}")
 
     def __len__(self):
-        return len(self.filelist)
+        return len(self.index)
 
     def __getitem__(self, idx):
         # Get the file path
-        file_path = self.data_dir / self.filelist[idx]
+        file_path, segment = self.index[idx]
+        file_path = self.data_dir / file_path
 
         audio_name = file_path.stem
         _output_dir = self.output_dir / audio_name[:3]
@@ -50,12 +88,17 @@ class AudioEmbeddingDataset(Dataset):
 
         # load audio
         try:
-            audio, sr = torchaudio.load(file_path)  # (C, T)
+            num_frames = int(self.n_seconds * self.orig_freq)
+            frame_offset = num_frames * segment * self.overlap_ratio
+            audio, sr = torchaudio.load(
+                file_path, num_frames=num_frames, frame_offset=frame_offset
+            )  # (C, T)
 
             # TODO: why don't we fix mono? The rest of the code is not ready for 2 channel audio
             # downmix to mono if necessary
-            if audio.shape[0] > 1 and self.mono:
-                audio = torch.mean(audio, dim=0, keepdim=True)  # (1, T')
+            if self.mono:
+                # Do not keep the channel dimension for consistency with the training dataloader
+                audio = torch.mean(audio, dim=0, keepdim=False)  # (T')
 
             # resample if necessary
             if sr != self.new_freq:
@@ -64,7 +107,9 @@ class AudioEmbeddingDataset(Dataset):
                     self.orig_freq = sr
 
                 audio = audio.float()
-                audio = self.resample(audio)  # (C, T')
+                audio = self.resample(
+                    audio
+                )  # (T') | (C, T'), only the former is supported for now
 
             # TODO: On CPU created problems with half precision
             # work with 16-bit precision
@@ -73,16 +118,13 @@ class AudioEmbeddingDataset(Dataset):
             else:
                 audio = audio.float()
 
-            return audio, file_path
+            # TODO zero pad
+
+            return audio, str(file_path)
 
         except Exception:
             print(f"Error loading file {file_path}")
             return None, file_path
-
-    @staticmethod
-    def collate_fn(items):
-        # TODO: Find a better way to do this
-        return [item[0] for item in items][0], [item[1] for item in items][0]
 
 
 @gin.configurable
@@ -96,6 +138,9 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         mono: bool,
         half_precision: bool,
         num_workers: int,
+        batch_size: int,
+        overlap_ratio: float,
+        num_frames: int,
     ):
         super().__init__()
 
@@ -106,6 +151,9 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self.mono = mono
         self.half_precision = half_precision
         self.num_workers = num_workers
+        self.batch_size = batch_size
+        self.overlap_ratio = overlap_ratio
+        self.num_frames = num_frames
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
@@ -116,13 +164,14 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
                 new_freq=self.new_freq,
                 mono=self.mono,
                 half_precision=self.half_precision,
+                overlap_ratio=self.overlap_ratio,
+                num_frames=self.num_frames,
             )
 
     def predict_dataloader(self):
         return DataLoader(
             self.dataset,
-            batch_size=1,
+            batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=AudioEmbeddingDataset.collate_fn,
         )

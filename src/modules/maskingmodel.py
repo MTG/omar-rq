@@ -1,7 +1,6 @@
 import math
 import os
 import random
-import warnings
 from collections import defaultdict
 from typing import Set
 
@@ -44,6 +43,7 @@ class MaskingModel(L.LightningModule):
         seed: int,
         diff_input: bool,
         plot_tokens: bool = False,
+        input_representation: nn.Module | None = None,
     ):
         super(MaskingModel, self).__init__()
 
@@ -52,7 +52,6 @@ class MaskingModel(L.LightningModule):
         self.mask_prob = mask_prob
         self.num_codebooks = num_codebooks
         self.codebook_size = codebook_size
-        self.patch_size = net.patch_size
         self.net = net
         self.representation = representation
         self.lr = lr
@@ -62,48 +61,91 @@ class MaskingModel(L.LightningModule):
         self.tokens_coverage = []
         self.first_coverage = True
         self.diff_input = diff_input
+        self.input_representation = input_representation
 
         # downstream evaluation params
         self.downstream_embedding_layer = set([-1])
-        self.overlap_ratio = 0.5
+
+        self.predict_data = defaultdict(list)
+
+        n_reps = 1
+        if isinstance(representation, nn.ModuleList):
+            n_reps = len(representation)
+        self.n_reps = n_reps
+
+        self.linear = nn.Linear(
+            self.net.embed_dim, codebook_size * num_codebooks * n_reps
+        )
+
+        # debugging variables
+        self.tokens_accumulator = defaultdict(list)
+
+        if isinstance(representation, nn.ModuleList):
+            self.quantizers = nn.ModuleList()
+
+            for rep in representation:
+                if (
+                    hasattr(rep, "sr")
+                    and hasattr(rep, "hop_len")
+                    and hasattr(rep, "rep_dims")
+                ):
+                    if isinstance(rep, self.input_representation):
+                        self.sr = rep.sr
+                        self.hop_length = rep.hop_len
+                        self.rep_dims = rep.rep_dims
+                        self.patch_size = rep.patch_size
+
+                    # Create a ModuleList to hold the quantizers
+                    self.quantizers.append(
+                        nn.ModuleList(
+                            [
+                                RandomProjectionQuantizer(
+                                    rep.patch_size[0] * rep.patch_size[1],
+                                    codebook_dim,
+                                    codebook_size,
+                                    seed=seed + i,
+                                    diff_input=self.diff_input,
+                                )
+                                for i in range(num_codebooks)
+                            ]
+                        )
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
+                    )
+        else:
+            if (
+                hasattr(representation, "sr")
+                and hasattr(representation, "hop_len")
+                and hasattr(representation, "rep_dims")
+            ):
+                self.sr = representation.sr
+                self.hop_length = representation.hop_len
+                self.rep_dims = representation.rep_dims
+                self.patch_size = representation.patch_size
+                # Create a ModuleList to hold the quantizers
+                self.quantizers = nn.ModuleList(
+                    [
+                        RandomProjectionQuantizer(
+                            self.patch_size[0] * self.patch_size[1],
+                            codebook_dim,
+                            codebook_size,
+                            seed=seed + i,
+                            diff_input=self.diff_input,
+                        )
+                        for i in range(num_codebooks)
+                    ]
+                )
+            else:
+                raise NotImplementedError(
+                    f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
+                )
 
         # aux nets
         self.embedding_layer = nn.Linear(
             self.patch_size[0] * self.patch_size[1], self.net.embed_dim
         )
-        self.linear = nn.Linear(self.net.embed_dim, codebook_size * num_codebooks)
-
-        # debugging variables
-        self.tokens_accumulator = defaultdict(list)
-        self.first_coverage = True
-        self.downstream_embedding_layer = [-1]
-        self.overlap_ratio = 0.5
-
-        if (
-            hasattr(representation, "sr")
-            and hasattr(representation, "hop_len")
-            and hasattr(representation, "rep_dims")
-        ):
-            self.sr = representation.sr
-            self.hop_length = representation.hop_len
-            self.rep_dims = representation.rep_dims
-            # Create a ModuleList to hold the quantizers
-            self.quantizers = nn.ModuleList(
-                [
-                    RandomProjectionQuantizer(
-                        self.patch_size[0] * self.patch_size[1],
-                        codebook_dim,
-                        codebook_size,
-                        seed=seed + i,
-                        diff_input=self.diff_input,
-                    )
-                    for i in range(num_codebooks)
-                ]
-            )
-        else:
-            raise NotImplementedError(
-                f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
-            )
 
         # loss function
         self.loss = nn.CrossEntropyLoss()
@@ -175,30 +217,35 @@ class MaskingModel(L.LightningModule):
         plt.savefig(f"figs/spectrogram_with_tokens_{randint}.pdf")
         plt.close()
 
-    def vit_tokenization(self, spectrogram):
+    def vit_tokenization(self, spectrogram, rep, quantizers=None):
         B, F, T = spectrogram.shape
-        num_patches_f = F // self.patch_size[0]
-        num_patches_t = T // self.patch_size[1]
+        num_patches_f = F // rep.patch_size[0]
+        num_patches_t = T // rep.patch_size[1]
         # Reshape spectrogram into patches
-        patches = spectrogram.unfold(1, self.patch_size[0], self.patch_size[0])
-        patches = patches.unfold(2, self.patch_size[1], self.patch_size[1])
+        patches = spectrogram.unfold(1, rep.patch_size[0], rep.patch_size[0])
+        patches = patches.unfold(2, rep.patch_size[1], rep.patch_size[1])
         # Reshape to (B, num_patches_f * num_patches_t, patch_frames_f, patch_frames_t)
         patches = patches.contiguous().view(
-            B, num_patches_f * num_patches_t, self.patch_size[0], self.patch_size[1]
+            B, num_patches_f * num_patches_t, rep.patch_size[0], rep.patch_size[1]
         )
         # Flatten patches to tokens
         patches = patches.view(B, num_patches_f * num_patches_t, -1)
-        # Return patches and tokens
-        tokens = torch.stack(
-            [quantizer(patches) for quantizer in self.quantizers], dim=-1
-        )
-        if self.plot_tokens:
-            self.plot_spectrogram_with_tokens(
-                spectrogram[0].detach().cpu(),
-                num_patches_f,
-                num_patches_t,
-                tokens[0, :, 0].detach().cpu(),
+
+        # Apply quantization
+        if quantizers:
+            tokens = torch.stack(
+                [quantizer(patches) for quantizer in quantizers], dim=-1
             )
+            if self.plot_tokens:
+                self.plot_spectrogram_with_tokens(
+                    spectrogram[0].detach().cpu(),
+                    num_patches_f,
+                    num_patches_t,
+                    tokens[0, :, 0].detach().cpu(),
+                )
+        else:
+            tokens = None
+
         return patches, tokens
 
     def random_masking_simple(self, patches):
@@ -259,16 +306,49 @@ class MaskingModel(L.LightningModule):
         return losses, accuracies
 
     def forward(self, x):
-        x = self.representation(x[0])
+        x = x[0]
         B = x.shape[0]
-        # get target feature tokens
-        x, target_tokens = self.vit_tokenization(x)  # B x t x (16 x 4)
+
+        if isinstance(self.representation, nn.ModuleList):
+            target_tokens_l = []
+            for i, rep in enumerate(self.representation):
+                x_rep = rep(x)
+                x_rep, target_tokens = self.vit_tokenization(
+                    x_rep, rep, self.quantizers[i]
+                )
+                target_tokens_l.append(target_tokens)
+
+                if isinstance(rep, self.input_representation):
+                    x_input = x_rep
+
+            # trim to the shortest
+            min_len = min([t.shape[1] for t in target_tokens_l])
+            max_len = max([t.shape[1] for t in target_tokens_l])
+            diff = max_len - min_len
+            assert diff < 3, f"diff {diff} is too big"
+
+            target_tokens_l = [t[:, :min_len] for t in target_tokens_l]
+            target_tokens = torch.cat(target_tokens_l, dim=-1)
+            x_input = x_input[:, :min_len]
+
+            x = x_input
+
+        else:
+            x = self.representation(x)
+            # get target feature tokens
+            x, target_tokens = self.vit_tokenization(
+                x, self.representation, self.quantizers
+            )  # B x t x (16 x 4)
+
         # masking
         x, mask = self.random_masking(x)
+
         x = self.embedding_layer(x)
         x = self.net(x)
         logits = self.linear(x)
-        logits = logits.view(B, -1, self.codebook_size, self.num_codebooks)
+        logits = logits.view(
+            B, -1, self.codebook_size, self.num_codebooks * self.n_reps
+        )
         # get loss
         losses, accuracies = self.get_loss(logits, target_tokens, mask)
         return logits, losses, accuracies, target_tokens
@@ -307,21 +387,21 @@ class MaskingModel(L.LightningModule):
         x = batch
         logits, loss, accuracies, target_tokens = self.forward(x)
         self.log("val_loss", loss, prog_bar=True)
-        self.log(f"val_acc", accuracies)
+        self.log("val_acc", accuracies)
         return loss
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
-        x, _ = batch
-        # If the input is all zeros, return None to give signal
-        if x is None:
-            return None
-        return self.extract_embeddings(x.squeeze(0))
+        x, filenames = batch
+
+        embeddings = self.extract_embeddings(x).cpu()
+
+        for i in range(len(filenames)):
+            self.predict_data[filenames[i]].append(embeddings[:, i, :, :])
 
     def extract_embeddings(
         self,
         audio: torch.Tensor,
         layers: Set[int] | None = None,
-        overlap_ratio: float | None = None,
     ):
         """Extract audio embeddings using the model.
 
@@ -340,56 +420,48 @@ class MaskingModel(L.LightningModule):
 
         """
 
-        assert audio.ndim == 1, f"audio must be a 1D audio tensor not {audio.ndim}D."
-
         # If a layer is not provided, use the layer specified at initialization
         if layers is None:
             layers = self.downstream_embedding_layer
-            layers = set(layers)
+
+        layers = set(layers)
+
         assert isinstance(layers, set), "Layer must be a set."
-        if overlap_ratio is None:
-            overlap_ratio = self.overlap_ratio
-        assert (
-            overlap_ratio >= 0 and overlap_ratio < 1
-        ), "Overlap ratio must be between 0 and 1."
+
+        x = None
+        input_rep = None
 
         # Compute the representation
-        x = self.representation(audio)  # (F, Tm)
+        if isinstance(self.representation, nn.ModuleList):
+            assert (
+                self.input_representation is not None
+            ), "`input_representation` must be provided."
+            for rep in self.representation:
+                if isinstance(rep, self.input_representation):
+                    input_rep = rep
+                    x = rep(audio)
+        else:
+            x = self.representation(audio)  # (F, Tm)
+            input_rep = self.representation
 
         # TODO: what if in Frequency axis we need to aggregate?
-        if x.shape[0] == self.patch_size[0]:
-            warnings.warn(
-                f"Frequency patching is not implemented yet!"
-                f"Expected {self.patch_size[0]} but got {x.shape[0]}"
-            )
 
-        # Chunk the representation using the model's context length
-        chunk_len = self.patch_size[1] * self.net.num_patches
-        hop_len = int(chunk_len * (1 - overlap_ratio))
-
-        # Number of chunks
-        Nc = max((x.shape[1] - chunk_len) // hop_len + 1, 1)
-
-        # Do not apply zero padding when we have a single chunk
-        if Nc == 1:
-            chunk_len = x.shape[1]
-
-        # Create the chunks
-        x_chunks = torch.zeros(
-            (Nc, x.shape[0], chunk_len), device=x.device, dtype=x.dtype
+        assert x.shape[1] == self.patch_size[0], (
+            f"Frequency patching is not implemented yet!"
+            f"Expected {self.patch_size[1]} but got {x.shape[0]}"
         )
-        for i in range(Nc):
-            chunk = x[:, i * hop_len : i * hop_len + chunk_len]
-            x_chunks[i, :, : chunk.shape[1]] = chunk
+
+        assert x is not None, "Representation not found."
 
         # Embed the representation
-        x_chunks, _ = self.vit_tokenization(x_chunks)  # (B, N, P1*P2)
-        x_chunks = self.embedding_layer(x_chunks)  # (B, N, Cin)
-        # TODO: support multiple layers
-        x_chunks = self.net(x_chunks, layers=layers)  # (B, N, Cout)
-        x_chunks = x_chunks.unsqueeze(0)  # (L, B, N, Cout)
+        x, _ = self.vit_tokenization(x, input_rep)  # (B, N, P1*P2)
+        x = self.embedding_layer(x)  # (B, N, Cin)
 
-        return x_chunks
+        # TODO: support multiple layers
+        x = self.net(x, layers=layers)  # (B, N, Cout)
+        x = x.unsqueeze(0)  # (L, B, N, Cout)
+
+        return x
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(

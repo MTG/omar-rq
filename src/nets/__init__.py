@@ -5,6 +5,7 @@ from .transformer import Transformer
 from .conformer import Conformer
 from .encodec import EnCodec
 from .cqt import CQT
+from .waveform import Waveform
 
 NETS = {
     "net": Net,
@@ -14,4 +15,5 @@ NETS = {
     "conformer": Conformer,
     "encodec": EnCodec,
     "cqt": CQT,
+    "waveform": Waveform,
 }

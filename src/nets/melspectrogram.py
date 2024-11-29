@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import gin.torch
 import torch
 from torchaudio.transforms import (
@@ -28,6 +30,7 @@ class MelSpectrogram(torch.nn.Module):
         mel_scale: str,
         norm_mean: float,
         norm_std: float,
+        patch_size: Tuple[int, int],
     ):
         super().__init__()
 
@@ -38,6 +41,8 @@ class MelSpectrogram(torch.nn.Module):
         self.n_mel = n_mel
         self.stretch_factor = stretch_factor
         self.freq_mask_param = freq_mask_param
+
+        self.patch_size = patch_size
 
         self.spec = Spectrogram(
             n_fft=win_len,

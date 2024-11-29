@@ -1,4 +1,5 @@
-from typing import Set
+import warnings
+from typing import Set, Tuple
 
 import gin
 import torch
@@ -17,6 +18,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         qkv_bias=False,
         use_rope=False,
         max_len=10000,
+        use_flash_attention=True,
     ):
         super().__init__()
 
@@ -28,6 +30,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         self.d_in = d_in
         self.use_rope = use_rope
         self.rope_dim = self.head_dim
+        self.use_flash_attention = use_flash_attention
 
         self.qkv = nn.Linear(d_in, 3 * d_out, bias=qkv_bias)
         self.proj = nn.Linear(d_in, d_out)
@@ -69,9 +72,20 @@ class MHAPyTorchScaledDotProduct(nn.Module):
             keys += pos_encodings
 
         use_dropout = 0.0 if not self.training else self.dropout
-        with torch.backends.cuda.sdp_kernel(
-            enable_flash=True, enable_math=False, enable_mem_efficient=False
-        ):
+
+        if self.use_flash_attention:
+            with torch.backends.cuda.sdp_kernel(
+                enable_flash=True, enable_math=False, enable_mem_efficient=False
+            ):
+                context_vec = nn.functional.scaled_dot_product_attention(
+                    queries,
+                    keys,
+                    values,
+                    attn_mask=None,
+                    dropout_p=use_dropout,
+                    is_causal=True,
+                )
+        else:
             context_vec = nn.functional.scaled_dot_product_attention(
                 queries,
                 keys,
@@ -277,6 +291,7 @@ class ConformerBlock(nn.Module):
         alpha=0.1,
         beta=0.1,
         use_rope=False,
+        use_flash_attention=True,
     ):
         super(ConformerBlock, self).__init__()
         self.feed_forward_residual_factor = feed_forward_residual_factor
@@ -284,6 +299,7 @@ class ConformerBlock(nn.Module):
         self.alpha = alpha
         self.beta = beta
         self.use_rope = use_rope
+        self.use_flash_attention = use_flash_attention
 
         self.ff1 = FeedForwardBlock(embed_dim, feed_forward_expansion_factor, dropout)
         self.attention = MHAPyTorchScaledDotProduct(
@@ -292,6 +308,7 @@ class ConformerBlock(nn.Module):
             num_heads=num_heads,
             dropout=dropout,
             use_rope=use_rope,
+            use_flash_attention=self.use_flash_attention,
         )
         self.conv_block = ConvBlock(embed_dim, conv_kernel_size, dropout)
         self.ff2 = FeedForwardBlock(embed_dim, feed_forward_expansion_factor, dropout)
@@ -369,7 +386,6 @@ class Conformer(nn.Module):
 
     def __init__(
         self,
-        patch_size,
         embed_dim: int,
         depth: int,
         conv_kernel_size: int,
@@ -383,9 +399,10 @@ class Conformer(nn.Module):
         use_deepnorm: bool,
         use_rope: bool,
         num_patches: int,
+        patch_size: Tuple[int, int] | None = None,
+        use_flash_attention: bool = True,
     ):
         super(Conformer, self).__init__()
-        self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.depth = depth
         self.conv_kernel_size = conv_kernel_size
@@ -398,8 +415,14 @@ class Conformer(nn.Module):
         self.use_deepnorm = use_deepnorm
         self.use_rope = use_rope
         self.num_patches = num_patches
+        self.use_flash_attention = use_flash_attention
 
         self.input_dropout = nn.Dropout(input_dropout)
+
+        if patch_size is not None:
+            warnings.warn(
+                "Deprecated: patch_size parameter was set. This behavior is deprecated since now the patch size should be set on each of the individual input representations."
+            )
 
         # define global positional encoder to limit model parameters
         self.layers = nn.ModuleList(
@@ -415,6 +438,7 @@ class Conformer(nn.Module):
                     alpha=self.alpha_deepnorm,
                     beta=self.beta_deepnorm,
                     use_rope=self.use_rope,
+                    use_flash_attention=self.use_flash_attention,
                 )
                 for _ in range(depth)
             ]
