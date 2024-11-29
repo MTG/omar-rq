@@ -18,6 +18,7 @@ import gin.torch
 import pytorch_lightning as L
 
 from data import DATASETS
+from data.data_utils import AudioDataset
 from modules import MODULES
 from nets import NETS
 from utils import build_module
@@ -93,8 +94,16 @@ def train(
     # Set the overlap ratio
     module.overlap_ratio = overlap_ratio
 
+    # Get AudioDataset waveform realted parameters
+    audio_ds = gin.get_bindings(AudioDataset)
+
     # Get the data module
-    data_module = AudioEmbeddingDataModule()
+    data_module = AudioEmbeddingDataModule(
+        orig_freq=audio_ds["orig_freq"],
+        new_freq=audio_ds["new_freq"],
+        mono=audio_ds["mono"],
+        half_precision=audio_ds["half_precision"],
+    )
 
     # Extract embeddings with the model
     trainer.predict(
@@ -121,7 +130,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-
         # Parse the gin configs.
         for config_file in [args.train_config, args.predict_config]:
             gin.parse_config_file(config_file, skip_unknown=True)

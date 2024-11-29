@@ -120,13 +120,12 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         contain all the chunks of a single track."""
 
         x, y_true = batch
-        assert y_true.shape[0] == 1, "A batch should contain a single track"
-        assert x.ndim == 2, "input should be 2D tensor of chunks"
 
         # process each chunk separately
-        logits = self.forward(x)  # (n_chunks, num_labels)
-        # Aggregate the chunk embeddings
-        logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
+        logits = self.forward(x)  # (batch, n_chunks, num_labels)
+        # TODO Use filename to aggregate the chunk embeddings
+        # logits = torch.mean(logits, dim=0, keepdim=True)  # (1, num_labels)
+
         # Calculate the loss for the track
         loss = self.criterion(logits, y_true)
         self.log("val_loss", loss)
