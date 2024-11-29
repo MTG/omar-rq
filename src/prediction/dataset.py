@@ -78,14 +78,6 @@ class AudioEmbeddingDataset(Dataset):
         file_path, segment = self.index[idx]
         file_path = self.data_dir / file_path
 
-        audio_name = file_path.stem
-        _output_dir = self.output_dir / audio_name[:3]
-        _output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = _output_dir / f"{audio_name}.pt"
-
-        if output_path.exists():
-            return None, file_path
-
         # load audio
         try:
             num_frames = int(self.n_seconds * self.orig_freq)
