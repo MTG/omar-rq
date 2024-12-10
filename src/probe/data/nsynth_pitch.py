@@ -115,6 +115,10 @@ class NSynthPitchEmbeddingLoadingDataset(Dataset):
         if self.mode == "train":  # If training, get a random chunk
             N = embeddings.size(0)
             embeddings = embeddings[torch.randint(0, N, ())]  # (F, )
+        else:
+            # TODO: Fix this and and cover the case of multi embeddings eval
+            embeddings = embeddings[0]
+
         labels = self.labels[idx]  # (C, )
 
         return embeddings, labels
@@ -154,13 +158,6 @@ class NSynthPitchEmbeddingLoadingDataset(Dataset):
                 embeddings = embeddings.max(dim=(0, 1)).unsqueeze(0)  # (1, F)
 
         return embeddings
-
-
-def collate_fn_val_test(items):
-    """Collate function to pack embeddings and labels for validation and testing."""
-    assert len(items) == 1, "Validation and testing should have one track at a time."
-    embeddings, labels = zip(*items)
-    return embeddings[0], labels[0].unsqueeze(0)
 
 
 @gin.configurable
@@ -244,17 +241,15 @@ class NSynthPitchEmbeddingLoadingDataModule(L.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
-            batch_size=1,
+            batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=collate_fn_val_test,
         )
 
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
-            batch_size=1,
+            batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=collate_fn_val_test,
         )
