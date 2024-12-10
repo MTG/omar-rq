@@ -5,9 +5,11 @@ import torch
 from torch import nn
 import pytorch_lightning as L
 from torchmetrics.classification import (
+    Accuracy,
     MultilabelAveragePrecision,
     MultilabelAUROC,
     MultilabelConfusionMatrix,
+    MulticlassConfusionMatrix,
 )
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,7 +17,7 @@ import wandb
 
 
 @gin.configurable
-class SequenceMultiLabelClassificationProbe(L.LightningModule):
+class SequenceClassificationProbe(L.LightningModule):
     """Train a probe using the embeddings from a pre-trained model to predict the
     labels of a downstream dataset. The probe is trained for multi-label
     classification. The macro AUROC, Mean Average Precision metrics are calculated.
@@ -35,7 +37,7 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         labels: Path = None,
         plot_dir: Path = None,
     ):
-        super(SequenceMultiLabelClassificationProbe, self).__init__()
+        super(SequenceClassificationProbe, self).__init__()
 
         self.in_features = in_features
         self.num_labels = num_labels
@@ -76,29 +78,15 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
 
         # Initialize the metrics
-        self.val_metrics = nn.ModuleDict(
-            {
-                "val-AUROC-macro": MultilabelAUROC(
-                    num_labels=num_labels, average="macro"
-                ),
-                "val-MAP-macro": MultilabelAveragePrecision(
-                    num_labels=num_labels, average="macro"
-                ),
-            }
-        )
-        self.test_metrics = nn.ModuleDict(
-            {
-                "test-AUROC-macro": MultilabelAUROC(
-                    num_labels=num_labels, average="macro"
-                ),
-                "test-MAP-macro": MultilabelAveragePrecision(
-                    num_labels=num_labels, average="macro"
-                ),
-            }
-        )
-        self.test_confusion_matrix = MultilabelConfusionMatrix(num_labels=num_labels)
+
+        self.init_metrics()
 
         self.best_val_metric = {metric: 0.0 for metric in self.val_metrics.keys()}
+
+    def init_metrics_and_optim(self):
+        raise NotImplementedError(
+            "This method needs to be implemented in the sibling class."
+        )
 
     def forward(self, x):
         # (B, F) -> (B, num_labels)
@@ -128,7 +116,6 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
 
         # Calculate the loss for the track
         loss = self.criterion(logits, y_true)
-        self.log("val_loss", loss)
         if return_predicted_class:
             predicted_class = (torch.sigmoid(logits) > 0.5).int()
             return logits, loss, predicted_class
@@ -136,16 +123,21 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         logits, loss = self.predict(batch)
-        self.log("val_loss", loss)
+        self.log("val_loss", loss, prog_bar=True)
+
         # Update all metrics with the current batch
         y_true = batch[1].int()
-        for metric in self.val_metrics.values():
-            metric.update(logits, y_true)
+        for name, metric in self.val_metrics.items():
+            if "acc" in name:
+                y_true_idx = torch.argmax(y_true, dim=1)
+                metric.update(logits, y_true_idx)
+            else:
+                metric.update(logits, y_true)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.val_metrics.items():
-            self.log(name, metric, on_epoch=True)
+            self.log(name, metric, on_epoch=True, prog_bar=True)
             # Save the best value
             metric_value = metric.compute().cpu().numpy()
             if metric_value > self.best_val_metric[name]:
@@ -153,11 +145,21 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
 
     def test_step(self, batch, batch_idx):
         logits, _ = self.predict(batch)
+
         # Update all metrics with the current batch
         y_true = batch[1].int()
-        for metric in self.test_metrics.values():
-            metric.update(logits, y_true)
+
+        for name, metric in self.test_metrics.items():
+            if "acc" in name:
+                y_true_idx = torch.argmax(y_true, dim=1)
+                metric.update(logits, y_true_idx)
+            else:
+                metric.update(logits, y_true)
+
         # Update the confusion matrix
+        if type(self.test_confusion_matrix) == MulticlassConfusionMatrix:
+            y_true = torch.argmax(y_true, dim=1)
+
         self.test_confusion_matrix.update(logits, y_true)
 
     def on_test_epoch_end(self):
@@ -166,7 +168,8 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
             self.log(name, metric, on_epoch=True)
         # Compute the confusion matrix
         conf_matrix = self.test_confusion_matrix.compute()
-        fig = self.plot_confusion_matrix(conf_matrix)
+        multiclass = type(self.test_confusion_matrix) == MulticlassConfusionMatrix
+        fig = self.plot_confusion_matrix(conf_matrix, multiclass=multiclass)
         # Log the figure directly to wandb
         if self.logger:
             self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
@@ -177,28 +180,83 @@ class SequenceMultiLabelClassificationProbe(L.LightningModule):
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
-    def plot_confusion_matrix(self, conf_matrix):
+    def plot_confusion_matrix(self, conf_matrix, multiclass=False):
         conf_matrix = conf_matrix.cpu().numpy()
-        fig, axes = plt.subplots(
-            nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
-        )
-        axes = axes.flatten()
-        labels = [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
-        for ax, cm, label in zip(axes, conf_matrix, labels):
-            # Plot the confusion matrix in each subplot
-            im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-            ax.set_title(label, fontsize=15)
-            # Annotation inside the heatmap
-            for i in range(cm.shape[0]):
-                for j in range(cm.shape[1]):
-                    text = ax.text(
-                        j, i, cm[i, j], ha="center", va="center", color="red"
-                    )
 
-            ax.set_xticks(np.arange(cm.shape[1]))
-            ax.set_yticks(np.arange(cm.shape[0]))
-            ax.set_xticklabels(["False", "True"])
-            ax.set_yticklabels(["False", "True"])
+        if multiclass:
+            fig, ax = plt.subplots(figsize=(25, 25))
+            ax.imshow(conf_matrix, interpolation="nearest", cmap=plt.cm.Blues)
             ax.set_xlabel("Predicted Label")
             ax.set_ylabel("True Label")
+
+        else:
+            fig, axes = plt.subplots(
+                nrows=10, ncols=5, figsize=(25, 50), constrained_layout=True
+            )
+            axes = axes.flatten()
+            labels = (
+                [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
+            )
+            for ax, cm, label in zip(axes, conf_matrix, labels):
+                # Plot the confusion matrix in each subplot
+                im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+                ax.set_title(label, fontsize=15)
+                # Annotation inside the heatmap
+                for i in range(cm.shape[0]):
+                    for j in range(cm.shape[1]):
+                        text = ax.text(
+                            j, i, cm[i, j], ha="center", va="center", color="red"
+                        )
+
+                ax.set_xticks(np.arange(cm.shape[1]))
+                ax.set_yticks(np.arange(cm.shape[0]))
+                ax.set_xticklabels(["False", "True"])
+                ax.set_yticklabels(["False", "True"])
+                ax.set_xlabel("Predicted Label")
+                ax.set_ylabel("True Label")
+
         return fig
+
+
+class SequenceMultiLabelClassificationProbe(SequenceClassificationProbe):
+    def init_metrics(self):
+        self.val_metrics = nn.ModuleDict(
+            {
+                "val-AUROC-macro": MultilabelAUROC(
+                    num_labels=self.num_labels, average="macro"
+                ),
+                "val-MAP-macro": MultilabelAveragePrecision(
+                    num_labels=self.num_labels, average="macro"
+                ),
+            }
+        )
+        self.test_metrics = nn.ModuleDict(
+            {
+                "test-AUROC-macro": MultilabelAUROC(
+                    num_labels=self.num_labels, average="macro"
+                ),
+                "test-MAP-macro": MultilabelAveragePrecision(
+                    num_labels=self.num_labels, average="macro"
+                ),
+            }
+        )
+        self.test_confusion_matrix = MultilabelConfusionMatrix(
+            num_labels=self.num_labels
+        )
+
+
+class SequenceMultiClassClassificationProbe(SequenceClassificationProbe):
+    def init_metrics(self):
+        self.val_metrics = nn.ModuleDict(
+            {
+                "val-acc": Accuracy(task="multiclass", num_classes=self.num_labels),
+            }
+        )
+        self.test_metrics = nn.ModuleDict(
+            {
+                "test-acc": Accuracy(task="multiclass", num_classes=self.num_labels),
+            }
+        )
+        self.test_confusion_matrix = MulticlassConfusionMatrix(
+            num_classes=self.num_labels
+        )

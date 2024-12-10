@@ -1,5 +1,5 @@
 dataset_name = "magnatagatune"
-embeddings_dir = "/gpfs/scratch/upf97/embeddings/"
+embeddings_dir = "/data0/palonso/ssl-mtg/embeddings/"
 
 # Lighting Trainer parameters, overwrites the training config
 predict.device_dict = {
@@ -39,9 +39,9 @@ MTTEmbeddingLoadingDataModule.time_aggregation = "mean"
 
 train_probe.wandb_params = {
     "project": "magnatagatune",
-    "offline": True,
+    "offline": False,
     "entity": "mtg-upf",
-    "save_dir": "/gpfs/projects/upf97/logs/",
+    "save_dir": "/data0/palonso/ssl-mtg/logs/",
 }
 
 train_probe.train_params = {
@@ -78,7 +78,7 @@ SequenceMultiLabelClassificationProbe.lr = 0.0001
 SequenceMultiLabelClassificationProbe.activation = "relu"
 SequenceMultiLabelClassificationProbe.bias = True
 SequenceMultiLabelClassificationProbe.num_labels = 50
-SequenceMultiLabelClassificationProbe.labels = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"
+SequenceMultiLabelClassificationProbe.labels = "/data0/palonso/ssl-mtg/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 2000

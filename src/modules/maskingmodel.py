@@ -341,7 +341,6 @@ class MaskingModel(L.LightningModule):
             )  # B x t x (16 x 4)
 
         # masking
-
         x, mask = self.random_masking(x)
 
         x = self.embedding_layer(x)
@@ -446,9 +445,10 @@ class MaskingModel(L.LightningModule):
             input_rep = self.representation
 
         # TODO: what if in Frequency axis we need to aggregate?
+
         assert x.shape[1] == self.patch_size[0], (
             f"Frequency patching is not implemented yet!"
-            f"Expected {self.patch_size[0]} but got {x.shape[0]}"
+            f"Expected {self.patch_size[1]} but got {x.shape[0]}"
         )
 
         assert x is not None, "Representation not found."

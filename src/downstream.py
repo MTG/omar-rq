@@ -21,8 +21,14 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from utils import gin_config_to_readable_dictionary
-from probe.modules import SequenceMultiLabelClassificationProbe
-from probe.data import MTTEmbeddingLoadingDataModule
+from probe.modules import (
+    SequenceMultiLabelClassificationProbe,
+    SequenceMultiClassClassificationProbe,
+)
+from probe.data import (
+    MTTEmbeddingLoadingDataModule,
+    NSynthPitchEmbeddingLoadingDataModule,
+)
 from cosineannealingscheduler import CosineAnnealingCallback
 
 
@@ -44,6 +50,20 @@ def build_module_and_datamodule(
 
         # Build the DataModule
         module = SequenceMultiLabelClassificationProbe(
+            in_features=in_features,
+        )
+
+    if dataset_name == "nsynth":
+        # Build the datamodule
+        datamodule = NSynthPitchEmbeddingLoadingDataModule(
+            embeddings_dir,
+        )
+
+        # Get the number of features from the dataloader
+        in_features = datamodule.embedding_dimension
+
+        # Build the DataModule
+        module = SequenceMultiClassClassificationProbe(
             in_features=in_features,
         )
 
