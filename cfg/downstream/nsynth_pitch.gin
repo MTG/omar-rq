@@ -38,7 +38,7 @@ NSynthPitchEmbeddingLoadingDataModule.time_aggregation = "mean"
 
 train_probe.wandb_params = {
     "project": "nsynth",
-    "offline": True,
+    "offline": False,
     "entity": "mtg-upf",
     "save_dir": "/data0/palonso/ssl-mtg/logs/",
 }
