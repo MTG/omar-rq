@@ -22,7 +22,7 @@ class AudioEmbeddingDataset(Dataset):
         half_precision: bool,
         overlap_ratio: float,
         n_seconds: int,
-        last_frame_threshold: float,
+        last_chunk_ratio: float,
     ):
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
@@ -39,7 +39,7 @@ class AudioEmbeddingDataset(Dataset):
         self.track2sr = dict()  # file_path: sr
 
         self.overlap_ratio = overlap_ratio
-        self.last_frame_threshold = last_frame_threshold
+        self.last_chunk_ratio = last_chunk_ratio
 
         self.n_seconds = n_seconds
 
@@ -83,7 +83,7 @@ class AudioEmbeddingDataset(Dataset):
                     n_t = n_x - ((n_s - 1) * n_h + n_c)
 
                     # if tailing samples are more than a ratio of the chunk, add a segment
-                    if n_t > n_c * self.last_frame_threshold:
+                    if n_t > n_c * self.last_chunk_ratio:
                         n_s += 1
 
                     self.track2sr[filepath] = metadata.sample_rate
@@ -168,7 +168,7 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         batch_size: int,
         overlap_ratio: float,
         n_seconds: int,
-        last_frame_threshold: float,
+        last_chunk_ratio: float,
     ):
         super().__init__()
 
@@ -181,12 +181,12 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self.batch_size = batch_size
         self.overlap_ratio = overlap_ratio
         self.n_seconds = n_seconds
-        self.last_frame_threshold = last_frame_threshold
+        self.last_chunk_ratio = last_chunk_ratio
 
         assert 0 < self.overlap_ratio < 1, "overlap_ratio must be between 0 and 1."
         assert (
-            0 < self.last_frame_threshold < 1
-        ), "last_frame_threshold must be between 0 and 1."
+            0 < self.last_chunk_ratio < 1
+        ), "last_chunk_ratio must be between 0 and 1."
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
@@ -198,7 +198,7 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
                 half_precision=self.half_precision,
                 overlap_ratio=self.overlap_ratio,
                 n_seconds=self.n_seconds,
-                last_frame_threshold=self.last_frame_threshold,
+                last_chunk_ratio=self.last_chunk_ratio,
             )
 
     def predict_dataloader(self):
