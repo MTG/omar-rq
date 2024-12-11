@@ -16,30 +16,29 @@ class AudioEmbeddingDataset(Dataset):
         self,
         data_dir: Path,
         file_format: str,
-        orig_freq: int,
         new_freq: int,
         mono: bool,
         half_precision: bool,
         overlap_ratio: float,
-        num_frames: int,
+        n_seconds: int,
     ):
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
         assert len(self.filelist) > 0, f"No files found in {self.data_dir}"
         print(f"Found {len(self.filelist)} files in {self.data_dir}.")
 
-        self.orig_freq = orig_freq
+        self.orig_freq = None
         self.new_freq = new_freq
-        self.resample = Resample(self.orig_freq, self.new_freq)
+        self.resample = Resample()
         self.mono = mono
         self.half_precision = half_precision
 
         self.index = dict()  # idx: (file_path, seg)
+        self.track2sr = dict()  # file_path: sr
 
         self.overlap_ratio = overlap_ratio
 
-        self.n_frames = num_frames
-        self.n_seconds = self.n_frames / self.orig_freq
+        self.n_seconds = n_seconds
 
         assert (
             self.overlap_ratio >= 0 and self.overlap_ratio < 1
@@ -51,7 +50,7 @@ class AudioEmbeddingDataset(Dataset):
 
     def compute_segments_per_file(self):
         self.index = dict()
-        self.track2idx = dict()
+        self.track2sr = dict()
 
         print("Computing segments per file...")
 
@@ -63,6 +62,7 @@ class AudioEmbeddingDataset(Dataset):
                 metadata = torchaudio.info(self.data_dir / filepath)
                 seconds = metadata.num_frames / metadata.sample_rate
                 n_segments = int(seconds / hop_size)
+                self.track2sr[filepath] = metadata.sample_rate
 
                 for j in range(n_segments):
                     self.index[i] = (filepath, j)
@@ -76,14 +76,15 @@ class AudioEmbeddingDataset(Dataset):
     def __getitem__(self, idx):
         # Get the file path
         file_path, segment = self.index[idx]
-        file_path = self.data_dir / file_path
 
         # load audio
         try:
-            num_frames = int(self.n_seconds * self.orig_freq)
+            num_frames = int(self.n_seconds * self.track2sr[file_path])
             frame_offset = num_frames * segment * self.overlap_ratio
             audio, sr = torchaudio.load(
-                file_path, num_frames=num_frames, frame_offset=frame_offset
+                self.data_dir / file_path,
+                num_frames=num_frames,
+                frame_offset=frame_offset,
             )  # (C, T)
 
             # TODO: why don't we fix mono? The rest of the code is not ready for 2 channel audio
@@ -94,6 +95,7 @@ class AudioEmbeddingDataset(Dataset):
 
             # resample if necessary
             if sr != self.new_freq:
+                # cache the resample object
                 if sr != self.orig_freq:
                     self.resample = Resample(orig_freq=sr, new_freq=self.new_freq)
                     self.orig_freq = sr
@@ -125,39 +127,36 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self,
         data_dir: Path,
         file_format: str,
-        orig_freq: int,
         new_freq: int,
         mono: bool,
         half_precision: bool,
         num_workers: int,
         batch_size: int,
         overlap_ratio: float,
-        num_frames: int,
+        n_seconds: int,
     ):
         super().__init__()
 
         self.data_dir = data_dir
         self.file_format = file_format
-        self.orig_freq = orig_freq
         self.new_freq = new_freq
         self.mono = mono
         self.half_precision = half_precision
         self.num_workers = num_workers
         self.batch_size = batch_size
         self.overlap_ratio = overlap_ratio
-        self.num_frames = num_frames
+        self.n_seconds = n_seconds
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
             self.dataset = AudioEmbeddingDataset(
                 data_dir=self.data_dir,
                 file_format=self.file_format,
-                orig_freq=self.orig_freq,
                 new_freq=self.new_freq,
                 mono=self.mono,
                 half_precision=self.half_precision,
                 overlap_ratio=self.overlap_ratio,
-                num_frames=self.num_frames,
+                n_seconds=self.n_seconds,
             )
 
     def predict_dataloader(self):
