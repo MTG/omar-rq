@@ -1,3 +1,4 @@
+import pickle as pk
 from pathlib import Path
 
 import torch
@@ -21,6 +22,7 @@ class AudioEmbeddingDataset(Dataset):
         half_precision: bool,
         overlap_ratio: float,
         n_seconds: int,
+        last_frame_threshold: float,
     ):
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
@@ -37,6 +39,7 @@ class AudioEmbeddingDataset(Dataset):
         self.track2sr = dict()  # file_path: sr
 
         self.overlap_ratio = overlap_ratio
+        self.last_frame_threshold = last_frame_threshold
 
         self.n_seconds = n_seconds
 
@@ -52,23 +55,49 @@ class AudioEmbeddingDataset(Dataset):
         self.index = dict()
         self.track2sr = dict()
 
-        print("Computing segments per file...")
+        # check if we have cached the number of segments
+        for file, data in ((".index", self.index), (".sr", self.track2sr)):
+            if (self.data_dir / file).exists():
+                with open(self.data_dir / file, "rb") as f:
+                    data.update(pk.load(f))
 
-        i = 0
-        for filepath in tqdm(self.filelist):
-            try:
-                hop_size = self.n_seconds * self.overlap_ratio
+        if not self.index or not self.track2sr:
+            print("Computing segments per file...")
 
-                metadata = torchaudio.info(self.data_dir / filepath)
-                seconds = metadata.num_frames / metadata.sample_rate
-                n_segments = int(seconds / hop_size)
-                self.track2sr[filepath] = metadata.sample_rate
+            i = 0
+            for filepath in tqdm(self.filelist):
+                try:
+                    metadata = torchaudio.info(self.data_dir / filepath)
 
-                for j in range(n_segments):
-                    self.index[i] = (filepath, j)
-                    i += 1
-            except Exception as e:
-                print(f"Error processing file {filepath}")
+                    # number of input samples
+                    n_x = metadata.num_frames
+                    # number of chunk samples
+                    n_c = self.n_seconds * metadata.sample_rate
+                    # number of samples to hop
+                    n_h = n_c * (1 - self.overlap_ratio)
+
+                    # number of segments
+                    n_s = int(1 + max(0, (n_x - n_c) // n_h))
+
+                    # number of tailing samples
+                    n_t = n_x - ((n_s - 1) * n_h + n_c)
+
+                    # if tailing samples are more than a ratio of the chunk, add a segment
+                    if n_t > n_c * self.last_frame_threshold:
+                        n_s += 1
+
+                    self.track2sr[filepath] = metadata.sample_rate
+
+                    for j in range(n_s):
+                        self.index[i] = (filepath, j)
+                        i += 1
+                except Exception as e:
+                    print(f"Error processing file {filepath}")
+
+            # cache the number of segments for later use
+            for file, data in ((".index", self.index), (".sr", self.track2sr)):
+                with open(self.data_dir / file, "wb") as f:
+                    pk.dump(data, f)
 
     def __len__(self):
         return len(self.index)
@@ -86,6 +115,13 @@ class AudioEmbeddingDataset(Dataset):
                 num_frames=num_frames,
                 frame_offset=frame_offset,
             )  # (C, T)
+
+            assert audio.shape[-1] <= num_frames, "Audio is longer than expected."
+
+            # zero pad if necessary
+            if audio.shape[-1] < num_frames:
+                pad = torch.zeros((audio.shape[0], num_frames - audio.shape[-1]))
+                audio = torch.cat([audio, pad], dim=-1)
 
             # TODO: why don't we fix mono? The rest of the code is not ready for 2 channel audio
             # downmix to mono if necessary
@@ -112,8 +148,6 @@ class AudioEmbeddingDataset(Dataset):
             else:
                 audio = audio.float()
 
-            # TODO zero pad
-
             return audio, str(file_path)
 
         except Exception:
@@ -134,6 +168,7 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         batch_size: int,
         overlap_ratio: float,
         n_seconds: int,
+        last_frame_threshold: float,
     ):
         super().__init__()
 
@@ -146,6 +181,12 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self.batch_size = batch_size
         self.overlap_ratio = overlap_ratio
         self.n_seconds = n_seconds
+        self.last_frame_threshold = last_frame_threshold
+
+        assert 0 < self.overlap_ratio < 1, "overlap_ratio must be between 0 and 1."
+        assert (
+            0 < self.last_frame_threshold < 1
+        ), "last_frame_threshold must be between 0 and 1."
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
@@ -157,6 +198,7 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
                 half_precision=self.half_precision,
                 overlap_ratio=self.overlap_ratio,
                 n_seconds=self.n_seconds,
+                last_frame_threshold=self.last_frame_threshold,
             )
 
     def predict_dataloader(self):

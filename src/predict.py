@@ -99,7 +99,6 @@ def train(
 
     # Get the data module
     data_module = AudioEmbeddingDataModule(
-        orig_freq=audio_ds["orig_freq"],
         new_freq=audio_ds["new_freq"],
         mono=audio_ds["mono"],
         half_precision=audio_ds["half_precision"],
