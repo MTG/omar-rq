@@ -28,15 +28,15 @@ AudioEmbeddingDataModule.last_chunk_ratio = 0.1
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-BeattrackingEmbeddingLoadingDataModule.gt_path = ""
-BeattrackingEmbeddingLoadingDataModule.train_filelist = ""
-BeattrackingEmbeddingLoadingDataModule.val_filelist = ""
-BeattrackingEmbeddingLoadingDataModule.test_filelist = ""
-BeattrackingEmbeddingLoadingDataModule.batch_size = 64
-BeattrackingEmbeddingLoadingDataModule.num_workers = 10
-BeattrackingEmbeddingLoadingDataModule.layer_aggregation = "none"
-BeattrackingEmbeddingLoadingDataModule.granularity = "chunk"
-BeattrackingEmbeddingLoadingDataModule.time_aggregation = "mean"
+BeatTrackingEmbeddingLoadingDataModule.gt_path = "/data0/palonso/ssl-mtg/downstream_datasets/beattracking/groundtruth.pkl"
+BeatTrackingEmbeddingLoadingDataModule.train_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/beattracking/filelist_train.txt"
+BeatTrackingEmbeddingLoadingDataModule.val_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/beattracking/filelist_val.txt"
+BeatTrackingEmbeddingLoadingDataModule.test_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/beattracking/filelist_test.txt"
+BeatTrackingEmbeddingLoadingDataModule.batch_size = 64
+BeatTrackingEmbeddingLoadingDataModule.num_workers = 20
+BeatTrackingEmbeddingLoadingDataModule.layer_aggregation = "none"
+BeatTrackingEmbeddingLoadingDataModule.granularity = "frame"
+BeatTrackingEmbeddingLoadingDataModule.time_aggregation = "none"
 
 train_probe.wandb_params = {
     "project": "beattracking",
@@ -50,10 +50,10 @@ train_probe.train_params = {
     "devices": 1,
     "log_every_n_steps": 50,
     "max_steps": 20000,
-    "num_sanity_val_steps": 0,
+    "num_sanity_val_steps": 5,
     "check_val_every_n_epoch": 1,
 }
-train_probe.monitor = "val-MAP-macro"
+train_probe.monitor = "val-acc"
 train_probe.monitor_mode = "max"
 
 optimize_probe.bound_conditions = {
@@ -71,15 +71,15 @@ optimize_probe.n_iter = 50
 optimize_probe.seed = 1
 
 # Warning: these parameters are ignored when the the Bayesian optimization is enabled
-SequenceMultiLabelClassificationProbe.num_layers = 2
-SequenceMultiLabelClassificationProbe.hidden_size = 512
-SequenceMultiLabelClassificationProbe.dropout = 0.2
-SequenceMultiLabelClassificationProbe.lr = 0.0001
+SequenceClassificationProbe.num_layers = 2
+SequenceClassificationProbe.hidden_size = 512
+SequenceClassificationProbe.dropout = 0.2
+SequenceClassificationProbe.lr = 0.0001
 
-SequenceMultiLabelClassificationProbe.activation = "relu"
-SequenceMultiLabelClassificationProbe.bias = True
-SequenceMultiLabelClassificationProbe.num_labels = 50
-SequenceMultiLabelClassificationProbe.labels = ""
+SequenceClassificationProbe.activation = "relu"
+SequenceClassificationProbe.bias = True
+SequenceClassificationProbe.num_labels = 1
+SequenceClassificationProbe.labels = None
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 2000
