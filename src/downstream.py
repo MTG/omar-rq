@@ -1,5 +1,5 @@
-""" This script is the main training and evaluation script for training a probe on 
-a downstream task. It expects pre-extracted embeddings from a self-supervised model 
+"""This script is the main training and evaluation script for training a probe on
+a downstream task. It expects pre-extracted embeddings from a self-supervised model
 and a config file for the downstream task. The config file should contain the details
 of the dataset and the parameters of the probe. The script will train the probe on the
 embeddings and evaluate it on the corresponding downstream task.
@@ -28,6 +28,7 @@ from probe.modules import (
 from probe.data import (
     MTTEmbeddingLoadingDataModule,
     NSynthPitchEmbeddingLoadingDataModule,
+    BeatTrackingEmbeddingLoadingDataModule,
 )
 from cosineannealingscheduler import CosineAnnealingCallback
 
@@ -53,7 +54,7 @@ def build_module_and_datamodule(
             in_features=in_features,
         )
 
-    if dataset_name == "nsynth":
+    elif dataset_name == "nsynth":
         # Build the datamodule
         datamodule = NSynthPitchEmbeddingLoadingDataModule(
             embeddings_dir,
@@ -67,6 +68,23 @@ def build_module_and_datamodule(
             in_features=in_features,
         )
 
+    elif dataset_name == "beattracking":
+        # Build the datamodule
+        datamodule = BeatTrackingEmbeddingLoadingDataModule(
+            embeddings_dir,
+        )
+
+        # Get the number of features from the dataloader
+        in_features = datamodule.embedding_dimension
+        # hidden_size = datamodule.timestamps
+        # out_features = datamodule.timestamps
+
+        # Build the DataModule
+        module = SequenceMultiClassClassificationProbe(
+            in_features=in_features,
+            # hidden_size=hidden_size,
+            # num_labels=out_features,
+        )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
