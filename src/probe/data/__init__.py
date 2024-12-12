@@ -1,2 +1,3 @@
 from .magnatagatune import MTTEmbeddingLoadingDataModule
 from .nsynth_pitch import NSynthPitchEmbeddingLoadingDataModule
+from .beattracking import BeatTrackingEmbeddingLoadingDataModule
