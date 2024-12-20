@@ -6,7 +6,7 @@ A repository of models and training code for several SSL aproaches and architect
 
 For embedding extraction or downstream tasks:
 ```bash
-pip install -e .[dev]
+pip install -e .
 
 ```
 
