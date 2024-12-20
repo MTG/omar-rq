@@ -4,8 +4,27 @@ A repository of models and training code for several SSL aproaches and architect
 
 ## Install
 
+For embedding extraction or downstream tasks:
 ```bash
 pip install -e .[dev]
+
+```
+
+For development including pre-training models:
+```bash
+pip install -e .[dev]
+```
+
+## Inference
+Example:
+
+```python 
+from ssl_mtg import get_model
+
+model = get_model(config_file, "cpu")
+
+x = torch.randn(1, 16000 * 4).cpu()
+embeddings = model.extract_embeddings(x)
 ```
 
 ## Cluster setup

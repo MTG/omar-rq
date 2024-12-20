@@ -1,24 +1,29 @@
 [project]
-version = "0.0"
+version = "0.1"
 name = "ssl-mtg"
 
-requires-python = ">= 3.8"
+requires-python = ">= 3.10"
 
 dependencies = [
-  "lightning~=2.2",
-  "torch~=2.3",
-  "gin-config~=0.5",
-  "torchvision~=0.18",
-  "wandb",
-  "torchaudio",
-  "matplotlib",
-  "bayesian_optimization~=1.5.1",
-  "scikit_learn~=1.5.2",
-  "scipy~=1.14.1",
+    "lightning~=2.2",
+    "torch~=2.3",
+    "gin-config~=0.5",
+    "torchaudio",
+    "wandb",
+    "einops",
+    "transformers"
 ]
 
 [project.optional-dependencies]
 dev = [
     "ruff",
+    "matplotlib",
+    "bayesian_optimization~=1.5.1",
+    "scikit_learn~=1.5.2",
+    "scipy~=1.14.1",
+    "torchvision~=0.18",
 ]
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
