@@ -48,7 +48,7 @@ Output:
         e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
 ```
 
-`extract_embeddings` reference
+`extract_embeddings` reference:
 ```
 Extract embeddings from an input audio batch.
 
