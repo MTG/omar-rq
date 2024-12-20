@@ -19,8 +19,7 @@ pip install -e .[dev]
 
 This repository provides a simple interface to extract embeddings given a model configuration file (`.gin`).
 
-## Example:
-
+Embedding extraction example:
 ```python 
 x = torch.randn(1, 16000 * 4).cpu()
 config_file = "my_config_file.gin"
@@ -32,7 +31,8 @@ embeddings = model.extract_embeddings(x, layers=(6))
 timestamps = torch.arange(embeddings.shape[2]) / eps
 ```
 
-``` Model reference
+`get_model` reference:
+```
 Returns the model from the provided config file.
 
 Args:
@@ -45,7 +45,8 @@ Output:
         e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
 ```
 
-```extract_embeddings reference
+`extract_embeddings` reference
+```
 
 Args:
     audio (torch.Tensor): 1D audio tensor.
