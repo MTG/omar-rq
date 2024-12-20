@@ -16,15 +16,51 @@ pip install -e .[dev]
 ```
 
 ## Inference
-Example:
+
+This repository provides a simple interface to extract embeddings given a model configuration file (`.gin`).
+
+## Example:
 
 ```python 
-from ssl_mtg import get_model
-
-model = get_model(config_file, "cpu")
-
 x = torch.randn(1, 16000 * 4).cpu()
-embeddings = model.extract_embeddings(x)
+config_file = "my_config_file.gin"
+
+model, eps = get_model(config_file, device="cpu")
+
+embeddings = model.extract_embeddings(x, layers=(6))
+
+timestamps = torch.arange(embeddings.shape[2]) / eps
+```
+
+``` Model reference
+Returns the model from the provided config file.
+
+Args:
+    config_file (Path): Path to the config file of a trained model.
+    device (str): Device to use for the model. Defaults to "cpu".
+
+Output:
+    module: The model from the provided config file.
+    eps (float): Embeddings per second.
+        e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
+```
+
+```extract_embeddings reference
+
+Args:
+    audio (torch.Tensor): 1D audio tensor.
+    layers (set): Set of layer indices to extract embeddings from.
+        By default, it extracts embeddings from the last layer.
+
+Output:
+    torch.Tensor: Extracted embeddings.
+        Even in the case of aggregation or single layer embeddings,
+        the output tensor will have the same shape (L, B, T, C,)
+        where L = len(layer), B is the number of chunks
+        T is the number of melspec frames the model can accomodate
+        C = model output dimension. No aggregation is applied.
+        audio: torch.Tensor of shape (batch_size, num_samples)
+        embeddings: torch.Tensor of shape (lbatch_size, timestamps, embedding_size)
 ```
 
 ## Cluster setup
