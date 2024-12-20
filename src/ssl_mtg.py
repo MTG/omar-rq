@@ -1,69 +1,112 @@
 import gin
 
 from pathlib import Path
+from typing import List
+
+from torch import nn
+import pytorch_lightning as L
+
+import nets
+import modules
 
 
-from modules import MODULES
-from nets import NETS
+# Dummy class to catch the gin bindings
+@gin.configurable
+def build_module(
+    representation: nn.Module | List,
+    net: nn.Module,
+    module: L.LightningModule,
+    ckpt_path: Path = None,
+):
+    pass
 
 
-def get_model(config_file: Path, device: str = "cpu"):
+def get_patch_size(representation: nn.Module) -> tuple:
+    if representation == nets.MelSpectrogram:
+        return (96, 4)
+    elif representation == nets.CQT:
+        return (96, 4)
+    elif representation == nets.EnCodec:
+        return (144, 4)
+    elif representation == nn.ModuleList:
+        raise NotImplementedError(f"Patch size for {representation} not implemented.")
+    else:
+        raise NotImplementedError(f"Patch size for {representation} not implemented.")
+
+
+def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
     """Returns the model from the provided config file.
 
     Args:
+        config_file (Path): Path to the model config of a trained model.
+        device (str): Device to use for the model. Defaults to "cpu".
 
-    config_file (Path): Path to the model config of a trained model.
-    device (str): Device to use for the model. Defaults to "cpu".
-
-    Returns:
-
-    module: The model from the provided config file.
+    Output:
+        module: The model from the provided config file.
+        eps (float): Embeddings per second.
+            e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
 
 
     Module usage:
 
-    embeddings = model.extract_embeddings(audio)
+    Args:
+        audio (torch.Tensor): 1D audio tensor.
+        layers (set): Set of layer indices to extract embeddings from.
+            By default, it extracts embeddings from the last layer.
 
-        audio: torch.Tensor of shape (batch_size, num_samples)
-        embeddings: torch.Tensor of shape (batch_size, 1, timestamps, embedding_size)
+    Output:
+        torch.Tensor: Extracted embeddings.
+            Even in the case of aggregation or single layer embeddings,
+            the output tensor will have the same shape (L, B, T, C,)
+            where L = len(layer), B is the number of chunks
+            T is the number of melspec frames the model can accomodate
+            C = model output dimension. No aggregation is applied.
+            audio: torch.Tensor of shape (batch_size, num_samples)
+            embeddings: torch.Tensor of shape (lbatch_size, timestamps, embedding_size)
 
-    The model's embedding rate depends on the model's configuration.
-    For the melspectrogram model, the embedding rate is 16ms.
-    samples should be a sequence of audio samples, with a sample as inditacted in the
-    config file and up to 30s.
 
     Example:
 
-    >>> model = get_model(config_file, "cpu")
-
     >>> x = torch.randn(1, 16000 * 4).cpu()
-    >>> embeddings = model.extract_embeddings(x)
+    >>>
+    >>> model, eps = get_model(config_file, device="cpu")
+    >>>
+    >>> embeddings = model.extract_embeddings(x, layers=(6))
+    >>>
+    >>> timestamps = torch.arange(embeddings.shape[2]) / eps
+
+
+
+    >> NOTE: The model's embedding rate depends on the model's configuration.
+        For example, the melspectrogram model has an embedding rate of 16ms.
+        audio should be a sequence with a sample rate as inditacted in the
+        config file and up to 30s.
     """
 
     config_file = Path(config_file)
 
-    # Parse the gin configs.
+    # Parse the gin config
     gin.parse_config_file(config_file, skip_unknown=True)
     gin.finalize()
 
+    gin_config = gin.get_bindings(build_module)
+
     # get classes of interest
-    net = NETS["conformer"]
-    representation = NETS["melspectrogram"]
-    module = MODULES["maskingmodel"]
+    net = gin_config["net"]
+    representation = gin_config["representation"]
+    module = gin_config["module"]
 
-    # workaround to get the checkpoint relative to the config file
-    ckpt_path = list(config_file.parent.glob("*.ckpt"))
+    # Make the checkpoint path relative to the config file location
+    # insted of taking the absolute path
+    ckpt_path = Path(gin_config["ckpt_path"])
+    ckpt_path = config_file.parent / ckpt_path.name
 
-    # just in case
-    assert (
-        len(ckpt_path) == 1
-    ), f"Found multiple or no checkpoint files in {config_file.parent}."
+    # Select the correct patch size
+    patch_size = get_patch_size(representation)
 
-    ckpt_path = ckpt_path[0]
-
-    # instantiate the classes
+    # Instantiate the classes
     net = net()
-    representation = representation(patch_size=(96, 4))
+    representation = representation(patch_size=patch_size)
     module = module.load_from_checkpoint(
         ckpt_path,
         net=net,
@@ -74,14 +117,7 @@ def get_model(config_file: Path, device: str = "cpu"):
     module.to(device)
     module.eval()
 
-    return module
+    # compute timestamps
+    eps = representation.sr / (representation.hop_len * patch_size[1])
 
-    # if __name__ == "__main__":
-    #     parser = argparse.ArgumentParser()
-    #     parser.add_argument(
-    #         "config_file",
-    #         type=Path,
-    #         help="Path to the model config of a trained model.",
-    #     )
-
-    # args = parser.parse_args()
+    return module, eps
