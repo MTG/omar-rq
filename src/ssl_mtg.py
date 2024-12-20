@@ -25,9 +25,9 @@ def get_patch_size(representation: nn.Module) -> tuple:
     if representation == nets.MelSpectrogram:
         return (96, 4)
     elif representation == nets.CQT:
-        return (96, 4)
-    elif representation == nets.EnCodec:
         return (144, 4)
+    elif representation == nets.EnCodec:
+        return (128, 5)
     elif representation == nn.ModuleList:
         raise NotImplementedError(f"Patch size for {representation} not implemented.")
     else:
