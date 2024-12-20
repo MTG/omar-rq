@@ -21,6 +21,9 @@ This repository provides a simple interface to extract embeddings given a model 
 
 Embedding extraction example:
 ```python 
+import torch
+from ssl_mtg import get_model
+
 x = torch.randn(1, 16000 * 4).cpu()
 config_file = "my_config_file.gin"
 
