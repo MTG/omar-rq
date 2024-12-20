@@ -50,19 +50,15 @@ def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
     Module usage:
 
     Args:
-        audio (torch.Tensor): 1D audio tensor.
+        audio (torch.Tensor): 2D mono audio tensor (B, T'). Where B is
+            the batch size and T' is the number of samples.
         layers (set): Set of layer indices to extract embeddings from.
-            By default, it extracts embeddings from the last layer.
+            By default, it extracts embeddings from the last layer (logits).
 
     Output:
-        torch.Tensor: Extracted embeddings.
-            Even in the case of aggregation or single layer embeddings,
-            the output tensor will have the same shape (L, B, T, C,)
-            where L = len(layer), B is the number of chunks
-            T is the number of melspec frames the model can accomodate
-            C = model output dimension. No aggregation is applied.
-            audio: torch.Tensor of shape (batch_size, num_samples)
-            embeddings: torch.Tensor of shape (lbatch_size, timestamps, embedding_size)
+        torch.Tensor: Extracted embeddings. The output tensor has shape
+            (L, B, T, C,) where L = len(layers), B is the batch size, T is
+            the number of output timestamps, and C = embedding dimension.
 
 
     Example:
