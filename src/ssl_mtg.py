@@ -79,6 +79,9 @@ def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
         config file and up to 30s.
     """
 
+    # Init representation related variables
+    sr, hop_len, patch_size = None, None, None
+
     config_file = Path(config_file)
 
     # Parse the gin config
@@ -97,12 +100,20 @@ def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
     ckpt_path = Path(gin_config["ckpt_path"])
     ckpt_path = config_file.parent / ckpt_path.name
 
-    # Select the correct patch size
-    patch_size = get_patch_size(representation)
-
     # Instantiate the classes
     net = net()
-    representation = representation(patch_size=patch_size)
+
+    # The model can feature one or multiple representations (multi-view models)
+    if isinstance(representation, list):
+        representation = nn.ModuleList([r() for r in representation])
+    else:
+        # In the single view case, extract the params from the rep class and get
+        # a hardcoded patch size parameter (since it was not included in the gin config)
+        patch_size = get_patch_size(representation)
+        representation = representation(patch_size=patch_size)
+        sr = representation.sr
+        hop_len = representation.hop_len
+
     module = module.load_from_checkpoint(
         ckpt_path,
         net=net,
@@ -113,7 +124,18 @@ def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
     module.to(device)
     module.eval()
 
+    # In the multi-vew case, we only need the params of the rep used as input.
+    # Get them from the module instance.
+    if (
+        hasattr(module, "patch_size")
+        and hasattr(module, "sr")
+        and hasattr(module, "hop_length")
+    ):
+        patch_size = module.patch_size
+        sr = module.sr
+        hop_len = module.hop_length
+
     # compute timestamps
-    eps = representation.sr / (representation.hop_len * patch_size[1])
+    eps = sr / (hop_len * patch_size[1])
 
     return module, eps
