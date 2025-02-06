@@ -41,6 +41,12 @@ Returns the model from the provided config file.
 Args:
     config_file (Path): Path to the config file of a trained model.
     device (str): Device to use for the model. Defaults to "cpu".
+    encodec_weights_path (str): Path to the EnCodec weights. When set, it will
+        override the value in the config file. Note that it can be a local path
+        or or a Hugging Face model ID. This parameter only affects to models
+        that use EnCodec as representation. Defaults to None.
+
+        https://huggingface.co/docs/transformers/en/model_doc/encodec
 
 Output:
     module: The model from the provided config file.
@@ -63,6 +69,8 @@ Output:
         (L, B, T, C,) where L = len(layers), B is the batch size, T is
         the number of output timestamps, and C = embedding dimension.
 ```
+
+> [!NOTE] Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
 
 ## Cluster setup
 
