@@ -98,6 +98,6 @@ class EnCodec(torch.nn.Module):
             elif self.norm_type == "global":
                 reps = (reps - self.mean) / self.std
 
-        reps = reps.squeeze(0)
+        # reps = reps.squeeze(0)
 
         return reps
