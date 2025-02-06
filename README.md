@@ -70,7 +70,8 @@ Output:
         the number of output timestamps, and C = embedding dimension.
 ```
 
-> [!NOTE] Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
+> [!NOTE]
+> Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
 
 ## Cluster setup
 
