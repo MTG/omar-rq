@@ -39,8 +39,8 @@ class EnCodec(torch.nn.Module):
                     )
                 elif self.norm_type == "global":
                     # Fallback to hardcoded values
-                    mean = ENCODEC_MEAN
-                    std = ENCODEC_STD
+                    mean = torch.tensor(ENCODEC_MEAN)
+                    std = torch.tensor(ENCODEC_STD)
 
             else:
                 with open(stats_path, "r") as f:
