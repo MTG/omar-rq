@@ -34,12 +34,22 @@ def get_patch_size(representation: nn.Module) -> tuple:
         raise NotImplementedError(f"Patch size for {representation} not implemented.")
 
 
-def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
+def get_model(
+    config_file: Path | str,
+    device: str = "cpu",
+    encodec_weights_path: str | None = None,
+) -> tuple[L.LightningModule, float]:
     """Returns the model from the provided config file.
 
     Args:
         config_file (Path): Path to the model config of a trained model.
         device (str): Device to use for the model. Defaults to "cpu".
+        encodec_weights_path (str): Path to the EnCodec weights. When set, it will
+            override the value in the config file. Note that it can be a local path
+            or or a Hugging Face model ID. This parameter only affects to models
+            that use EnCodec as representation. Defaults to None.
+
+            https://huggingface.co/docs/transformers/en/model_doc/encodec
 
     Output:
         module: The model from the provided config file.
@@ -84,9 +94,13 @@ def get_model(config_file: Path, device: str = "cpu") -> L.LightningModule:
 
     config_file = Path(config_file)
 
+    bindings = []
+    if encodec_weights_path is not None:
+        bindings.append(f"nets.encodec.EnCodec.weights_path = '{encodec_weights_path}'")
+        bindings.append("nets.encodec.EnCodec.stats_path = None")
+
     # Parse the gin config
-    gin.parse_config_file(config_file, skip_unknown=True)
-    gin.finalize()
+    gin.parse_config_files_and_bindings([config_file], bindings, skip_unknown=True)
 
     gin_config = gin.get_bindings(build_module)
 
