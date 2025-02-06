@@ -9,6 +9,7 @@ import torch
 from transformers import EncodecModel
 from torchaudio.transforms import Resample
 
+# Normalization stats obtained from the training data (Discogs23 dataset)
 ENCODEC_MEAN = -0.5577428463574771
 ENCODEC_STD = 5.863781862801963
 
