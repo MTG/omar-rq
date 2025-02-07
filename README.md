@@ -85,7 +85,7 @@ The config and weights files are located in `/<MTG_PROJECTS_MOUNT_DIR>/BSC/proje
 These are the most relevant models along with their performance metrics (WIP):
 
 ### Baseline Discogs23 models 
-| Arch | Model     | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Beattracking | CONFIG FILE PATH                                      |
+| ID   | Arch      | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Beattracking | CONFIG FILE PATH                                      |
 |------|-----------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
 | b0   | Conformer | Small | Mel   | Mel    | c4urat3s   | 400000 | 0.469 | 0.824        | c4urat3s/checkpoints/config_conformer.gin            |
 | b1   | Conformer | Small | CQT   | CQT    | 8avrux47   | 305670 | 0.419 | 0.852        | 8avrux47/checkpoints/config_masking_conformer_small_cqt.gin |
@@ -108,10 +108,10 @@ These are the most relevant models along with their performance metrics (WIP):
 | l8  | Conformer | Large | enc    | enc/mel/cqt  | 8bi35b82   | 366804 | NaN   | NaN    |              | 8bi35b82/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_large.gin |
 
 ### FreeSound models
-| Arch | Model         | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Beattracking | CONFIG FILE PATH                                      |
+| ID   | Arch          | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Nsynth | CONFIG FILE PATH                                      |
 |------|---------------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
-| f0   | Conformer FS  | Small | Mel   | Mel    | i2h5dqb8   | 343540 | 0.440 | 0.838        | i2h5dqb8/checkpoints/fs_config_masking_conformer_small.gin |
-| f1   | Conformer FS  | Large | Mel   | Mel    | msesipur   | 364695 | 0.434 | 0.859        | msesipur/checkpoints/fs_config_masking_conformer_large.gin |
+| f0   | Conformer     | Small | Mel   | Mel    | i2h5dqb8   | 343540 | 0.440 | 0.838        | i2h5dqb8/checkpoints/fs_config_masking_conformer_small.gin |
+| f1   | Conformer     | Large | Mel   | Mel    | msesipur   | 364695 | 0.434 | 0.859        | msesipur/checkpoints/fs_config_masking_conformer_large.gin |
 
 ## Cluster setup
 
