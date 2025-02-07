@@ -407,7 +407,7 @@ class MaskingModel(L.LightningModule):
 
         Parameters:
             audio (torch.Tensor): 1D audio tensor.
-            layer (list): List of layer indices to extract embeddings from.
+            layers (set): List of layer indices to extract embeddings from.
             By default, it extracts embeddings from the last layer.
 
         Output:

@@ -4,9 +4,114 @@ A repository of models and training code for several SSL aproaches and architect
 
 ## Install
 
+For embedding extraction or downstream tasks:
+```bash
+pip install -e .
+
+```
+
+For development including pre-training models:
 ```bash
 pip install -e .[dev]
 ```
+
+## Inference
+
+This repository provides a simple interface to extract embeddings given a model configuration file (`.gin`).
+
+Embedding extraction example:
+```python 
+import torch
+from ssl_mtg import get_model
+
+x = torch.randn(1, 16000 * 4).cpu()
+config_file = "my_config_file.gin"
+
+model, eps = get_model(config_file, device="cpu")
+
+# if we don't want to fine-tune the model
+model.eval()
+
+embeddings = model.extract_embeddings(x, layers=[6])
+
+timestamps = torch.arange(embeddings.shape[2]) / eps
+```
+
+`get_model` reference:
+```
+Returns the model from the provided config file.
+
+Args:
+    config_file (Path): Path to the config file of a trained model.
+    device (str): Device to use for the model. Defaults to "cpu".
+    encodec_weights_path (str): Path to the EnCodec weights. When set, it will
+        override the value in the config file. Note that it can be a local path
+        or or a Hugging Face model ID. This parameter only affects to models
+        that use EnCodec as representation. Defaults to None.
+
+        https://huggingface.co/docs/transformers/en/model_doc/encodec
+
+Output:
+    module: The model from the provided config file.
+    eps (float): Embeddings per second.
+        e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
+```
+
+`extract_embeddings` reference:
+```
+Extract embeddings from an input audio batch.
+
+Args:
+    audio (torch.Tensor): 2D mono audio tensor (B, T'). Where B is 
+        the batch size and T' is the number of samples.
+    layers (set): Set of layer indices to extract embeddings from.
+        By default, it extracts embeddings from the last layer (logits).
+
+Output:
+    torch.Tensor: Extracted embeddings. The output tensor has shape 
+        (L, B, T, C,) where L = len(layers), B is the batch size, T is
+        the number of output timestamps, and C = embedding dimension.
+```
+
+> [!NOTE]
+> Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
+
+## Relevant pre-trained models
+There are a number of models pre-trained in the context of the BSC project available from the MTG Projects shared folder.
+If you are not familiar to this, refer to the [documentation](https://github.com/MTG/mtg-services/blob/master/MTGDB%2C-shared-project-folders-and-user-storage.md#update-2023-10-new-configuration-for-sambacifs-access-to-mtg-data) to learn how to get access and mount it.
+
+The config and weights files are located in `/<MTG_PROJECTS_MOUNT_DIR>/BSC/projects-upf97/upf97/logs/mtg-ssl/`
+
+These are the most relevant models along with their performance metrics (WIP):
+
+### Baseline Discogs23 models 
+| ID   | Arch      | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Beattracking | CONFIG FILE PATH                                      |
+|------|-----------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
+| b0   | Conformer | Small | Mel   | Mel    | c4urat3s   | 400000 | 0.469 | 0.824        | c4urat3s/checkpoints/config_conformer.gin            |
+| b1   | Conformer | Small | CQT   | CQT    | 8avrux47   | 305670 | 0.419 | 0.852        | 8avrux47/checkpoints/config_masking_conformer_small_cqt.gin |
+| b3   | Conformer | Small | Enc   | Enc    | molbhb3i   | 326048 |       | 0.895        | molbhb3i/checkpoints/config_conformer_encodec.gin    |
+
+### Multi-view Discogs23 models
+| ID  | Arch       | Size  | Input  | Target        | WandB ID   | Steps  | MTAT  | Nsynth | Beattracking | CONFIG FILE PATH |
+|-----|-----------|-------|--------|--------------|------------|--------|------|--------|--------------|------------------|
+| s1  | Conformer | Small | audio  | au/mel/cqt   | hgu9kgyl   | 193591 | 0.440 | 0.910  |              | hgu9kgyl/checkpoints/config_masking_conformer_multiview_small.gin |
+| s3  | Conformer | Small | enc    | enc          | adlpqsh3   | 366804 | 0.411 | 0.878  |              | adlpqsh3/checkpoints/config_masking_conformer_multiview_enc_to_enc_small.gin |
+| s4  | Conformer | Small | enc    | enc/mel      | 6a8dzz68   | 366804 | 0.445 | 0.898  |              | 6a8dzz68/checkpoints/config_masking_conformer_multiview_enc_to_all_small.gin |
+| s5  | Conformer | Small | enc    | enc/cqt      | lfc02r16   | 366804 | 0.433 | 0.892  |              | lfc02r16/checkpoints/config_masking_conformer_multiview_enc_to_cqt_small.gin |
+| s6  | Conformer | Small | enc    | au/enc/cqt   | 9sn3yi5h   | 366804 | 0.433 | 0.889  |              | 9sn3yi5h/checkpoints/config_masking_conformer_multiview_enc_to_auenccqt_small.gin |
+| s7  | Conformer | Small | enc    | au/enc/mel   | izet8ved   | 366804 | 0.444 | 0.895  |              | izet8ved/checkpoints/config_masking_conformer_multiview_enc_to_auencmel_small.gin |
+| s8  | Conformer | Small | enc    | enc/mel/cqt  | bm23z5le   | 366804 | 0.446 | 0.900  | 0.750        | bm23z5le/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_small.gin |
+| l3  | Conformer | Large | enc    | enc          | z6opk2rz   | 366804 | NaN   | NaN    |              | z6opk2rz/checkpoints/config_masking_conformer_multiview_enc_to_enc_large.gin |
+| l5  | Conformer | Large | enc    | enc/cqt      | mbgq9od4   | 366804 | 0.464 | 0.921  |              | mbgq9od4/checkpoints/config_masking_conformer_multiview_enc_to_cqt_large.gin |
+| l6  | Conformer | Large | enc    | au/enc/cqt   | ldtuk0yo   | 366804 | 0.461 | 0.911  |              | ldtuk0yo/checkpoints/config_masking_conformer_multiview_enc_to_auenccqt_large.gin |
+| l7  | Conformer | Large | enc    | au/enc/mel   | yc10xacz   | 366804 | NaN   | NaN    |              | yc10xacz/checkpoints/config_masking_conformer_multiview_enc_to_auencmel_large.gin |
+| l8  | Conformer | Large | enc    | enc/mel/cqt  | 8bi35b82   | 366804 | NaN   | NaN    |              | 8bi35b82/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_large.gin |
+
+### FreeSound models
+| ID   | Arch          | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Nsynth | CONFIG FILE PATH                                      |
+|------|---------------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
+| f0   | Conformer     | Small | Mel   | Mel    | i2h5dqb8   | 343540 | 0.440 | 0.838        | i2h5dqb8/checkpoints/fs_config_masking_conformer_small.gin |
+| f1   | Conformer     | Large | Mel   | Mel    | msesipur   | 364695 | 0.434 | 0.859        | msesipur/checkpoints/fs_config_masking_conformer_large.gin |
 
 ## Cluster setup
 

@@ -9,6 +9,10 @@ import torch
 from transformers import EncodecModel
 from torchaudio.transforms import Resample
 
+# Normalization stats obtained from the training data (Discogs23 dataset)
+ENCODEC_MEAN = -0.5577428463574771
+ENCODEC_STD = 5.863781862801963
+
 
 @gin.configurable
 class EnCodec(torch.nn.Module):
@@ -16,7 +20,7 @@ class EnCodec(torch.nn.Module):
         self,
         weights_path: Path,
         norm_type: str | None,
-        stats_path: Path,
+        stats_path: Path | None,
         orig_sr: int,
         patch_size: Tuple[int, int],
     ):
@@ -28,18 +32,29 @@ class EnCodec(torch.nn.Module):
         self.patch_size = patch_size
 
         if self.norm_type is not None:
-            with open(stats_path, "r") as f:
-                stats = json.load(f)
+            if stats_path is None:
+                if self.norm_type == "dimensionwise":
+                    raise ValueError(
+                        "stats_path must be provided when using dimensionwise normalization"
+                    )
+                elif self.norm_type == "global":
+                    # Fallback to hardcoded values
+                    mean = torch.tensor(ENCODEC_MEAN)
+                    std = torch.tensor(ENCODEC_STD)
 
-            if self.norm_type == "dimensionwise":
-                mean = torch.tensor(stats["mean_dims"])
-                std = torch.tensor(stats["std_dims"])
-
-            elif self.norm_type == "global":
-                mean = torch.tensor(stats["mean"])
-                std = torch.tensor(stats["std"])
             else:
-                raise ValueError(f"Invalid norm_type: {self.norm_type}")
+                with open(stats_path, "r") as f:
+                    stats = json.load(f)
+
+                if self.norm_type == "dimensionwise":
+                    mean = torch.tensor(stats["mean_dims"])
+                    std = torch.tensor(stats["std_dims"])
+
+                elif self.norm_type == "global":
+                    mean = torch.tensor(stats["mean"])
+                    std = torch.tensor(stats["std"])
+                else:
+                    raise ValueError(f"Invalid norm_type: {self.norm_type}")
 
             self.register_buffer("mean", mean)
             self.register_buffer("std", std)
@@ -98,6 +113,6 @@ class EnCodec(torch.nn.Module):
             elif self.norm_type == "global":
                 reps = (reps - self.mean) / self.std
 
-        reps = reps.squeeze(0)
+        # reps = reps.squeeze(0)
 
         return reps
