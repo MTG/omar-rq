@@ -3,6 +3,7 @@ version = "0.1"
 name = "ssl-mtg"
 
 requires-python = ">= 3.10"
+
 dependencies = [
     "lightning~=2.2",
     "torch~=2.3",
