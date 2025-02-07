@@ -119,12 +119,12 @@ def get_model(
 
     # The model can feature one or multiple representations (multi-view models)
     if isinstance(representation, list):
-        representation = nn.ModuleList([r() for r in representation])
+        representation = nn.ModuleList([r().to(device) for r in representation])
     else:
         # In the single view case, extract the params from the rep class and get
         # a hardcoded patch size parameter (since it was not included in the gin config)
         patch_size = get_patch_size(representation)
-        representation = representation(patch_size=patch_size)
+        representation = representation(patch_size=patch_size).to(device)
         sr = representation.sr
         hop_len = representation.hop_len
 
@@ -133,6 +133,7 @@ def get_model(
         net=net,
         representation=representation,
         strict=False,
+        map_location=device,
     )
 
     module.to(device)
