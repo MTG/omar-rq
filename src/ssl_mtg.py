@@ -136,7 +136,6 @@ def get_model(
     )
 
     module.to(device)
-    module.eval()
 
     # In the multi-vew case, we only need the params of the rep used as input.
     # Get them from the module instance.
