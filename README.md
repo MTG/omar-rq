@@ -29,10 +29,10 @@ config_file = "my_config_file.gin"
 
 model, eps = get_model(config_file, device="cpu")
 
-embeddings = model.extract_embeddings(x, layers=(6))
 # if we don't want to fine-tune the model
 model.eval()
 
+embeddings = model.extract_embeddings(x, layers=[6])
 
 timestamps = torch.arange(embeddings.shape[2]) / eps
 ```
