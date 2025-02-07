@@ -433,9 +433,9 @@ class MaskingModel(L.LightningModule):
 
         # Compute the representation
         if isinstance(self.representation, nn.ModuleList):
-            assert (
-                self.input_representation is not None
-            ), "`input_representation` must be provided."
+            assert self.input_representation is not None, (
+                "`input_representation` must be provided."
+            )
             for rep in self.representation:
                 if isinstance(rep, self.input_representation):
                     input_rep = rep
