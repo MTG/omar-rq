@@ -1,2 +1,3 @@
 from .sequence_classifiers import SequenceMultiLabelClassificationProbe
 from .sequence_classifiers import SequenceMultiClassClassificationProbe
+from .sequence_classifiers import SequenceBinaryClassificationProbe

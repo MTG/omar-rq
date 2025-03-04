@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import gin
@@ -13,7 +14,13 @@ from torchmetrics.classification import (
 )
 import matplotlib.pyplot as plt
 import numpy as np
-import wandb
+
+from madmom.features.beats import DBNBeatTrackingProcessor
+from mir_eval.beat import f_measure
+
+
+# var for the firsr testing iteration
+FIRST_TEST = True
 
 
 @gin.configurable
@@ -78,10 +85,11 @@ class SequenceClassificationProbe(L.LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()  # TODO sigmoid or not?
 
         # Initialize the metrics
-
         self.init_metrics()
 
         self.best_val_metric = {metric: 0.0 for metric in self.val_metrics.keys()}
+
+        self.test_metrics_accumulator = defaultdict(list)
 
     def init_metrics_and_optim(self):
         raise NotImplementedError(
@@ -97,17 +105,25 @@ class SequenceClassificationProbe(L.LightningModule):
         """X : (n_chunks, n_feat_in), y : (n_chunks, num_labels)
         each chunk may com from another track."""
 
-        x, y_true = batch
+        x = batch[0]
+        y_true = batch[1]
+
         logits = self.forward(x)
         loss = self.criterion(logits, y_true)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, prog_bar=True)
+
+        for name, metric in self.val_metrics.items():
+            metric.update(logits, y_true)
+            self.log(name, metric, on_step=True, prog_bar=True)
+
         return loss
 
     def predict(self, batch, return_predicted_class=False):
         """Prediction step for a single track. A batch should
         contain all the chunks of a single track."""
 
-        x, y_true = batch
+        x = batch[0]
+        y_true = batch[1]
 
         # process each chunk separately
         logits = self.forward(x)  # (batch, n_chunks, num_labels)
@@ -119,6 +135,7 @@ class SequenceClassificationProbe(L.LightningModule):
         if return_predicted_class:
             predicted_class = (torch.sigmoid(logits) > 0.5).int()
             return logits, loss, predicted_class
+
         return logits, loss
 
     def validation_step(self, batch, batch_idx):
@@ -128,11 +145,8 @@ class SequenceClassificationProbe(L.LightningModule):
         # Update all metrics with the current batch
         y_true = batch[1].int()
         for name, metric in self.val_metrics.items():
-            if "acc" in name:
-                y_true_idx = torch.argmax(y_true, dim=1)
-                metric.update(logits, y_true_idx)
-            else:
-                metric.update(logits, y_true)
+            metric.update(logits, y_true)
+            self.log(name, metric, on_epoch=True, prog_bar=True)
 
     def on_validation_epoch_end(self):
         # Calculate and log the final value for each metric
@@ -144,38 +158,86 @@ class SequenceClassificationProbe(L.LightningModule):
                 self.best_val_metric[name] = metric_value
 
     def test_step(self, batch, batch_idx):
-        logits, _ = self.predict(batch)
+        global FIRST_TEST
+
+        logits, loss = self.predict(batch)
+
+        self.log("test_loss", loss, prog_bar=True)
 
         # Update all metrics with the current batch
         y_true = batch[1].int()
 
         for name, metric in self.test_metrics.items():
-            if "acc" in name:
-                y_true_idx = torch.argmax(y_true, dim=1)
-                metric.update(logits, y_true_idx)
-            else:
-                metric.update(logits, y_true)
+            metric.update(logits, y_true)
+            self.log(name, metric, on_epoch=True, prog_bar=True)
+
+        # logits to activations
+        activations = torch.sigmoid(logits)
+
+        # to numpy
+        activations = activations.detach().cpu().numpy().squeeze()
+        y_true = y_true.detach().cpu().numpy().squeeze()
+
+        scores = []
+
+        for i in range(len(y_true)):
+            try:
+                y_proc = self.dbn_processor.process(activations[i])
+                y_true_sample = np.nonzero(y_true[i])[0] * 0.05334
+                fm = f_measure(y_true_sample, y_proc)
+
+            except Exception as e:
+                print(f"Error processing {i}: {e}")
+                fm = np.nan
+
+            scores.append(fm)
+
+            if FIRST_TEST:
+                # save all values to npy files
+                test_dir = Path("test_results")
+                test_dir.mkdir(parents=True, exist_ok=True)
+                np.save(test_dir / f"y_true_sample_{i}.npy", y_true_sample)
+                np.save(test_dir / f"y_proc_{i}.npy", y_proc)
+                np.save(test_dir / f"y_true_{i}.npy", y_true[i])
+                np.save(test_dir / f"activations_{i}.npy", activations[i])
+
+                ids = batch[2]
+                with open(test_dir / "ids.txt", "w") as f:
+                    for tid in ids:
+                        f.write(f"{tid}\n")
+
+                # save input representation
+                np.save(test_dir / f"input_{i}.npy", batch[0][i].detach().cpu().numpy())
+
+                if i > 4:
+                    FIRST_TEST = False
+
+        self.test_metrics_accumulator["test-f_measure"].extend(scores)
 
         # Update the confusion matrix
-        if type(self.test_confusion_matrix) == MulticlassConfusionMatrix:
-            y_true = torch.argmax(y_true, dim=1)
+        # if type(self.test_confusion_matrix) == MulticlassConfusionMatrix:
+        #     y_true = torch.argmax(y_true, dim=1)
 
-        self.test_confusion_matrix.update(logits, y_true)
+        # self.test_confusion_matrix.update(logits, y_true)
 
     def on_test_epoch_end(self):
         # Calculate and log the final value for each metric
         for name, metric in self.test_metrics.items():
             self.log(name, metric, on_epoch=True)
+
+        avg_f_measure = np.mean(self.test_metrics_accumulator["test-f_measure"])
+        self.log("test-f_measure", avg_f_measure, on_epoch=True)
+
         # Compute the confusion matrix
-        conf_matrix = self.test_confusion_matrix.compute()
-        multiclass = type(self.test_confusion_matrix) == MulticlassConfusionMatrix
-        fig = self.plot_confusion_matrix(conf_matrix, multiclass=multiclass)
-        # Log the figure directly to wandb
-        if self.logger:
-            self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
-        if self.plot_dir:
-            self.plot_dir.mkdir(parents=True, exist_ok=True)
-            fig.savefig(self.plot_dir / "test_confusion_matrix.png")
+        # conf_matrix = self.test_confusion_matrix.compute()
+        # multiclass = type(self.test_confusion_matrix) == MulticlassConfusionMatrix
+        # fig = self.plot_confusion_matrix(conf_matrix, multiclass=multiclass)
+        # # Log the figure directly to wandb
+        # if self.logger:
+        #     self.logger.experiment.log({"test_confusion_matrix": wandb.Image(fig)})
+        # if self.plot_dir:
+        #     self.plot_dir.mkdir(parents=True, exist_ok=True)
+        #     fig.savefig(self.plot_dir / "test_confusion_matrix.png")
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
@@ -260,3 +322,26 @@ class SequenceMultiClassClassificationProbe(SequenceClassificationProbe):
         self.test_confusion_matrix = MulticlassConfusionMatrix(
             num_classes=self.num_labels
         )
+
+
+class SequenceBinaryClassificationProbe(SequenceClassificationProbe):
+    def init_metrics(self):
+        self.train_metrics = nn.ModuleDict(
+            {
+                "train-acc": Accuracy(task="binary", num_classes=self.num_labels),
+            }
+        )
+        self.val_metrics = nn.ModuleDict(
+            {
+                "val-acc": Accuracy(task="binary", num_classes=self.num_labels),
+            }
+        )
+        self.test_metrics = nn.ModuleDict(
+            {
+                "test-acc": Accuracy(task="binary", num_classes=self.num_labels),
+            }
+        )
+
+    # setup for test time
+    def on_test_epoch_start(self):
+        self.dbn_processor = DBNBeatTrackingProcessor(fps=75 / 4)

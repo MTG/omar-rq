@@ -24,6 +24,7 @@ from utils import gin_config_to_readable_dictionary
 from probe.modules import (
     SequenceMultiLabelClassificationProbe,
     SequenceMultiClassClassificationProbe,
+    SequenceBinaryClassificationProbe,
 )
 from probe.data import (
     MTTEmbeddingLoadingDataModule,
@@ -76,14 +77,10 @@ def build_module_and_datamodule(
 
         # Get the number of features from the dataloader
         in_features = datamodule.embedding_dimension
-        # hidden_size = datamodule.timestamps
-        # out_features = datamodule.timestamps
 
         # Build the DataModule
-        module = SequenceMultiClassClassificationProbe(
+        module = SequenceBinaryClassificationProbe(
             in_features=in_features,
-            # hidden_size=hidden_size,
-            # num_labels=out_features,
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
@@ -106,10 +103,18 @@ def optimize_probe(
 
     def train_probe_proxy(**params):
         # round discrete values
-        # kwargs["num_layers"] = round(kwargs["num_layers"])
-        params["hidden_size"] = round(params["hidden_size"])
+        if "num_layers" in params:
+            kwargs["num_layers"] = round(kwargs["num_layers"])
+        if "hidden_size" in params:
+            params["hidden_size"] = round(params["hidden_size"])
 
-        module = SequenceMultiLabelClassificationProbe(
+        if "batch_size" in params:
+            params["batch_size"] = round(params["batch_size"])
+            datamodule.batch_size = params["batch_size"]
+            # delete batch_size from params to avoid passing it to the probe
+            params.pop("batch_size")
+
+        module = SequenceBinaryClassificationProbe(
             in_features=datamodule.embedding_dimension, **params
         )
 

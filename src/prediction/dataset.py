@@ -27,7 +27,7 @@ class AudioEmbeddingDataset(Dataset):
         self.data_dir = Path(data_dir)
         self.filelist = sorted(self.data_dir.rglob(f"*.{file_format}"))
         assert len(self.filelist) > 0, f"No files found in {self.data_dir}"
-        print(f"Found {len(self.filelist)} files in {self.data_dir}.")
+        print(f"Found {len(self.filelist)} *.{file_format} files in {self.data_dir}.")
 
         self.orig_freq = None
         self.new_freq = new_freq
