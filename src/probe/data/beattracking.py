@@ -56,7 +56,9 @@ class BeatTrackingEmbeddingLoadingDataset(Dataset):
         with open(filelist, "r") as f:
             filenames = [line.strip() for line in f.readlines()]
 
-        self.embeddings, self.beats = self.parallel_loading(filenames)
+        self.embeddings, self.beats, self.filenames = self.parallel_loading(filenames)
+
+        print(f"Loaded {len(self.embeddings)} embeddings and labels.")
 
         self.track_map = []
         for i, emb in enumerate(self.embeddings):
@@ -78,26 +80,27 @@ class BeatTrackingEmbeddingLoadingDataset(Dataset):
                     embedding
                 )  # Assuming this is an instance method
 
-                return embedding, beats
+                return embedding, beats, str(fn)
         except Exception as e:
             print(f"Error processing {fn}: {e}")
 
-        return None, None
+        return None, None, None
 
     def parallel_loading(self, filenames):
-        embeddings, beats = [], []
+        embeddings, beats, fns = [], [], []
 
         with ThreadPoolExecutor() as executor:
             futures = {executor.submit(self.process_file, fn): fn for fn in filenames}
 
             for future in tqdm(as_completed(futures), total=len(filenames)):
-                embedding, beat = future.result()
+                embedding, beat, fn = future.result()
                 if embedding is not None:
                     embeddings.append(embedding)
                     beats.append(beat)
+                    fns.append(fn)
 
         print(f"Loaded {len(embeddings)} embeddings and labels.")
-        return embeddings, beats
+        return embeddings, beats, fns
 
     def __len__(self):
         return len(self.track_map)
@@ -138,6 +141,11 @@ class BeatTrackingEmbeddingLoadingDataset(Dataset):
 
             labels[idx] = 1
 
+            # if idx > 0:
+            #     labels[idx - 1] = 1
+            # if idx < T - 1:
+            #     labels[idx + 1] = 1
+
             # if dist[idx] > thres:
             #     print(f"Beat {beat} is far from the closest timestamp.")
             #     print(f"Closest timestamp: {timestamps[idx]:.4f}")
@@ -147,7 +155,7 @@ class BeatTrackingEmbeddingLoadingDataset(Dataset):
 
         labels.unsqueeze_(1)  # (T, 1)
 
-        return embeddings, labels, track_id
+        return embeddings, labels, self.filenames[track_id]
 
     def prepare_embedding(self, embeddings):
         """Prepare embeddings for training. Expects the embeddings to be 4D (L, N, T, F)."""
