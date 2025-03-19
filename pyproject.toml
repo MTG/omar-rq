@@ -6,9 +6,9 @@ requires-python = ">= 3.10"
 
 dependencies = [
     "lightning~=2.2",
-    "torch~=2.3",
+    "torch==2.3",
     "gin-config~=0.5",
-    "torchaudio",
+    "torchaudio==2.3",
     "wandb",
     "einops",
     "transformers"
