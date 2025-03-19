@@ -5,7 +5,7 @@ name = "ssl-mtg"
 requires-python = ">= 3.10"
 
 dependencies = [
-    "lightning~=2.2",
+    "lightning==2.3",
     "torch==2.3",
     "gin-config~=0.5",
     "torchaudio==2.3",
@@ -21,7 +21,7 @@ dev = [
     "bayesian_optimization~=1.5.1",
     "scikit_learn~=1.5.2",
     "scipy~=1.14.1",
-    "torchvision~=0.18",
+    "torchvision==0.17",
 ]
 
 [build-system]
