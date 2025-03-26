@@ -9,6 +9,7 @@ dependencies = [
     "torch==2.3",
     "gin-config~=0.5",
     "torchaudio==2.3",
+    "torchvision==0.18",
     "wandb",
     "einops",
     "transformers"
@@ -21,7 +22,6 @@ dev = [
     "bayesian_optimization~=1.5.1",
     "scikit_learn~=1.5.2",
     "scipy~=1.14.1",
-    "torchvision==0.17",
 ]
 
 [build-system]
