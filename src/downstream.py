@@ -1,5 +1,5 @@
-""" This script is the main training and evaluation script for training a probe on 
-a downstream task. It expects pre-extracted embeddings from a self-supervised model 
+"""This script is the main training and evaluation script for training a probe on
+a downstream task. It expects pre-extracted embeddings from a self-supervised model
 and a config file for the downstream task. The config file should contain the details
 of the dataset and the parameters of the probe. The script will train the probe on the
 embeddings and evaluate it on the corresponding downstream task.
