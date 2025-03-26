@@ -5,12 +5,14 @@ A repository of models and training code for several SSL aproaches and architect
 ## Install
 
 For embedding extraction or downstream tasks:
+
 ```bash
 pip install -e .
 
 ```
 
 For development including pre-training models:
+
 ```bash
 pip install -e .[dev]
 ```
@@ -20,7 +22,8 @@ pip install -e .[dev]
 This repository provides a simple interface to extract embeddings given a model configuration file (`.gin`).
 
 Embedding extraction example:
-```python 
+
+```python
 import torch
 from ssl_mtg import get_model
 
@@ -35,6 +38,7 @@ timestamps = torch.arange(embeddings.shape[2]) / eps
 ```
 
 `get_model` reference:
+
 ```
 Returns the model from the provided config file.
 
@@ -55,6 +59,7 @@ Output:
 ```
 
 `extract_embeddings` reference:
+
 ```
 Extract embeddings from an input audio batch.
 
@@ -74,6 +79,7 @@ Output:
 > Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
 
 ## Relevant pre-trained models
+
 There are a number of models pre-trained in the context of the BSC project available from the MTG Projects shared folder.
 If you are not familiar to this, refer to the [documentation](https://github.com/MTG/mtg-services/blob/master/MTGDB%2C-shared-project-folders-and-user-storage.md#update-2023-10-new-configuration-for-sambacifs-access-to-mtg-data) to learn how to get access and mount it.
 
@@ -81,7 +87,8 @@ The config and weights files are located in `/<MTG_PROJECTS_MOUNT_DIR>/BSC/proje
 
 These are the most relevant models along with their performance metrics (WIP):
 
-### Baseline Discogs23 models 
+### Baseline Discogs23 models
+
 | ID   | Arch      | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Beattracking | CONFIG FILE PATH                                      |
 |------|-----------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
 | b0   | Conformer | Small | Mel   | Mel    | c4urat3s   | 400000 | 0.469 | 0.824        | c4urat3s/checkpoints/config_conformer.gin            |
@@ -89,6 +96,7 @@ These are the most relevant models along with their performance metrics (WIP):
 | b3   | Conformer | Small | Enc   | Enc    | molbhb3i   | 326048 |       | 0.895        | molbhb3i/checkpoints/config_conformer_encodec.gin    |
 
 ### Multi-view Discogs23 models
+
 | ID  | Arch       | Size  | Input  | Target        | WandB ID   | Steps  | MTAT  | Nsynth | Beattracking | CONFIG FILE PATH |
 |-----|-----------|-------|--------|--------------|------------|--------|------|--------|--------------|------------------|
 | s1  | Conformer | Small | audio  | au/mel/cqt   | hgu9kgyl   | 193591 | 0.440 | 0.910  |              | hgu9kgyl/checkpoints/config_masking_conformer_multiview_small.gin |
@@ -105,6 +113,7 @@ These are the most relevant models along with their performance metrics (WIP):
 | l8  | Conformer | Large | enc    | enc/mel/cqt  | 8bi35b82   | 366804 | NaN   | NaN    |              | 8bi35b82/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_large.gin |
 
 ### FreeSound models
+
 | ID   | Arch          | Size  | Input | Target | WandB ID   | Steps  | MTAT  | Nsynth | CONFIG FILE PATH                                      |
 |------|---------------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
 | f0   | Conformer     | Small | Mel   | Mel    | i2h5dqb8   | 343540 | 0.440 | 0.838        | i2h5dqb8/checkpoints/fs_config_masking_conformer_small.gin |
