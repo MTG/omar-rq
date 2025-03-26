@@ -136,6 +136,10 @@ def get_model(
         map_location=device,
     )
 
+    # Set the model to eval mode
+    module.eval()
+
+    # Move the model to the device
     module.to(device)
 
     # In the multi-vew case, we only need the params of the rep used as input.
