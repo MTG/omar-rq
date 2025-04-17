@@ -1,0 +1,93 @@
+# general training parameters
+train.wandb_params = {
+    "project": "mtg-text_audio",
+    "name": "dev.mtg_text_audio",
+    "offline": False,
+    "entity": "mtg-upf",
+}
+
+new_freq = 24000
+
+# modules to use
+__main__.build_module.module = @modules.clap.CLAP
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube_test_audio
+
+
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "gpu",
+    "devices": 1,
+    "max_steps": 400,
+    "log_every_n_steps": 50,
+    "precision": "bf16-mixed",
+    "strategy": "ddp_find_unused_parameters_true"
+}
+
+modules.clap.CLAP.audio_encoder_name = "/Users/palonso/data/text_audio/ssl-mtg-weights/bm23z5le/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_small.gin"
+modules.clap.CLAP.text_encoder_name = "sentence-transformers/all-mpnet-base-v2"
+modules.clap.CLAP.proj_size = 512
+modules.clap.CLAP.temp = 0.1
+modules.clap.CLAP.lr = 1e-4
+modules.clap.CLAP.weight_decay = 1e-2
+modules.clap.CLAP.seed = 0
+
+# CosineAnnealing scheduler
+CosineAnnealingCallback.warmup_steps = 30000
+CosineAnnealingCallback.eta_min = 1e-7
+
+# MelSpectrogram parameters
+nets.melspectrogram.MelSpectrogram.sr = 16000
+nets.melspectrogram.MelSpectrogram.win_len = 512
+nets.melspectrogram.MelSpectrogram.hop_len = 256
+nets.melspectrogram.MelSpectrogram.power = 2
+nets.melspectrogram.MelSpectrogram.n_mel = 96
+nets.melspectrogram.MelSpectrogram.norm = "slaney"
+nets.melspectrogram.MelSpectrogram.mel_scale = "slaney"
+nets.melspectrogram.MelSpectrogram.norm_std = 1.268292820667291
+nets.melspectrogram.MelSpectrogram.norm_mean = 2.06755686098554
+
+# data augmentation
+nets.melspectrogram.MelSpectrogram.stretch_factor = 1
+nets.melspectrogram.MelSpectrogram.freq_mask_param = 0
+nets.melspectrogram.MelSpectrogram.time_mask_param = 0
+nets.melspectrogram.MelSpectrogram.patch_size = (96, 4)
+
+
+# Transformer parameters
+nets.conformer.Conformer.patch_size = (96, 4)
+nets.conformer.Conformer.embed_dim = 512
+nets.conformer.Conformer.depth = 2
+nets.conformer.Conformer.conv_kernel_size = 5
+nets.conformer.Conformer.num_heads = 8
+nets.conformer.Conformer.mlp_ratio = 4.0
+nets.conformer.Conformer.mlp_residual_factor = 4.0
+nets.conformer.Conformer.dropout = 0.0
+nets.conformer.Conformer.input_dropout = 0.0
+nets.conformer.Conformer.use_deepnorm = True
+nets.conformer.Conformer.alpha_deepnorm = 2.21 # we can tune this number
+nets.conformer.Conformer.beta_deepnorm = 0.0026 # we can tune this number
+nets.conformer.Conformer.use_rope = True
+nets.conformer.Conformer.num_patches = None
+
+# Dataloader
+AudioDataset.num_frames = 16000
+AudioDataset.orig_freq = 16000
+AudioDataset.new_freq = 16000
+AudioDataset.mono = True
+AudioDataset.half_precision = True
+AudioDataModule.num_workers = 0
+
+# Discogs datamodule parameters
+DiscotubeTextAudioDataModule.batch_size = 1
+DiscotubeTextAudioDataModule.num_workers = 8
+DiscotubeTextAudioDataModule.data_dir = "/Users/palonso/data/text_audio/discotube_sample/audio/"
+DiscotubeTextAudioDataModule.filelist_train = "/Users/palonso/data/text_audio/discotube_sample/ids"
+DiscotubeTextAudioDataModule.filelist_val = "/Users/palonso/data/text_audio/discotube_sample/ids"
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/Users/palonso/data/text_audio/discotube_sample/yotube_metadata.jsonl"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/Users/palonso/data/text_audio/discotube_sample/discogs_metadata.jsonl"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/Users/palonso/data/text_audio/discotube_sample/youtube_to_discgos_map.jsonl"
+
+
+
