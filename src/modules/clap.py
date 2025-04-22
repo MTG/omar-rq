@@ -26,6 +26,7 @@ class CLAP(L.LightningModule):
         self,
         audio_encoder_name: Path | str,
         text_encoder_name: Path | str,
+        audio_encoder_params: dict,
         proj_size: int,
         temp: float,
         lr: float,
@@ -38,6 +39,7 @@ class CLAP(L.LightningModule):
         self.seed = seed
         self.text_encoder_name = text_encoder_name
         self.audio_encoder_name = audio_encoder_name
+        self.audio_encoder_params = audio_encoder_params
         self.lr = lr
         self.weight_decay = weight_decay
         self.proj_size = proj_size
@@ -48,7 +50,11 @@ class CLAP(L.LightningModule):
             str(self.text_encoder_name), device=self.device
         )
 
-        self.audio_encoder, _ = get_model(self.audio_encoder_name, device=self.device)
+        self.audio_encoder, _ = get_model(
+            self.audio_encoder_name,
+            device=self.device,
+            **self.audio_encoder_params,
+        )
 
         # aux projection layers
         self.proj_a = nn.Linear(self.net.embed_dim, self.proj_size)

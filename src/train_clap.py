@@ -22,26 +22,6 @@ for data_name, data in DATASETS.items():
 
 
 @gin.configurable
-def build_module(
-    module: L.LightningModule,
-    ckpt_path: Path | None = None,
-):
-    """Build the module from the provided references. If a checkpoint path is provided,
-    load the checkpoint. Otherwise, create a new model. Returns the checkpoint path so that
-    Lightning Trainer can use it to restore the training."""
-
-    if ckpt_path is not None:  # Load the checkpoint if provided
-        print(f"Loading checkpoint from {ckpt_path}")
-        module = module.load_from_checkpoint(ckpt_path, strict=False)
-
-    else:  # Otherwise, create from random initialization
-        print("Creating a new model")
-        module = module()
-
-    return module, ckpt_path
-
-
-@gin.configurable
 def train(
     module: L.LightningModule,
     datamodule: L.LightningDataModule,
@@ -81,7 +61,9 @@ if __name__ == "__main__":
     try:
         gin.parse_config_file(args.train_config, skip_unknown=True)
 
-        module, ckpt_path = build_module()
+        module = MODULES["clap"]()
+        ckpt_path = None
+
         datamodule = build_dev_datamodule()
 
         gin.finalize()
