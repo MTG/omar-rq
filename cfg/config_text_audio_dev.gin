@@ -8,9 +8,6 @@ train.wandb_params = {
 
 new_freq = 24000
 
-# modules to use
-__main__.build_module.module = @modules.clap.CLAP
-
 # Choose the devalopment dataloader
 build_dev_datamodule.datamodule = @discotube_test_audio
 
@@ -25,8 +22,11 @@ train.params = {
     "strategy": "ddp_find_unused_parameters_true"
 }
 
-modules.clap.CLAP.audio_encoder_name = "/Users/palonso/data/text_audio/ssl-mtg-weights/bm23z5le/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_small.gin"
-modules.clap.CLAP.text_encoder_name = "sentence-transformers/all-mpnet-base-v2"
+modules.clap.CLAP.audio_encoder_name = "/gpfs/home/palonso/model_weights/ssl_mtg_weights/bm23z5le/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_small.gin"
+modules.clap.CLAP.text_encoder_name = "/gpfs/home/palonso/model_weights/models--sentence-transformers--all-mpnet-base-v2"
+modules.clap.CLAP.audio_encoder_params = {
+    "encodec_weights_path": "/gpfs/home/palonso/model_weights/encodec_24khz/"
+  }
 modules.clap.CLAP.proj_size = 512
 modules.clap.CLAP.temp = 0.1
 modules.clap.CLAP.lr = 1e-4
@@ -82,12 +82,12 @@ AudioDataModule.num_workers = 0
 # Discogs datamodule parameters
 DiscotubeTextAudioDataModule.batch_size = 1
 DiscotubeTextAudioDataModule.num_workers = 8
-DiscotubeTextAudioDataModule.data_dir = "/Users/palonso/data/text_audio/discotube_sample/audio/"
-DiscotubeTextAudioDataModule.filelist_train = "/Users/palonso/data/text_audio/discotube_sample/ids"
-DiscotubeTextAudioDataModule.filelist_val = "/Users/palonso/data/text_audio/discotube_sample/ids"
-DiscotubeTextAudioDataModule.metadata_youtube_file = "/Users/palonso/data/text_audio/discotube_sample/yotube_metadata.jsonl"
-DiscotubeTextAudioDataModule.metadata_discogs_file = "/Users/palonso/data/text_audio/discotube_sample/discogs_metadata.jsonl"
-DiscotubeTextAudioDataModule.metadata_id_map_file = "/Users/palonso/data/text_audio/discotube_sample/youtube_to_discgos_map.jsonl"
+DiscotubeTextAudioDataModule.data_dir = "/home/palonso/data/discotube_sample/audio/"
+DiscotubeTextAudioDataModule.filelist_train = "/home/palonso/data/discotube_sample/ids"
+DiscotubeTextAudioDataModule.filelist_val = "/home/palonso/data/discotube_sample/ids"
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/home/palonso/data/discotube_sample/yotube_metadata.jsonl"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/home/palonso/data/discotube_sample/discogs_metadata.jsonl"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/home/palonso/data/discotube_sample/youtube_to_discgos_map.jsonl"
 
 
 
