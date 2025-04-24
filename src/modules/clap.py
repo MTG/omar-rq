@@ -1,11 +1,13 @@
 import gin
 
+import os
 import sys
 from pathlib import Path
 from typing import Tuple
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 import pytorch_lightning as L
 from sentence_transformers import SentenceTransformer
 
@@ -27,6 +29,9 @@ class CLAP(L.LightningModule):
         audio_encoder_name: Path | str,
         text_encoder_name: Path | str,
         audio_encoder_params: dict,
+        train_audio_encoder: bool,
+        train_text_encoder: bool,
+        tokenizers_parallelism: bool,
         proj_size: int,
         temp: float,
         lr: float,
@@ -40,6 +45,10 @@ class CLAP(L.LightningModule):
         self.text_encoder_name = text_encoder_name
         self.audio_encoder_name = audio_encoder_name
         self.audio_encoder_params = audio_encoder_params
+        self.train_audio_encoder = train_audio_encoder
+        self.train_text_encoder = train_text_encoder
+        self.tokenizers_parallelism = tokenizers_parallelism
+
         self.lr = lr
         self.weight_decay = weight_decay
         self.proj_size = proj_size
@@ -50,18 +59,42 @@ class CLAP(L.LightningModule):
             str(self.text_encoder_name), device=self.device
         )
 
+        for _, param in self.text_encoder.named_parameters():
+            param.requires_gradient = self.train_text_encoder
+
+        if self.train_text_encoder:
+            self.text_encoder.train()
+        else:
+            self.text_encoder.eval()
+
         self.audio_encoder, _ = get_model(
             self.audio_encoder_name,
             device=self.device,
             **self.audio_encoder_params,
         )
 
+        for _, param in self.audio_encoder.named_parameters():
+            param.requires_gradient = self.train_audio_encoder
+
+        if self.train_audio_encoder:
+            self.audio_encoder.train()
+        else:
+            self.audio_encoder.eval()
+
         # aux projection layers
-        self.proj_a = nn.Linear(self.net.embed_dim, self.proj_size)
-        self.proj_t = nn.Linear(self.net.embed_dim, self.proj_size)
+        self.a_z_size = 512
+        self.t_z_size = 768
+
+        self.proj_a = nn.Linear(self.a_z_size, self.proj_size)
+        self.proj_t = nn.Linear(self.t_z_size, self.proj_size)
 
         # loss function
         self.loss = nn.CrossEntropyLoss()
+
+        if self.tokenizers_parallelism:
+            os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        else:
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     def info_nce_loss(
         self, features: torch.Tensor
@@ -125,12 +158,14 @@ class CLAP(L.LightningModule):
     def forward(self, batch):
         a, t = batch
 
-        x_a = self.audio_encoder(a)  # (B, T, 768)
+        x_a = self.audio_encoder.extract_embeddings(a)  # (B, T, 768)
+
+        x_a.squeeze_(dim=0)
 
         # TODO: Do a more clever time agregation
         x_a = x_a.mean(dim=1)  # (B, 768)
 
-        x_t = self.text_encoder(t)  # (B, 768)
+        x_t = self.text_encoder.encode(t, convert_to_tensor=True)  # (B, 769)
 
         z_a = self.proj_a(x_a)
         z_t = self.proj_t(x_t)
