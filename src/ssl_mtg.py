@@ -8,17 +8,7 @@ import pytorch_lightning as L
 
 import nets
 import modules
-
-
-# Dummy class to catch the gin bindings
-@gin.configurable
-def build_module(
-    representation: nn.Module | List,
-    net: nn.Module,
-    module: L.LightningModule,
-    ckpt_path: Path = None,
-):
-    pass
+from utils import build_module
 
 
 def get_patch_size(representation: nn.Module) -> tuple:
