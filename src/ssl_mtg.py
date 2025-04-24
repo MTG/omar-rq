@@ -94,13 +94,30 @@ def get_model(
 
     config_file = Path(config_file)
 
+    # Read previous config bindings
     bindings = []
+    cfg_str = gin.config_str()
+
+    # If these are not empty, this model is part of a larger setup
+    # Do not finish the configuration now
+    finalize_config = False
+    if cfg_str != "":
+        finalize_config = True
+
+    lines = cfg_str.split("\n")
+    bindings.extend(lines)
+
     if encodec_weights_path is not None:
         bindings.append(f"nets.encodec.EnCodec.weights_path = '{encodec_weights_path}'")
         bindings.append("nets.encodec.EnCodec.stats_path = None")
 
     # Parse the gin config
-    gin.parse_config_files_and_bindings([config_file], bindings, skip_unknown=True)
+    gin.parse_config_files_and_bindings(
+        [config_file],
+        bindings,
+        skip_unknown=True,
+        finalize_config=finalize_config,
+    )
 
     gin_config = gin.get_bindings(build_module)
 
