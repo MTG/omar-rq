@@ -91,7 +91,7 @@ def get_model(
     # If these are not empty, this model is part of a larger setup
     # Do not finish the configuration now
     finalize_config = False
-    if cfg_str != "":
+    if cfg_str == "":
         finalize_config = True
 
     lines = cfg_str.split("\n")
