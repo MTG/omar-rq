@@ -178,12 +178,30 @@ class DiscotubeTextAudioDataModule(L.LightningDataModule):
             metadata_id_map=self.metadata_id_map,
         )
 
+    def collate_fn(self, batch):
+        """Custom collate function to skip data loader errors"""
+
+        audio_in, text_in = zip(*batch)
+
+        audio = [i for i in audio_in if i is not None]
+        text = [i for i in text_in if i is not None]
+
+        audio = torch.stack(audio)
+
+        if len(audio) < len(audio_in) // 2:
+            warnings.warn(
+                f"Skipping {len(audio_in) - len(audio)} samples out if {len(audio_in)} in collate_fn "
+            )
+
+        return audio, text
+
     def train_dataloader(self):
         return DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
+            collate_fn=self.collate_fn,
         )
 
     def val_dataloader(self):
@@ -192,4 +210,5 @@ class DiscotubeTextAudioDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
+            collate_fn=self.collate_fn,
         )
