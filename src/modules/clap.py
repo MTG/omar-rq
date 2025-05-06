@@ -186,17 +186,17 @@ class CLAP(L.LightningModule):
         return z_a, z_t, loss
 
     def training_step(self, batch, batch_idx):
-        x = batch
-        _, _, loss = self.forward(x)
+        _, _, loss = self.forward(batch)
+        B = batch[0].shape[0]
 
-        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_loss", loss, prog_bar=True, batch_size=B)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x = batch
-        _, _, loss = self.forward(x)
+        _, _, loss = self.forward(batch)
+        B = batch[0].shape[0]
 
-        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_loss", loss, prog_bar=True, batch_size=B)
         return loss
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
