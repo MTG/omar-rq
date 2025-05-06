@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Tuple
+from collections import defaultdict
 
 import torch
 from torch import nn
@@ -53,6 +54,8 @@ class CLAP(L.LightningModule):
         self.weight_decay = weight_decay
         self.proj_size = proj_size
         self.temp = temp
+
+        self.predict_data = defaultdict(list)
 
         # TODO: Load text module
         self.text_encoder = SentenceTransformer(
@@ -155,26 +158,32 @@ class CLAP(L.LightningModule):
 
         return logits, labels
 
-    def forward(self, batch):
-        a, t = batch
-
-        x_a = self.audio_encoder.extract_embeddings(a)  # (B, T, 768)
+    def forward_audio(self, audio):
+        x_a = self.audio_encoder.extract_embeddings(audio)  # (B, T, 768)
 
         x_a.squeeze_(dim=0)
 
         # TODO: Do a more clever time agregation
         x_a = x_a.mean(dim=1)  # (B, 768)
 
-        x_t = self.text_encoder.encode(t, convert_to_tensor=True)  # (B, 769)
+        return self.proj_a(x_a)
 
-        z_a = self.proj_a(x_a)
-        z_t = self.proj_t(x_t)
+    def forward_text(self, text):
+        x_t = self.text_encoder.encode(text, convert_to_tensor=True)
+        return self.proj_t(x_t)
+
+    def forward(self, batch):
+        a, t = batch
+
+        z_a = self.forward_audio(a)
+        z_t = self.forward_text(t)
+
         z = torch.cat([z_a, z_t], dim=0)
 
         logits, labels = self.info_nce_loss(z)
         loss = self.loss(logits, labels)
 
-        return x_a, x_t, loss
+        return z_a, z_t, loss
 
     def training_step(self, batch, batch_idx):
         x = batch
@@ -189,6 +198,14 @@ class CLAP(L.LightningModule):
 
         self.log("val_loss", loss, prog_bar=True)
         return loss
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, filenames = batch
+
+        embeddings = self.forward_audio(x).cpu()
+
+        for i in range(len(filenames)):
+            self.predict_data[filenames[i]].append(embeddings[i, :])
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
