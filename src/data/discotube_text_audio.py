@@ -48,13 +48,13 @@ class DiscotubeTextAudioDataset(AudioDataset):
 
     def __getitem__(self, idx):
         try:
-            id_yt = self.filelist[idx]
+            file_path = self.filelist[idx]
+            file_path = self.data_dir / file_path
 
-            file_path = self.data_dir / self.get_audio_path(id_yt)
+            id_yt = file_path.stem
 
             # load audio
-            # audio = self.load_audio(file_path, frame_offset=self.frame_offset)
-            audio = torch.rand(1, 16000 * 30)
+            audio = self.load_audio(file_path, frame_offset=self.frame_offset)
 
             # load YouTube metadata
             meta_youtube = self.metadata_youtube[id_yt]
