@@ -4,6 +4,7 @@ from pathlib import Path
 import traceback
 
 import pytorch_lightning as L
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
@@ -19,6 +20,8 @@ for module_name, module in MODULES.items():
 
 for data_name, data in DATASETS.items():
     gin.external_configurable(data, data_name)
+
+torch.set_float32_matmul_precision("medium")
 
 
 @gin.configurable
