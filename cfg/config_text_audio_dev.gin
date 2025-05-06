@@ -38,14 +38,14 @@ CosineAnnealingCallback.eta_min = 1e-7
 build_dev_datamodule.datamodule = @discotube_text_audio
 
 # Discogs datamodule parameters
-DiscotubeTextAudioDataModule.batch_size = 2
-DiscotubeTextAudioDataModule.num_workers = 8
-DiscotubeTextAudioDataModule.data_dir = "/home/palonso/data/discotube_sample/audio/"
-DiscotubeTextAudioDataModule.filelist_train = "/home/palonso/data/discotube_sample/ids"
-DiscotubeTextAudioDataModule.filelist_val = "/home/palonso/data/discotube_sample/ids"
-DiscotubeTextAudioDataModule.metadata_youtube_file = "/home/palonso/data/discotube_sample/yotube_metadata.jsonl"
-DiscotubeTextAudioDataModule.metadata_discogs_file = "/home/palonso/data/discotube_sample/discogs_metadata.jsonl"
-DiscotubeTextAudioDataModule.metadata_id_map_file = "/home/palonso/data/discotube_sample/youtube_to_discgos_map.jsonl"
+DiscotubeTextAudioDataModule.batch_size = 128
+DiscotubeTextAudioDataModule.num_workers = 20
+DiscotubeTextAudioDataModule.data_dir = "/"
+DiscotubeTextAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
+DiscotubeTextAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/upf97/discotube/discotube-2023-03.downloaded.meta"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/upf97/discotube/discogs_20230301_releases.xml.json.clean"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/upf97/discotube/youtube_to_discogs_total_clean.jsonl"
 
 # Dataloader
 AudioDataset.num_frames = 16000
