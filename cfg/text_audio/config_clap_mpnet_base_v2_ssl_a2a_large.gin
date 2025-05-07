@@ -23,7 +23,7 @@ modules.clap.CLAP.text_encoder_name = "/gpfs/scratch/upf97/model_weights/all-mpn
 modules.clap.CLAP.audio_encoder_params = {
     "encodec_weights_path": "/gpfs/scratch/upf97/model_weights/encodec_24khz/"
   }
-modules.clap.CLAP.proj_size = 768
+modules.clap.CLAP.proj_size = 512
 modules.clap.CLAP.temp = 0.1
 modules.clap.CLAP.lr = 1e-4
 modules.clap.CLAP.weight_decay = 1e-2
@@ -40,7 +40,7 @@ CosineAnnealingCallback.eta_min = 1e-7
 build_dev_datamodule.datamodule = @discotube_text_audio
 
 # Discogs datamodule parameters
-DiscotubeTextAudioDataModule.batch_size = 64
+DiscotubeTextAudioDataModule.batch_size = 32
 DiscotubeTextAudioDataModule.num_workers = 20
 DiscotubeTextAudioDataModule.data_dir = "/"
 DiscotubeTextAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
