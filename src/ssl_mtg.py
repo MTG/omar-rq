@@ -82,32 +82,37 @@ def get_model(
     # Init representation related variables
     sr, hop_len, patch_size = None, None, None
 
-    config_file = Path(config_file)
-
-    # Read previous config bindings
-    bindings = []
-    cfg_str = gin.config_str()
-
-    # If these are not empty, this model is part of a larger setup
-    # Do not finish the configuration now
     finalize_config = False
-    if cfg_str == "":
-        finalize_config = True
 
-    lines = cfg_str.split("\n")
-    bindings.extend(lines)
+    # When no config file is provided, it is assumed that an external
+    # gin-config file with all the required fileds has already been parsed.
+    # Don't try to moddify the gin configuration nor load a checkpoint.
+    if config_file != "":
+        # Read previous config bindings
+        bindings = []
+        cfg_str = gin.config_str()
 
-    if encodec_weights_path is not None:
-        bindings.append(f"nets.encodec.EnCodec.weights_path = '{encodec_weights_path}'")
-        bindings.append("nets.encodec.EnCodec.stats_path = None")
+        # If these are not empty, this model is part of a larger setup
+        # Do not finish the configuration now
+        if cfg_str == "":
+            finalize_config = True
 
-    # Parse the gin config
-    gin.parse_config_files_and_bindings(
-        [config_file],
-        bindings,
-        skip_unknown=True,
-        finalize_config=finalize_config,
-    )
+        lines = cfg_str.split("\n")
+        bindings.extend(lines)
+
+        if encodec_weights_path is not None:
+            bindings.append(
+                f"nets.encodec.EnCodec.weights_path = '{encodec_weights_path}'"
+            )
+            bindings.append("nets.encodec.EnCodec.stats_path = None")
+
+        # Parse the gin config
+        gin.parse_config_files_and_bindings(
+            [str(config_file)],
+            bindings,
+            skip_unknown=True,
+            finalize_config=finalize_config,
+        )
 
     gin_config = gin.get_bindings(build_module)
 
@@ -115,11 +120,6 @@ def get_model(
     net = gin_config["net"]
     representation = gin_config["representation"]
     module = gin_config["module"]
-
-    # Make the checkpoint path relative to the config file location
-    # insted of taking the absolute path
-    ckpt_path = Path(gin_config["ckpt_path"])
-    ckpt_path = config_file.parent / ckpt_path.name
 
     # Instantiate the classes
     net = net()
@@ -135,13 +135,21 @@ def get_model(
         sr = representation.sr
         hop_len = representation.hop_len
 
-    module = module.load_from_checkpoint(
-        ckpt_path,
-        net=net,
-        representation=representation,
-        strict=False,
-        map_location=device,
-    )
+    if config_file != "":
+        # Make the checkpoint path relative to the config file location
+        # insted of taking the absolute path
+        ckpt_path = Path(gin_config["ckpt_path"])
+        ckpt_path = Path(config_file).parent / ckpt_path.name
+
+        module = module.load_from_checkpoint(
+            ckpt_path,
+            net=net,
+            representation=representation,
+            strict=False,
+            map_location=device,
+        )
+    else:
+        module = module(net=net, representation=representation)
 
     # Set the model to eval mode
     module.eval()
