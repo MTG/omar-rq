@@ -85,8 +85,7 @@ class CLAP(L.LightningModule):
             self.audio_encoder.eval()
 
         # aux projection layers
-        dummy_audio = torch.randn(1, 24000).to(self.device)
-        self.a_z_size = self.audio_encoder.extract_embeddings(dummy_audio).shape[-1]
+        self.a_z_size = self.audio_encoder.net.embed_dim
         self.proj_a = nn.Linear(self.a_z_size, self.proj_size)
 
         dummy_text = ""
