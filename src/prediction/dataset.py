@@ -41,9 +41,9 @@ class AudioEmbeddingDataset(Dataset):
         self.n_frames = num_frames
         self.n_seconds = 30
 
-        assert (
-            self.overlap_ratio >= 0 and self.overlap_ratio < 1
-        ), "Overlap ratio must be between 0 and 1."
+        assert self.overlap_ratio >= 0 and self.overlap_ratio < 1, (
+            "Overlap ratio must be between 0 and 1."
+        )
 
         self.compute_segments_per_file()
 
