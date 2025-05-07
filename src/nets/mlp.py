@@ -26,9 +26,9 @@ class MLP(Net):
     def forward(self, x):
         x = x.reshape(x.size(0), -1)
 
-        assert (
-            x.shape[1] == self.input_shape[0]
-        ), f"Expected shape {self.input_shape}, got {x.shape}"
+        assert x.shape[1] == self.input_shape[0], (
+            f"Expected shape {self.input_shape}, got {x.shape}"
+        )
 
         x = self.l1(x)
         if self.hidden_shape:

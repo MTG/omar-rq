@@ -11,9 +11,9 @@ class CosineAnnealingWithWarmup(_LRScheduler):
         self.eta_min = eta_min
         super(CosineAnnealingWithWarmup, self).__init__(optimizer, last_epoch)
 
-        assert (
-            self.total_steps > self.warmup_steps
-        ), f"total_steps: {self.total_steps} must be greater than warmup_steps: {self.warmup_steps}"
+        assert self.total_steps > self.warmup_steps, (
+            f"total_steps: {self.total_steps} must be greater than warmup_steps: {self.warmup_steps}"
+        )
 
     def get_lr(self):
         if self.last_epoch < self.warmup_steps:

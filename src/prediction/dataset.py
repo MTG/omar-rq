@@ -39,7 +39,7 @@ class AudioEmbeddingDataset(Dataset):
         self.overlap_ratio = overlap_ratio
 
         self.n_frames = num_frames
-        self.n_seconds = self.n_frames / self.orig_freq
+        self.n_seconds = 30
 
         assert (
             self.overlap_ratio >= 0 and self.overlap_ratio < 1
@@ -57,18 +57,19 @@ class AudioEmbeddingDataset(Dataset):
 
         i = 0
         for filepath in tqdm(self.filelist):
-            try:
-                hop_size = self.n_seconds * self.overlap_ratio
+            # try:
+            hop_size = self.n_seconds * (1 - self.overlap_ratio)
 
-                metadata = torchaudio.info(self.data_dir / filepath)
-                seconds = metadata.num_frames / metadata.sample_rate
-                n_segments = int(seconds / hop_size)
+            metadata = torchaudio.info(self.data_dir / filepath)
+            seconds = metadata.num_frames / metadata.sample_rate
 
-                for j in range(n_segments):
-                    self.index[i] = (filepath, j)
-                    i += 1
-            except Exception as e:
-                print(f"Error processing file {filepath}")
+            n_segments = int(seconds / hop_size)
+
+            for j in range(n_segments):
+                self.index[i] = (filepath, j)
+                i += 1
+        # except Exception as e:
+        #     print(f"Error processing file {filepath}")
 
     def __len__(self):
         return len(self.index)
@@ -111,6 +112,9 @@ class AudioEmbeddingDataset(Dataset):
                 audio = audio.float()
 
             # TODO zero pad
+            tgt_len = 720000
+            if audio.size(0) < tgt_len:
+                audio = torch.nn.functional.pad(audio, (0, tgt_len - audio.size(0)))
 
             return audio, str(file_path)
 
