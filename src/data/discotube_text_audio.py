@@ -28,6 +28,7 @@ class DiscotubeTextAudioDataset(AudioDataset):
         metadata_discogs: dict,
         metadata_id_map: dict,
         metadata_dropout: float,
+        is_training: bool,
         frame_offset: Union[int, str] = "random",
     ):
         super().__init__(
@@ -41,6 +42,7 @@ class DiscotubeTextAudioDataset(AudioDataset):
         self.metadata_id_map = metadata_id_map
 
         self.metadata_dropout = metadata_dropout
+        self.is_training = is_training
 
     def __len__(self):
         return len(self.filelist)
@@ -111,7 +113,7 @@ class DiscotubeTextAudioDataset(AudioDataset):
         }
 
         # Discard one random metadata field
-        if random.random() < self.metadata_dropout:
+        if random.random() < self.metadata_dropout and self.is_training:
             metadata_keys = list(metadata.keys())
             remove_key = random.choice(metadata_keys)
             metadata.pop(remove_key)
@@ -179,6 +181,7 @@ class DiscotubeTextAudioDataModule(L.LightningDataModule):
             metadata_youtube=self.metadata_youtube,
             metadata_discogs=self.metadata_discogs,
             metadata_id_map=self.metadata_id_map,
+            is_training=True,
         )
         self.dataset_val = DiscotubeTextAudioDataset(
             self.data_dir,
@@ -186,6 +189,7 @@ class DiscotubeTextAudioDataModule(L.LightningDataModule):
             metadata_youtube=self.metadata_youtube,
             metadata_discogs=self.metadata_discogs,
             metadata_id_map=self.metadata_id_map,
+            is_training=False,
         )
 
     def collate_fn(self, batch):
