@@ -27,6 +27,7 @@ class DiscotubeTextAudioDataset(AudioDataset):
         metadata_youtube: dict,
         metadata_discogs: dict,
         metadata_id_map: dict,
+        metadata_dropout: float,
         frame_offset: Union[int, str] = "random",
     ):
         super().__init__(
@@ -38,6 +39,8 @@ class DiscotubeTextAudioDataset(AudioDataset):
         self.metadata_youtube = metadata_youtube
         self.metadata_discogs = metadata_discogs
         self.metadata_id_map = metadata_id_map
+
+        self.metadata_dropout = metadata_dropout
 
     def __len__(self):
         return len(self.filelist)
@@ -106,6 +109,12 @@ class DiscotubeTextAudioDataset(AudioDataset):
             "youtube_metadata": new_youtube_metadata,
             "discogs_metadata": new_discogs_metadata,
         }
+
+        # Discard one random metadata field
+        if random.random() < self.metadata_dropout:
+            metadata_keys = list(metadata.keys())
+            remove_key = random.choice(metadata_keys)
+            metadata.pop(remove_key)
 
         # format as YAML
         yaml_text = yaml.dump(metadata, sort_keys=False)

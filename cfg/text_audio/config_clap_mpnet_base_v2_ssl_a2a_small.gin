@@ -48,6 +48,8 @@ DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/upf97/disco
 DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/upf97/discotube/discogs_20230301_releases.xml.json.clean"
 DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/upf97/discotube/youtube_to_discogs_total_clean.jsonl"
 
+DiscotubeTextAudioDataset.metadata_dropout = 0.3
+
 # Dataloader
 AudioDataset.num_frames = 480000 # 30s
 AudioDataset.orig_freq = 16000
