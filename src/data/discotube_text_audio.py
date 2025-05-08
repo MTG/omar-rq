@@ -86,7 +86,7 @@ class DiscotubeTextAudioDataset(AudioDataset):
         new_youtube_metadata = {
             field: youtube_metadata[field]
             for field in fields_to_keep
-            if field in youtube_metadata
+            if field in youtube_metadata and youtube_metadata[field] != ""
         }
 
         # Process Discogs metadata
@@ -96,7 +96,7 @@ class DiscotubeTextAudioDataset(AudioDataset):
         new_discogs_metadata = {
             field: dicogs_metadata[field]
             for field in fields_to_keep
-            if field in dicogs_metadata
+            if field in dicogs_metadata and dicogs_metadata[field] != ""
         }
 
         # Fetch artist description
