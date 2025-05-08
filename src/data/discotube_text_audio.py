@@ -214,7 +214,7 @@ class DiscotubeTextAudioDataModule(L.LightningDataModule):
             self.dataset_train,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=True,
+            pin_memory=False,
             collate_fn=self.collate_fn,
         )
 
@@ -223,6 +223,6 @@ class DiscotubeTextAudioDataModule(L.LightningDataModule):
             self.dataset_val,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=True,
+            pin_memory=False,
             collate_fn=self.collate_fn,
         )
