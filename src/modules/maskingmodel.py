@@ -44,6 +44,7 @@ class MaskingModel(L.LightningModule):
         diff_input: bool,
         plot_tokens: bool = False,
         input_representation: nn.Module | None = None,
+        masking_noise_type: str = "random_normal",
     ):
         super(MaskingModel, self).__init__()
 
@@ -62,6 +63,7 @@ class MaskingModel(L.LightningModule):
         self.first_coverage = True
         self.diff_input = diff_input
         self.input_representation = input_representation
+        self.masking_noise_type = masking_noise_type
 
         # downstream evaluation params
         self.downstream_embedding_layer = set([-1])
@@ -263,7 +265,7 @@ class MaskingModel(L.LightningModule):
         return masked_spec, mask.to(patches.device)
 
     def random_masking(self, patches):
-        B, num_patches, patch_size = patches.shape
+        B, num_patches, _ = patches.shape
         mx = patches.clone()
 
         len_masking_spec_frames = math.ceil(
@@ -285,10 +287,19 @@ class MaskingModel(L.LightningModule):
         if mask.size(1) > num_patches:
             mask = mask[:, :num_patches]
 
-        # Mask with random values
-        masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(
-            patches.device
-        )  # 0 mean 0.1 std
+        if self.masking_noise_type == "random_normal":
+            # Mask with random values
+            masking_noise = (torch.randn(mx.shape, dtype=patches.dtype) * 0.1).to(
+                patches.device
+            )  # 0 mean 0.1 std
+        elif self.masking_noise_type == "shuffled_input":
+            # make a copy of patches shuffled on the time axis
+            masking_noise = patches[:, torch.randperm(num_patches), :]
+        else:
+            raise NotImplementedError(
+                f"Masking noise type {self.masking_noise_type} not implemented."
+            )
+
         # Apply masking in parallel
         mx[mask] = masking_noise[mask]
         # tensor 1 x N repeat to 16 x N
