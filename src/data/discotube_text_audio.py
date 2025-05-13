@@ -76,8 +76,9 @@ class DiscotubeTextAudioDataset(AudioDataset):
                 {"youtube_metadata": meta_youtube, "discogs_metadata": meta_discogs}
             )
         except Exception:
-            print(f"Error loading {self.filelist[idx]}")
-            print(traceback.format_exc())
+            # Do not log the error, just skip the sample
+            # print(f"Error loading {self.filelist[idx]}")
+            # print(traceback.format_exc())
             return [None, None]
 
         return [audio, text]
