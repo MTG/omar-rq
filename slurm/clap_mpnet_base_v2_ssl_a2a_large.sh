@@ -4,10 +4,10 @@
 #SBATCH --account=upf97
 #SBATCH --partition=acc
 #SBATCH --qos=acc_resa
-#SBATCH --nodes=2
-#SBATCH --cpus-per-task=20
-#SBATCH --ntasks-per-node=4
-#SBATCH --gres=gpu:4
+#SBATCH --nodes=4
+#SBATCH --cpus-per-task=25
+#SBATCH --ntasks-per-node=3
+#SBATCH --gres=gpu:3
 #SBATCH --time=72:00:00
 #SBATCH --output=debug_%j_output.txt
 #SBATCH --mail-type=all

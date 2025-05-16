@@ -10,8 +10,8 @@ train.wandb_params = {
 # Lighting trainer parameters
 train.params = {
     "accelerator": "gpu",
-    "devices": 4,
-    "num_nodes": 2,
+    "devices": 3,
+    "num_nodes": 4,
     "max_steps": 400000,
     "log_every_n_steps": 50,
     "precision": "bf16-mixed",
@@ -40,8 +40,8 @@ CosineAnnealingCallback.eta_min = 1e-7
 build_dev_datamodule.datamodule = @discotube_text_audio
 
 # Discogs datamodule parameters
-DiscotubeTextAudioDataModule.batch_size = 32
-DiscotubeTextAudioDataModule.num_workers = 20
+DiscotubeTextAudioDataModule.batch_size = 20
+DiscotubeTextAudioDataModule.num_workers = 25
 DiscotubeTextAudioDataModule.data_dir = "/"
 DiscotubeTextAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
 DiscotubeTextAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
@@ -49,11 +49,11 @@ DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/upf97/disco
 DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/upf97/discotube/discogs_20230301_releases.xml.json.clean"
 DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/upf97/discotube/youtube_to_discogs_total_clean.jsonl"
 
+DiscotubeTextAudioDataset.metadata_dropout = 0.3
+
 # Dataloader
 AudioDataset.num_frames = 480000 # 30s
 AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 24000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 0
-
