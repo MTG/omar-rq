@@ -197,7 +197,7 @@ class CLAP(L.LightningModule):
         _, _, loss = self.forward(batch)
         B = batch[0].shape[0]
 
-        self.log("val_loss", loss, prog_bar=True, batch_size=B)
+        self.log("val_loss", loss, prog_bar=True, batch_size=B, sync_dist=True)
         return loss
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
