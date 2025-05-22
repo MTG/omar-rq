@@ -11,6 +11,7 @@ from torch import nn
 import pytorch_lightning as L
 
 from modules.codebooks import RandomProjectionQuantizer
+from modules.finite_scalar_quantizer import FiniteScalarQuantizer
 
 
 @gin.configurable
@@ -45,6 +46,7 @@ class MaskingModel(L.LightningModule):
         plot_tokens: bool = False,
         input_representation: nn.Module | None = None,
         masking_noise_type: str = "random_normal",
+        quantizer_type: str = "random_codebook",
     ):
         super(MaskingModel, self).__init__()
 
@@ -64,6 +66,7 @@ class MaskingModel(L.LightningModule):
         self.diff_input = diff_input
         self.input_representation = input_representation
         self.masking_noise_type = masking_noise_type
+        self.quantizer_type = quantizer_type
 
         # downstream evaluation params
         self.downstream_embedding_layer = set([-1])
@@ -98,8 +101,8 @@ class MaskingModel(L.LightningModule):
                         self.patch_size = rep.patch_size
 
                     # Create a ModuleList to hold the quantizers
-                    self.quantizers.append(
-                        nn.ModuleList(
+                    if self.quantizer_type == "random_codebook":
+                        quantizers = nn.ModuleList(
                             [
                                 RandomProjectionQuantizer(
                                     rep.patch_size[0] * rep.patch_size[1],
@@ -111,7 +114,20 @@ class MaskingModel(L.LightningModule):
                                 for i in range(num_codebooks)
                             ]
                         )
-                    )
+                    elif self.quantizer_type == "finite_scalar_quantizer":
+                        quantizers = nn.ModuleList(
+                            [
+                                FiniteScalarQuantizer(
+                                    dim=rep.patch_size[0] * rep.patch_size[1]
+                                )
+                                for _ in range(num_codebooks)
+                            ]
+                        )
+                    else:
+                        raise NotImplementedError(
+                            f"Quantizer type {self.quantizer_type} not implemented."
+                        )
+                    self.quantizers.append(quantizers)
                 else:
                     raise NotImplementedError(
                         f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
@@ -127,18 +143,32 @@ class MaskingModel(L.LightningModule):
                 self.rep_dims = representation.rep_dims
                 self.patch_size = representation.patch_size
                 # Create a ModuleList to hold the quantizers
-                self.quantizers = nn.ModuleList(
-                    [
-                        RandomProjectionQuantizer(
-                            self.patch_size[0] * self.patch_size[1],
-                            codebook_dim,
-                            codebook_size,
-                            seed=seed + i,
-                            diff_input=self.diff_input,
-                        )
-                        for i in range(num_codebooks)
-                    ]
-                )
+                if self.quantizer_type == "random_codebook":
+                    self.quantizers = nn.ModuleList(
+                        [
+                            RandomProjectionQuantizer(
+                                self.patch_size[0] * self.patch_size[1],
+                                codebook_dim,
+                                codebook_size,
+                                seed=seed + i,
+                                diff_input=self.diff_input,
+                            )
+                            for i in range(num_codebooks)
+                        ]
+                    )
+                elif self.quantizer_type == "finite_scalar_quantizer":
+                    self.quantizers = nn.ModuleList(
+                        [
+                            FiniteScalarQuantizer(
+                                dim=self.patch_size[0] * self.patch_size[1],
+                            )
+                            for i in range(num_codebooks)
+                        ]
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Quantizer type {self.quantizer_type} not implemented."
+                    )
             else:
                 raise NotImplementedError(
                     f"Representation {type(self.representation)} shuold have sr, hop_len and rep_dims attributes."
