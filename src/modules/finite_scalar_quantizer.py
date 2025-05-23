@@ -118,11 +118,22 @@ class FiniteScalarQuantizer(Module):
             if has_projections
             else nn.Identity()
         )
+
         self.project_out = (
             nn.Linear(effective_codebook_dim, self.dim, bias=projection_has_bias)
             if has_projections
             else nn.Identity()
         )
+
+        if has_projections:
+            nn.init.xavier_normal_(self.project_in.weight)
+            nn.init.xavier_normal_(self.project_out.weight)
+
+            # freeze the projection weights
+            for param in self.project_in.parameters():
+                param.requires_grad = False
+            for param in self.project_out.parameters():
+                param.requires_grad = False
 
         self.has_projections = has_projections
 
@@ -253,7 +264,8 @@ class FiniteScalarQuantizer(Module):
             f"expected dimension of {self.dim} but found dimension of {z.shape[-1]}"
         )
 
-        z = self.project_in(z)
+        with torch.no_grad():
+            z = self.project_in(z)
 
         z = rearrange(z, "b n (c d) -> b n c d", c=self.num_codebooks)
 
@@ -285,7 +297,8 @@ class FiniteScalarQuantizer(Module):
 
         # project out
 
-        out = self.project_out(codes)
+        with torch.no_grad():
+            out = self.project_out(codes)
 
         # reconstitute image or video dimensions
 
