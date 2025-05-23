@@ -14,7 +14,7 @@
 #SBATCH --mail-user=pablo.alonso@upf.edu
 # interrrupt and resubmit 90 seconds before training ends (experimental)
 # https://pytorch-lightning.readthedocs.io/en/1.2.10/clouds/slurm.html#wall-time-auto-resubmit
-# SBATCH --signal=SIGUSR1@90
+#SBATCH --signal=SIGUSR1@90
 
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
