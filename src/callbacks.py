@@ -60,11 +60,12 @@ class GinConfigSaverCallback(Callback):
             )
 
             # If the model is a transformer, add the number of patches to the gin config
-            if isinstance(pl_module.net, Transformer):
-                gin.bind_parameter(
-                    "nets.transformer.Transformer.num_patches",
-                    pl_module.net.num_patches,
-                )
+            if hasattr(pl_module, "net"):
+                if isinstance(pl_module.net, Transformer):
+                    gin.bind_parameter(
+                        "nets.transformer.Transformer.num_patches",
+                        pl_module.net.num_patches,
+                    )
 
         # Save the config
         # NOTE: We do not use the operative_config_str() method as the parameters

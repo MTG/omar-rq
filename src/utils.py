@@ -5,6 +5,12 @@ import gin.torch
 import pytorch_lightning as L
 from torch import nn
 
+from data import DATASETS
+
+
+for data_name, data in DATASETS.items():
+    gin.external_configurable(data, data_name)
+
 
 def gin_config_to_readable_dictionary(gin_config: dict):
     """

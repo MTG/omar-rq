@@ -1,0 +1,61 @@
+train.wandb_params = {
+    "project": "mtg-text-audio",
+    "name": "config_clap_mpnet_base_v2_ssl_a2a_large_att_pool",
+    "offline": True,
+    "save_dir": "/gpfs/projects/upf97/logs/",
+    "entity": "mtg-upf",
+    "group": "vanilla_clap",
+}
+
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "gpu",
+    "devices": 3,
+    "num_nodes": 4,
+    "max_steps": 400000,
+    "log_every_n_steps": 50,
+    "precision": "bf16-mixed",
+    "strategy": "ddp_find_unused_parameters_true"
+}
+
+CLAP.audio_encoder_name = "/gpfs/projects/upf97/logs/mtg-ssl/pq1scuuq/checkpoints/config_masking_conformer_multiview_au_to_all_large.gin"
+CLAP.text_encoder_name = "/gpfs/scratch/upf97/model_weights/all-mpnet-base-v2"
+CLAP.audio_encoder_params = {
+    "encodec_weights_path": "/gpfs/scratch/upf97/model_weights/encodec_24khz/"
+  }
+CLAP.proj_size = 512
+CLAP.temp = 0.1
+CLAP.lr = 1e-5
+CLAP.weight_decay = 1e-2
+CLAP.seed = 0
+CLAP.train_audio_encoder = True
+CLAP.train_text_encoder = False
+CLAP.tokenizers_parallelism = False
+CLAP.aggregation_type = "attention_pooler"
+CLAP.n_pool_att_heads = 8
+
+# CosineAnnealing scheduler
+CosineAnnealingCallback.warmup_steps = 20000
+CosineAnnealingCallback.eta_min = 1e-7
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube_text_audio
+
+# Discogs datamodule parameters
+DiscotubeTextAudioDataModule.batch_size = 20
+DiscotubeTextAudioDataModule.num_workers = 25
+DiscotubeTextAudioDataModule.data_dir = "/"
+DiscotubeTextAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
+DiscotubeTextAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/upf97/discotube/discotube-2023-03.downloaded.meta"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/upf97/discotube/discogs_20230301_releases.xml.json.clean"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/upf97/discotube/youtube_to_discogs_total_clean.jsonl"
+
+DiscotubeTextAudioDataset.metadata_dropout = 0.3
+
+# Dataloader
+AudioDataset.num_frames = 480000 # 30s
+AudioDataset.orig_freq = 16000
+AudioDataset.new_freq = 24000
+AudioDataset.mono = True
+AudioDataset.half_precision = True

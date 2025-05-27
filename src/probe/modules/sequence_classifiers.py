@@ -195,7 +195,7 @@ class SequenceClassificationProbe(L.LightningModule):
             )
             axes = axes.flatten()
             labels = (
-                [f"{i+1}" for i in range(50)] if self.labels is None else self.labels
+                [f"{i + 1}" for i in range(50)] if self.labels is None else self.labels
             )
             for ax, cm, label in zip(axes, conf_matrix, labels):
                 # Plot the confusion matrix in each subplot

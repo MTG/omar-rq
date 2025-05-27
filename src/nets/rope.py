@@ -2,11 +2,11 @@
 # https://github.com/lucidrains/rotary-embedding-torch/blob/main/rotary_embedding_torch/rotary_embedding_torch.py
 
 from __future__ import annotations
-from math import pi, log
+from math import pi
 
 import torch
-from torch.nn import Module, ModuleList
-from torch.cuda.amp import autocast
+from torch.nn import Module
+from torch.amp import autocast
 from torch import nn, einsum, broadcast_tensors, Tensor
 
 from einops import rearrange, repeat
@@ -42,7 +42,7 @@ def rotate_half(x):
     return rearrange(x, "... d r -> ... (d r)")
 
 
-@autocast(enabled=False)
+@autocast("cuda", enabled=False)
 def apply_rotary_emb(freqs, t, start_index=0, scale=1.0, seq_dim=-2):
     dtype = t.dtype
 
@@ -53,9 +53,9 @@ def apply_rotary_emb(freqs, t, start_index=0, scale=1.0, seq_dim=-2):
     rot_dim = freqs.shape[-1]
     end_index = start_index + rot_dim
 
-    assert (
-        rot_dim <= t.shape[-1]
-    ), f"feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}"
+    assert rot_dim <= t.shape[-1], (
+        f"feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}"
+    )
 
     t_left, t, t_right = (
         t[..., :start_index],
@@ -173,9 +173,9 @@ class RotaryEmbedding(Module):
     def rotate_queries_or_keys(self, t, seq_dim=None, offset=0, scale=None):
         seq_dim = default(seq_dim, self.default_seq_dim)
 
-        assert not self.use_xpos or exists(
-            scale
-        ), "you must use `.rotate_queries_and_keys` method instead and pass in both queries and keys, for length extrapolatable rotary embeddings"
+        assert not self.use_xpos or exists(scale), (
+            "you must use `.rotate_queries_and_keys` method instead and pass in both queries and keys, for length extrapolatable rotary embeddings"
+        )
 
         device, dtype, seq_len = t.device, t.dtype, t.shape[seq_dim]
 
@@ -283,7 +283,7 @@ class RotaryEmbedding(Module):
         all_freqs = broadcast_tensors(*all_freqs)
         return torch.cat(all_freqs, dim=-1)
 
-    @autocast(enabled=False)
+    @autocast("cuda", enabled=False)
     def forward(self, t: Tensor, seq_len=None, offset=0):
         should_cache = (
             self.cache_if_possible

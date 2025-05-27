@@ -1,0 +1,59 @@
+# general training parameters
+train.wandb_params = {
+    "project": "mtg-text-audio",
+    "name": "dev.mtg_text_audio",
+    "offline": True,
+    "save_dir": "/gpfs/projects/upf97/logs/",
+    "entity": "mtg-upf",
+    "group": "vanilla_clap",
+}
+
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "gpu",
+    "devices": 4,
+    "max_steps": 400000,
+    "log_every_n_steps": 50,
+    "precision": "bf16-mixed",
+    "strategy": "ddp_find_unused_parameters_true"
+}
+
+modules.clap.CLAP.audio_encoder_name = "/gpfs/projects/upf97/logs/mtg-ssl/jpwu50v3/checkpoints/config_masking_conformer_multiview_au_to_all_small.gin"
+modules.clap.CLAP.text_encoder_name = "/gpfs/scratch/upf97/model_weights/all-mpnet-base-v2"
+modules.clap.CLAP.audio_encoder_params = {
+    "encodec_weights_path": "/gpfs/scratch/upf97/model_weights/encodec_24khz/"
+  }
+modules.clap.CLAP.proj_size = 512
+modules.clap.CLAP.temp = 0.1
+modules.clap.CLAP.lr = 1e-4
+modules.clap.CLAP.weight_decay = 1e-2
+modules.clap.CLAP.seed = 0
+modules.clap.CLAP.train_audio_encoder = True
+modules.clap.CLAP.train_text_encoder = False
+modules.clap.CLAP.tokenizers_parallelism = False
+
+# CosineAnnealing scheduler
+CosineAnnealingCallback.warmup_steps = 10000
+CosineAnnealingCallback.eta_min = 1e-7
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube_text_audio
+
+# Discogs datamodule parameters
+DiscotubeTextAudioDataModule.batch_size = 128
+DiscotubeTextAudioDataModule.num_workers = 20
+DiscotubeTextAudioDataModule.data_dir = "/"
+DiscotubeTextAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
+DiscotubeTextAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/upf97/discotube/discotube-2023-03.downloaded.meta"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/upf97/discotube/discogs_20230301_releases.xml.json.clean"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/upf97/discotube/youtube_to_discogs_total_clean.jsonl"
+
+# Dataloader
+AudioDataset.num_frames = 16000
+AudioDataset.orig_freq = 16000
+AudioDataset.new_freq = 24000
+AudioDataset.mono = True
+AudioDataset.half_precision = True
+AudioDataModule.num_workers = 0
+

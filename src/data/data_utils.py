@@ -45,24 +45,6 @@ class AudioDataset(Dataset):
         # load audio
         audio = self.load_audio(file_path, frame_offset=self.frame_offset)
 
-        # downmix to mono if necessary
-        if audio.shape[0] > 1 and self.mono:
-            audio = torch.mean(audio, dim=0, keepdim=False)
-
-        # resample if necessary
-        if self.orig_freq != self.new_freq:
-            # only works with float tensors
-            audio = audio.float()
-            audio = self.resample(audio)
-
-        audio = audio.squeeze(0)
-
-        # work with 16-bit precission
-        if self.half_precision:
-            audio = audio.half()
-        else:
-            audio = audio.float()
-
         return [audio]
 
     def load_audio(
@@ -109,7 +91,27 @@ class AudioDataset(Dataset):
         else:
             raise ValueError(f"Invalid frame_offset: {frame_offset}")
 
-        return torch.from_numpy(audio)
+        # downmix to mono if necessary
+        if audio.shape[0] > 1 and self.mono:
+            audio = torch.mean(audio, dim=0, keepdim=False)
+
+        audio = torch.from_numpy(audio)
+
+        # resample if necessary
+        if self.orig_freq != self.new_freq:
+            # only works with float tensors
+            audio = audio.float()
+            audio = self.resample(audio)
+
+        audio = audio.squeeze(0)
+
+        # work with 16-bit precission
+        if self.half_precision:
+            audio = audio.half()
+        else:
+            audio = audio.float()
+
+        return audio
 
     @staticmethod
     def get_audio_duration(filepath: Path):
