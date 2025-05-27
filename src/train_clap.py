@@ -11,6 +11,7 @@ from pytorch_lightning.loggers import WandbLogger
 from cosineannealingscheduler import CosineAnnealingCallback
 from data import DATASETS
 from modules import MODULES
+from modules_clap.clap import CLAP
 
 from callbacks import GinConfigSaverCallback
 from utils import gin_config_to_readable_dictionary, build_dev_datamodule
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     try:
         gin.parse_config_file(args.train_config, skip_unknown=True)
 
-        module = MODULES["clap"]()
+        module = CLAP()
         ckpt_path = None
 
         datamodule = build_dev_datamodule()

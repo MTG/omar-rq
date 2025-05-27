@@ -107,12 +107,13 @@ def get_model(
             bindings.append("nets.encodec.EnCodec.stats_path = None")
 
         # Parse the gin config
-        gin.parse_config_files_and_bindings(
-            [str(config_file)],
-            bindings,
-            skip_unknown=True,
-            finalize_config=finalize_config,
-        )
+        with gin.unlock_config():
+            gin.parse_config_files_and_bindings(
+                [str(config_file)],
+                bindings,
+                skip_unknown=True,
+                finalize_config=finalize_config,
+            )
 
     gin_config = gin.get_bindings(build_module)
 
