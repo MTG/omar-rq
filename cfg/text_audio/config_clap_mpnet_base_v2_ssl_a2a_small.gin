@@ -1,6 +1,6 @@
 train.wandb_params = {
     "project": "mtg-text-audio",
-    "name": "config_clap_mpnet_base_v2_ssl_a2a_small",
+    "name": "config_clap_mpnet_base_v2_ssl_a2a_small_att_pool",
     "offline": True,
     "save_dir": "/gpfs/projects/upf97/logs/",
     "entity": "mtg-upf",
@@ -30,6 +30,8 @@ modules.clap.CLAP.seed = 0
 modules.clap.CLAP.train_audio_encoder = True
 modules.clap.CLAP.train_text_encoder = False
 modules.clap.CLAP.tokenizers_parallelism = False
+modules.clap.CLAP.aggregation_type = "attention_pooler"
+modules.clap.CLAP.n_pool_att_heads = 8
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 20000
