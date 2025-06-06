@@ -1,0 +1,114 @@
+# general training parameters
+train.wandb_params = {
+    "project": "mtg-ssl",
+    "name": "mask_conformer_large_mv_au_to_mel",
+    "offline": True,
+    # NOTE: path to logs in the BSC cluster. Change it for local experiments
+    "save_dir": "/gpfs/projects/upf97/logs/",
+    "entity": "mtg-upf",
+    "group": "masking_conformer",
+}
+
+# modules to use
+build_module.representation = [@nets.melspectrogram.MelSpectrogram, @nets.waveform.Waveform]
+build_module.module = @modules.maskingmodel.MaskingModel
+build_module.net = @nets.conformer.Conformer
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube
+
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "gpu",
+    "devices": 4,
+    "num_nodes": 2,
+    "max_steps": 400000,
+    "log_every_n_steps": 50,
+    "precision": "bf16-mixed",
+    "strategy": "ddp_find_unused_parameters_true",
+    "num_sanity_val_steps": 0
+}
+
+# Dataloader
+AudioDataset.num_frames = 480000 # 30s
+AudioDataset.orig_freq = 16000
+AudioDataset.new_freq = 16000
+AudioDataset.mono = True
+AudioDataset.half_precision = True
+AudioDataModule.num_workers = 20
+
+# Discogs datamodule parameters
+DiscotubeAudioDataModule.batch_size = 32
+DiscotubeAudioDataModule.data_dir = "/gpfs/scratch/upf97/mmap/"
+DiscotubeAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
+DiscotubeAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
+
+# CosineAnnealing scheduler
+CosineAnnealingCallback.warmup_steps = 30000
+CosineAnnealingCallback.eta_min = 1e-7
+
+# MelSpectrogram parameters
+nets.melspectrogram.MelSpectrogram.sr = 16000
+nets.melspectrogram.MelSpectrogram.win_len = 512
+nets.melspectrogram.MelSpectrogram.hop_len = 256
+nets.melspectrogram.MelSpectrogram.power = 2
+nets.melspectrogram.MelSpectrogram.n_mel = 96
+nets.melspectrogram.MelSpectrogram.norm = "slaney"
+nets.melspectrogram.MelSpectrogram.mel_scale = "slaney"
+nets.melspectrogram.MelSpectrogram.norm_std = 1.268292820667291
+nets.melspectrogram.MelSpectrogram.norm_mean = 2.06755686098554
+nets.melspectrogram.MelSpectrogram.patch_size = (96, 4)
+
+# CQT parameters
+nets.cqt.CQT.sr = 16000
+nets.cqt.CQT.hop_len = 256
+nets.cqt.CQT.power = 2
+nets.cqt.CQT.bins_per_octave = 24
+nets.cqt.CQT.n_bins = 188  # 6 octaves * 24 bins
+nets.cqt.CQT.f_min = 32.703  # C0
+nets.cqt.CQT.magnitude = True
+nets.cqt.CQT.logC = True
+nets.cqt.CQT.norm_std = 1.9055732535255916
+nets.cqt.CQT.norm_mean = 4.754879065310596
+nets.cqt.CQT.patch_size = (188, 4)
+
+# Waveform parameters
+nets.waveform.Waveform.sr = 16000
+nets.waveform.Waveform.norm_std = None
+nets.waveform.Waveform.norm_mean = None
+nets.waveform.Waveform.patch_size = (1, 1024) # 16ms
+
+# data augmentation
+nets.melspectrogram.MelSpectrogram.stretch_factor = 1
+nets.melspectrogram.MelSpectrogram.freq_mask_param = 0
+nets.melspectrogram.MelSpectrogram.time_mask_param = 0
+
+# MaskingModel parameters
+modules.maskingmodel.MaskingModel.num_codebooks = 1
+modules.maskingmodel.MaskingModel.lr = 1e-4
+modules.maskingmodel.MaskingModel.weight_decay = 1e-2
+modules.maskingmodel.MaskingModel.codebook_size = 8196
+modules.maskingmodel.MaskingModel.codebook_dim = 16
+modules.maskingmodel.MaskingModel.mask_seconds = 0.4
+modules.maskingmodel.MaskingModel.mask_prob = 0.6
+modules.maskingmodel.MaskingModel.seed = 0
+modules.maskingmodel.MaskingModel.plot_tokens = False
+modules.maskingmodel.MaskingModel.diff_input = False
+modules.maskingmodel.MaskingModel.input_representation = @nets.waveform.Waveform
+
+# Transformer parameters
+nets.conformer.Conformer.embed_dim = 1024
+nets.conformer.Conformer.depth = 24
+nets.conformer.Conformer.conv_kernel_size = 5
+nets.conformer.Conformer.num_heads = 8
+nets.conformer.Conformer.mlp_ratio = 4.0
+nets.conformer.Conformer.mlp_residual_factor = 4.0
+nets.conformer.Conformer.dropout = 0.2
+nets.conformer.Conformer.input_dropout = 0.0
+nets.conformer.Conformer.use_deepnorm = True
+nets.conformer.Conformer.alpha_deepnorm =  2.6321480259049848 # we can tune this number
+nets.conformer.Conformer.beta_deepnorm = 0.022386873579657126 # we can tune this number
+nets.conformer.Conformer.use_rope = True
+nets.conformer.Conformer.num_patches = None
+
+
