@@ -1,0 +1,58 @@
+# general training parameters
+train.wandb_params = {
+    "project": "mtg-text_audio",
+    "name": "dev.mtg_text_audio",
+    "offline": True,
+    "entity": "mtg-upf",
+}
+
+# Lighting trainer parameters
+train.params = {
+    "accelerator": "gpu",
+    "devices": 1,
+    "max_steps": 400000,
+    "log_every_n_steps": 50,
+    "precision": "bf16-mixed",
+    "strategy": "ddp_find_unused_parameters_true"
+}
+
+CLAP.audio_encoder_name = "/gpfs/home/palonso/model_weights/ssl_mtg_weights/bm23z5le/checkpoints/config_masking_conformer_multiview_enc_to_encmelcqt_small.gin"
+CLAP.text_encoder_name = "sentence-transformers/all-mpnet-base-v2"
+CLAP.audio_encoder_params = {
+    "encodec_weights_path": "/gpfs/home/palonso/model_weights/encodec_24khz"
+  }
+CLAP.proj_size = 512
+CLAP.temp = 0.1
+CLAP.lr = 1e-4
+CLAP.weight_decay = 1e-2
+CLAP.seed = 0
+CLAP.train_audio_encoder = True
+CLAP.train_text_encoder = False
+CLAP.tokenizers_parallelism = False
+
+# CosineAnnealing scheduler
+CosineAnnealingCallback.warmup_steps = 5
+CosineAnnealingCallback.eta_min = 1e-7
+
+# Choose the devalopment dataloader
+build_dev_datamodule.datamodule = @discotube_text_audio
+
+# Discogs datamodule parameters
+DiscotubeTextAudioDataModule.batch_size = 64
+DiscotubeTextAudioDataModule.num_workers = 6
+DiscotubeTextAudioDataModule.data_dir = "/gpfs/home/palonso/data/discotube_sample/audio"
+DiscotubeTextAudioDataModule.filelist_train = "/gpfs/home/palonso/data/discotube_sample/ids"
+DiscotubeTextAudioDataModule.filelist_val = "/gpfs/home/palonso/data/discotube_sample/ids"
+
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/mtg/projects/discotube/all_downloaded_ids.meta.meta_extracted"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/mtg/projects/discotube/discogs_20230301_releases.xml.json.clean.youtube"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/mtg/projects/discotube/youtube_to_discogs_total_clean.jsonl"
+
+# Dataloader
+AudioDataset.num_frames = 16000
+AudioDataset.orig_freq = 16000
+AudioDataset.new_freq = 24000
+AudioDataset.mono = True
+AudioDataset.half_precision = True
+AudioDataModule.num_workers = 0
+
