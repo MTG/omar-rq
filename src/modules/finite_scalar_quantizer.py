@@ -83,8 +83,12 @@ class FiniteScalarQuantizer(Module):
         force_quantization_f32=True,
         preserve_symmetry=False,
         noise_dropout=0.0,
+        seed: int = 143,
     ):
         super().__init__()
+
+        # random seed
+        torch.manual_seed(seed)
 
         _levels = tensor(levels, dtype=int32)
         self.register_buffer("_levels", _levels, persistent=False)
