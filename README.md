@@ -213,3 +213,10 @@ In the `config_file` modify these parameters:
 ## Run the experiment
 
 - `python src/train.py`
+
+
+## Licensing information
+
+The code in this repository is available under [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.en.html) license.
+The model weights are available under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) license for non-commercial applications.
+[Contact us](https://www.upf.edu/web/mtg/contact) for more information.
