@@ -1,6 +1,6 @@
-# ssl-mtg: MTG self-supervised learning models
+# OMAR-RQ: Open Music Audio Representation Model Trained with Multi-Feature Masked Token Prediction
 
-A repository of models and training code for several SSL aproaches and architectures.
+This repository contains training, validation, and inference code for various SSL approaches and architectures.
 
 ## Install
 
@@ -79,11 +79,6 @@ Output:
 > Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
 
 ## Relevant pre-trained models
-
-There are a number of models pre-trained in the context of the BSC project available from the MTG Projects shared folder.
-If you are not familiar to this, refer to the [documentation](https://github.com/MTG/mtg-services/blob/master/MTGDB%2C-shared-project-folders-and-user-storage.md#update-2023-10-new-configuration-for-sambacifs-access-to-mtg-data) to learn how to get access and mount it.
-
-The config and weights files are located in `/<MTG_PROJECTS_MOUNT_DIR>/BSC/projects-upf97/upf97/logs/mtg-ssl/`
 
 These are the most relevant models along with their performance metrics (WIP):
 
