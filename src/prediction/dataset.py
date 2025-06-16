@@ -109,7 +109,7 @@ class AudioEmbeddingDataset(Dataset):
         # load audio
         try:
             num_frames = int(self.n_seconds * self.track2sr[file_path])
-            frame_offset = num_frames * segment * self.overlap_ratio
+            frame_offset = num_frames * segment * (1 - self.overlap_ratio)
             audio, sr = torchaudio.load(
                 self.data_dir / file_path,
                 num_frames=num_frames,
