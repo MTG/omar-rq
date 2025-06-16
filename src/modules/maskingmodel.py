@@ -362,7 +362,7 @@ class MaskingModel(L.LightningModule):
             x = self.representation(x)
             # get target feature tokens
             x, target_tokens = self.vit_tokenization(
-                x, self.input_rep, self.quantizers
+                x, self.input_rep, self.quantizers[0]
             )  # B x t x (16 x 4)
 
         # masking
