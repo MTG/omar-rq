@@ -43,9 +43,9 @@ class AudioEmbeddingDataset(Dataset):
 
         self.n_seconds = n_seconds
 
-        assert (
-            self.overlap_ratio >= 0 and self.overlap_ratio < 1
-        ), "Overlap ratio must be between 0 and 1."
+        assert self.overlap_ratio >= 0 and self.overlap_ratio < 1, (
+            "Overlap ratio must be between 0 and 1."
+        )
 
         self.compute_segments_per_file()
 
@@ -91,6 +91,7 @@ class AudioEmbeddingDataset(Dataset):
                     for j in range(n_s):
                         self.index[i] = (filepath, j)
                         i += 1
+
                 except Exception as e:
                     print(f"Error processing file {filepath}")
 
@@ -184,9 +185,9 @@ class AudioEmbeddingDataModule(L.LightningDataModule):
         self.last_chunk_ratio = last_chunk_ratio
 
         assert 0 < self.overlap_ratio < 1, "overlap_ratio must be between 0 and 1."
-        assert (
-            0 < self.last_chunk_ratio < 1
-        ), "last_chunk_ratio must be between 0 and 1."
+        assert 0 < self.last_chunk_ratio < 1, (
+            "last_chunk_ratio must be between 0 and 1."
+        )
 
     def setup(self, stage: str) -> None:
         if stage == "predict":
