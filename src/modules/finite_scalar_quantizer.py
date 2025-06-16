@@ -130,8 +130,14 @@ class FiniteScalarQuantizer(Module):
         )
 
         if has_projections:
-            nn.init.xavier_normal_(self.project_in.weight)
-            nn.init.xavier_normal_(self.project_out.weight)
+            with torch.no_grad():
+                nn.init.xavier_normal_(self.project_in.weight)
+                nn.init.xavier_normal_(self.project_out.weight)
+
+            norm_weights = nn.functional.normalize(self.project_in.weight, dim=1, p=2)
+            self.project_in.weight.data = norm_weights
+            norm_weights = nn.functional.normalize(self.project_out.weight, dim=1, p=2)
+            self.project_out.weight.data = norm_weights
 
             # freeze the projection weights
             for param in self.project_in.parameters():
