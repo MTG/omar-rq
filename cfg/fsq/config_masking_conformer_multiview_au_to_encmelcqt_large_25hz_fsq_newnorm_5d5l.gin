@@ -1,7 +1,7 @@
 # general training parameters
 train.wandb_params = {
     "project": "mtg-ssl",
-    "name": "mask_conf_large_au_to_all_25hz_fsq_5d6l",
+    "name": "mask_conf_large_au_to_all_25hz_fsq_5d5l",
     "offline": True,
     # NOTE: path to logs in the BSC cluster. Change it for local experiments
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -105,7 +105,7 @@ modules.maskingmodel.MaskingModel.plot_tokens = False
 modules.maskingmodel.MaskingModel.diff_input = False
 modules.maskingmodel.MaskingModel.input_representation = @nets.waveform.Waveform
 modules.maskingmodel.MaskingModel.quantizer_type = "finite_scalar_quantizer"
-FiniteScalarQuantizer.levels = [6, 6, 6, 6, 6]
+FiniteScalarQuantizer.levels = [5, 5, 5, 5, 5]
 FiniteScalarQuantizer.preserve_symmetry = True
 
 # Transformer parameters
