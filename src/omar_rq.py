@@ -30,12 +30,11 @@ def get_model(
     config_file: Path | str | None = None,
     device: str = "cpu",
     quantization_targets: bool = False,
-) -> tuple[L.LightningModule, float]:
-    """Returns the model from the provided config file.
+) -> L.LightningModule:
+    """Returns an OMAR-RQ Module from the provided  model_id or config_file.
 
     Args:
-        model_id (str): Hugging Face model ID. If provided, it will download the
-            model_id config and checkpoint.
+        model_id (str): Model ID to download from Hugging Face.
         config_file (Path): Path to the model config of a trained model.
         device (str): Device to use for the model. Defaults to "cpu".
         quantization_targets (bool): If True, it will create the quantization
@@ -67,6 +66,7 @@ def get_model(
     >>>
     >>> embeddings = model.extract_embeddings(x, layers=(6))
     >>>
+    >>> # use the `eps` field to compute timestamps
     >>> timestamps = torch.arange(embeddings.shape[2]) / model.eps
 
 
