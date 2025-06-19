@@ -35,7 +35,7 @@ class MaskingModel(L.LightningModule):
         net: nn.Module,
         lr: float,
         weight_decay: float,
-        representation: nn.Module,
+        representation: nn.Module | None,
         num_codebooks: int,
         codebook_size: int,
         codebook_dim: int,
@@ -47,6 +47,7 @@ class MaskingModel(L.LightningModule):
         input_representation: nn.Module | None = None,
         masking_noise_type: str = "random_normal",
         quantizer_type: str = "random_codebook",
+        quantization_targets: bool = False,
     ):
         super(MaskingModel, self).__init__()
 
@@ -68,6 +69,7 @@ class MaskingModel(L.LightningModule):
         self.input_rep = input_representation
         self.masking_noise_type = masking_noise_type
         self.quantizer_type = quantizer_type
+        self.quantization_targets = quantization_targets
 
         # downstream evaluation params
         self.downstream_embedding_layer = set([-1])
@@ -100,6 +102,12 @@ class MaskingModel(L.LightningModule):
             if isinstance(self.input_rep, type):
                 self.input_rep = self.input_rep()
 
+        elif self.representation is None:
+            assert self.input_rep is not None, (
+                "Representation is None, but input_rep is also None. This should not happen."
+            )
+            self.input_rep = self.input_rep()
+
         # Single feature
         else:
             target_reps = [self.representation]
@@ -109,6 +117,15 @@ class MaskingModel(L.LightningModule):
         self.hop_length = self.input_rep.hop_len
         self.rep_dims = self.input_rep.rep_dims
         self.patch_size = self.input_rep.patch_size
+
+        # aux nets
+        self.embedding_layer = nn.Linear(
+            self.patch_size[0] * self.patch_size[1], self.net.embed_dim
+        )
+
+        # We don't need to create quantizers in inference mode
+        if not self.quantization_targets:
+            return
 
         # Create a ModuleList holding the quantizers
         self.quantizers = nn.ModuleList()
@@ -124,11 +141,6 @@ class MaskingModel(L.LightningModule):
 
             input_dim = rep.patch_size[0] * rep.patch_size[1]
             self.quantizers.append(self.create_quantizers(input_dim, seed=seed))
-
-        # aux nets
-        self.embedding_layer = nn.Linear(
-            self.patch_size[0] * self.patch_size[1], self.net.embed_dim
-        )
 
         # loss function
         self.loss = nn.CrossEntropyLoss()
