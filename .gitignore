@@ -10,3 +10,5 @@ checkpoints/
 /figs/
 
 /venv/
+
+build/
