@@ -34,7 +34,7 @@ def get_model(
     """Returns an OMAR-RQ Module from the provided  model_id or config_file.
 
     Args:
-        model_id (str): Model ID to download from Hugging Face.
+        model_id (str): Hugging Face's Model ID or local path to the model
         config_file (Path): Path to the model config of a trained model.
         device (str): Device to use for the model. Defaults to "cpu".
         quantization_targets (bool): If True, it will create the quantization
@@ -81,12 +81,8 @@ def get_model(
     sr, hop_len, patch_size, ckpt_path = None, None, None, None
 
     if model_id:
-        config_file = hf_hub_download(
-            repo_id=f"mtg-upf/{model_id}", filename="config.gin"
-        )
-        ckpt_path = hf_hub_download(
-            repo_id=f"mtg-upf/{model_id}", filename="model.ckpt"
-        )
+        config_file = hf_hub_download(repo_id=model_id, filename="config.gin")
+        ckpt_path = hf_hub_download(repo_id=model_id, filename="model.ckpt")
 
     # When no config file is provided, it is assumed that an external
     # gin-config file with all the required fileds has already been parsed.
