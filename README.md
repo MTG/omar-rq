@@ -7,7 +7,7 @@ This repository contains training, validation, and inference code for various SS
 For embedding extraction or downstream tasks:
 
 ```bash
-pip install -e .
+pip install .
 
 ```
 
@@ -25,16 +25,16 @@ Embedding extraction example:
 
 ```python
 import torch
-from ssl_mtg import get_model
+from omar_rq import get_model
 
 x = torch.randn(1, 16000 * 4).cpu()
-config_file = "my_config_file.gin"
+model_id = "mtg-upf/omar-rq-multifeature-25hz-fsq"
 
-model, eps = get_model(config_file, device="cpu")
+model = get_model(model_id=model_id, device="cpu")
 
 embeddings = model.extract_embeddings(x, layers=[6])
 
-timestamps = torch.arange(embeddings.shape[2]) / eps
+timestamps = torch.arange(embeddings.shape[2]) model.eps
 ```
 
 `get_model` reference:
@@ -75,12 +75,15 @@ Output:
         the number of output timestamps, and C = embedding dimension.
 ```
 
-> [!NOTE]
-> Remember to set the `encodec_weights_path` parameter when using models with EnCodec as input representation.
-
 ## Relevant pre-trained models
 
-These are the most relevant models along with their performance metrics (WIP):
+- mtg-upf/omar-rq-base
+- mtg-upf/omar-rq-multicodebook
+- mtg-upf/omar-rq-multifeature
+- mtg-upf/omar-rq-multifeature-25hz
+- mtg-upf/omar-rq-multifeature-25hz-fsq
+
+## Development list of models (left here for reference)
 
 ### Baseline Discogs23 models
 
@@ -113,6 +116,8 @@ These are the most relevant models along with their performance metrics (WIP):
 |------|---------------|-------|-------|--------|------------|--------|-------|--------------|------------------------------------------------------|
 | f0   | Conformer     | Small | Mel   | Mel    | i2h5dqb8   | 343540 | 0.440 | 0.838        | i2h5dqb8/checkpoints/fs_config_masking_conformer_small.gin |
 | f1   | Conformer     | Large | Mel   | Mel    | msesipur   | 364695 | 0.434 | 0.859        | msesipur/checkpoints/fs_config_masking_conformer_large.gin |
+
+>[!NOTE] Most of these models are not available in the Hugging Face Hub.
 
 ## Cluster setup
 
@@ -213,7 +218,6 @@ In the `config_file` modify these parameters:
 ## Run the experiment
 
 - `python src/train.py`
-
 
 ## Licensing information
 
