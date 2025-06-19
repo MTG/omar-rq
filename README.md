@@ -54,8 +54,39 @@ Args:
 
 Output:
     module: The model from the provided config file.
-    eps (float): Embeddings per second.
-        e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
+
+
+Module usage:
+
+Args:
+    audio (torch.Tensor): 2D mono audio tensor (B, T'). Where B is
+        the batch size and T' is the number of samples.
+    layers (set): Set of layer indices to extract embeddings from.
+        By default, it extracts embeddings from the last layer (logits).
+
+Output:
+    torch.Tensor: Extracted embeddings. The output tensor has shape
+        (L, B, T, C,) where L = len(layers), B is the batch size, T is
+        the number of output timestamps, and C = embedding dimension.
+
+
+Example:
+
+>>> x = torch.randn(1, 16000 * 4).cpu()
+>>>
+>>> model = get_model(config_file, device="cpu")
+>>>
+>>> embeddings = model.extract_embeddings(x, layers=(6))
+>>>
+>>> # use the `eps` field to compute timestamps
+>>> timestamps = torch.arange(embeddings.shape[2]) / model.eps
+
+
+
+>> NOTE: The model's embedding rate depends on the model's configuration.
+    For example, the melspectrogram model has an embedding rate of 16ms.
+    audio should be a sequence with a sample rate as inditacted in the
+    config file and up to 30s.
 ```
 
 `extract_embeddings` reference:
