@@ -80,6 +80,9 @@ def get_model(
     # Init representation related variables
     sr, hop_len, patch_size, ckpt_path = None, None, None, None
 
+    if config_file is not None and model_id is not None:
+        raise ValueError("Provide either a model_id or a config_file, not both.")
+
     if model_id:
         config_file = hf_hub_download(repo_id=model_id, filename="config.gin")
         ckpt_path = hf_hub_download(repo_id=model_id, filename="model.ckpt")
@@ -124,10 +127,6 @@ def get_model(
     )
 
     if config_file != "":
-        assert model_id is None, (
-            "When a config file is provided, mudel_id should not be configured."
-        )
-
         # Make the checkpoint path relative to the config file location
         # insted of taking the absolute path
         if not ckpt_path:
