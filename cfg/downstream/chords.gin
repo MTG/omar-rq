@@ -5,6 +5,7 @@ embeddings_dir = "/gpfs/projects/upf97/embeddings_ssl/"
 predict.device_dict = {
 	"accelerator": "gpu",
 	"devices": 1,
+  "num_nodes": 1,
 }
 
 # Embedding taking location from the neural network

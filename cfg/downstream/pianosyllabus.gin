@@ -5,6 +5,7 @@ embeddings_dir = "/gpfs/projects/upf97/embeddings_ssl/"
 predict.device_dict = {
 	"accelerator": "gpu",
 	"devices": 1,
+  "num_nodes": 1,
 }
 
 # Embedding taking location from the neural network
@@ -17,11 +18,11 @@ predict.dataset_name = %dataset_name
 # Audio Loader for embedding extraction
 AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/PianoSyllabus"
 AudioEmbeddingDataModule.file_format = "mp3"
-AudioEmbeddingDataModule.orig_freq = 16000
 AudioEmbeddingDataModule.num_workers = 20
 AudioEmbeddingDataModule.batch_size = 32
 AudioEmbeddingDataModule.overlap_ratio = 0.5
-AudioEmbeddingDataModule.num_frames = 480000
+AudioEmbeddingDataModule.n_seconds = 30
+AudioEmbeddingDataModule.last_chunk_ratio = 0.1
 
 
 build_module_and_datamodule.dataset_name = %dataset_name

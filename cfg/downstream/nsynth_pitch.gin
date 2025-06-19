@@ -31,7 +31,7 @@ build_module_and_datamodule.embeddings_dir = %embeddings_dir
 NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
 NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
 NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
-NSynthPitchEmbeddingLoadingDataModule.batch_size = 64
+NSynthPitchEmbeddingLoadingDataModule.batch_size = 32
 NSynthPitchEmbeddingLoadingDataModule.num_workers = 10
 NSynthPitchEmbeddingLoadingDataModule.layer_aggregation = "none"
 NSynthPitchEmbeddingLoadingDataModule.granularity = "chunk"
@@ -48,7 +48,7 @@ train_probe.train_params = {
     "accelerator": "gpu",
     "devices": 1,
     "log_every_n_steps": 50,
-    "max_steps": 20000,
+    "max_steps": 100000,
     "num_sanity_val_steps": 0,
     "check_val_every_n_epoch": 1,
 }
@@ -72,8 +72,8 @@ optimize_probe.seed = 1
 # Warning: these parameters are ignored when the the Bayesian optimization is enabled
 SequenceClassificationProbe.num_layers = 2
 SequenceClassificationProbe.hidden_size = 512
-SequenceClassificationProbe.dropout = 0.2
-SequenceClassificationProbe.lr = 0.0001
+SequenceClassificationProbe.dropout = 0.0
+SequenceClassificationProbe.lr = 0.001
 
 SequenceClassificationProbe.activation = "relu"
 SequenceClassificationProbe.bias = True
