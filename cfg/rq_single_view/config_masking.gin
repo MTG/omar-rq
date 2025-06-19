@@ -56,6 +56,7 @@ nets.melspectrogram.MelSpectrogram.norm = "slaney"
 nets.melspectrogram.MelSpectrogram.mel_scale = "slaney"
 nets.melspectrogram.MelSpectrogram.norm_std = 1.268292820667291
 nets.melspectrogram.MelSpectrogram.norm_mean = 2.06755686098554
+nets.melspectrogram.MelSpectrogram.patch_size = (96, 4)
 
 # data augmentation
 nets.melspectrogram.MelSpectrogram.stretch_factor = 1
