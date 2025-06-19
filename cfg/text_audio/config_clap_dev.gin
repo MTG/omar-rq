@@ -1,6 +1,7 @@
+# general training parameters
 train.wandb_params = {
     "project": "mtg-text-audio",
-    "name": "config_clap_mpnet_base_v2_ssl_a2a_small_att_pool_from_text",
+    "name": "dev.mtg_text_audio",
     "offline": True,
     "save_dir": "/gpfs/projects/upf97/logs/",
     "entity": "mtg-upf",
@@ -30,11 +31,9 @@ CLAP.seed = 0
 CLAP.train_audio_encoder = True
 CLAP.train_text_encoder = False
 CLAP.tokenizers_parallelism = False
-CLAP.aggregation_type = "attention_pooler_from_text"
-CLAP.n_pool_att_heads = 8
 
 # CosineAnnealing scheduler
-CosineAnnealingCallback.warmup_steps = 20000
+CosineAnnealingCallback.warmup_steps = 10000
 CosineAnnealingCallback.eta_min = 1e-7
 
 # Choose the devalopment dataloader
@@ -44,19 +43,16 @@ build_dev_datamodule.datamodule = @discotube_text_audio
 DiscotubeTextAudioDataModule.batch_size = 128
 DiscotubeTextAudioDataModule.num_workers = 20
 DiscotubeTextAudioDataModule.data_dir = "/"
-DiscotubeTextAudioDataModule.filelist_train = "/gpfs/projects/upf97/data/train_mmap.txt"
-DiscotubeTextAudioDataModule.filelist_val = "/gpfs/projects/upf97/data/test_mmap.txt"
-DiscotubeTextAudioDataModule.metadata_youtube_file = "/gpfs/projects/upf97/discotube/discotube-2023-03.downloaded.meta"
-DiscotubeTextAudioDataModule.metadata_discogs_file = "/gpfs/projects/upf97/discotube/discogs_20230301_releases.xml.json.clean"
-DiscotubeTextAudioDataModule.metadata_id_map_file = "/gpfs/projects/upf97/discotube/youtube_to_discogs_total_clean.jsonl"
-
-DiscotubeTextAudioDataset.metadata_dropout = 0.3
-
+DiscotubeTextAudioDataModule.filelist_train = "/Users/palonso/data/text_audio/discotube_sample/ids"
+DiscotubeTextAudioDataModule.filelist_val = "/Users/palonso/data/text_audio/discotube_sample/ids"
+DiscotubeTextAudioDataModule.metadata_youtube_file = "/Users/palonso/data/text_audio/discotube_sample/yotube_metadata.jsonl"
+DiscotubeTextAudioDataModule.metadata_discogs_file = "/Users/palonso/data/text_audio/discotube_sample/discogs_metadata.jsonl"
+DiscotubeTextAudioDataModule.metadata_id_map_file = "/Users/palonso/data/text_audio/discotube_sample/youtube_to_discgos_map.jsonl"
+DiscotubeTextAudioDataset.metadata_dropout = 0.4
 # Dataloader
 AudioDataset.num_frames = 480000 # 30s
 AudioDataset.orig_freq = 16000
 AudioDataset.new_freq = 24000
 AudioDataset.mono = True
 AudioDataset.half_precision = True
-AudioDataModule.num_workers = 0
 

@@ -26,5 +26,8 @@ class EmbeddingWriter(BasePredictionWriter):
 
             # If the prediction is a tensor, write it to a file
             if embeddings is not None:
-                prediction = torch.stack(embeddings, dim=1)
-                torch.save(prediction, output_path)
+                try:
+                    prediction = torch.stack(embeddings, dim=1)
+                    torch.save(prediction, output_path)
+                except Exception as e:
+                    print(f"Error saving embeddings for {audio_name}: {e}")

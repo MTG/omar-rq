@@ -1,10 +1,11 @@
 import gin
 
 from pathlib import Path
-from typing import List
 
-from torch import nn
+import torch
 import pytorch_lightning as L
+from torch import nn
+from huggingface_hub import hf_hub_download
 
 import nets
 import modules
@@ -25,26 +26,22 @@ def get_patch_size(representation: nn.Module) -> tuple:
 
 
 def get_model(
-    config_file: Path | str,
+    model_id: str | None = None,
+    config_file: Path | str | None = None,
     device: str = "cpu",
-    encodec_weights_path: str | None = None,
-) -> tuple[L.LightningModule, float]:
-    """Returns the model from the provided config file.
+    quantization_targets: bool = False,
+) -> L.LightningModule:
+    """Returns an OMAR-RQ Module from the provided  model_id or config_file.
 
     Args:
+        model_id (str): Hugging Face's Model ID or local path to the model
         config_file (Path): Path to the model config of a trained model.
         device (str): Device to use for the model. Defaults to "cpu".
-        encodec_weights_path (str): Path to the EnCodec weights. When set, it will
-            override the value in the config file. Note that it can be a local path
-            or or a Hugging Face model ID. This parameter only affects to models
-            that use EnCodec as representation. Defaults to None.
-
-            https://huggingface.co/docs/transformers/en/model_doc/encodec
+        quantization_targets (bool): If True, it will create the quantization
+            targets for SSL pre-training of the model. Defaults to False.
 
     Output:
         module: The model from the provided config file.
-        eps (float): Embeddings per second.
-            e.g., torch.arange(T) / eps gives the timestamps of the embeddings.
 
 
     Module usage:
@@ -65,11 +62,12 @@ def get_model(
 
     >>> x = torch.randn(1, 16000 * 4).cpu()
     >>>
-    >>> model, eps = get_model(config_file, device="cpu")
+    >>> model = get_model(config_file, device="cpu")
     >>>
     >>> embeddings = model.extract_embeddings(x, layers=(6))
     >>>
-    >>> timestamps = torch.arange(embeddings.shape[2]) / eps
+    >>> # use the `eps` field to compute timestamps
+    >>> timestamps = torch.arange(embeddings.shape[2]) / model.eps
 
 
 
@@ -80,39 +78,20 @@ def get_model(
     """
 
     # Init representation related variables
-    sr, hop_len, patch_size = None, None, None
+    sr, hop_len, patch_size, ckpt_path = None, None, None, None
 
-    finalize_config = False
+    if model_id:
+        config_file = hf_hub_download(repo_id=model_id, filename="config.gin")
+        ckpt_path = hf_hub_download(repo_id=model_id, filename="model.ckpt")
 
     # When no config file is provided, it is assumed that an external
     # gin-config file with all the required fileds has already been parsed.
     # Don't try to moddify the gin configuration nor load a checkpoint.
     if config_file != "":
-        # Read previous config bindings
-        bindings = []
-        cfg_str = gin.config_str()
-
-        # If these are not empty, this model is part of a larger setup
-        # Do not finish the configuration now
-        if cfg_str == "":
-            finalize_config = True
-
-        lines = cfg_str.split("\n")
-        bindings.extend(lines)
-
-        if encodec_weights_path is not None:
-            bindings.append(
-                f"nets.encodec.EnCodec.weights_path = '{encodec_weights_path}'"
-            )
-            bindings.append("nets.encodec.EnCodec.stats_path = None")
-
         # Parse the gin config
         with gin.unlock_config():
             gin.parse_config_files_and_bindings(
-                [str(config_file)],
-                bindings,
-                skip_unknown=True,
-                finalize_config=finalize_config,
+                config_files=[str(config_file)], bindings=None, skip_unknown=True
             )
 
     gin_config = gin.get_bindings(build_module)
@@ -126,8 +105,10 @@ def get_model(
     net = net()
 
     # The model can feature one or multiple representations (multi-view models)
-    if isinstance(representation, list):
-        representation = nn.ModuleList([r().to(device) for r in representation])
+    if isinstance(representation, list) and quantization_targets is False:
+        representation = None
+    elif isinstance(representation, list) and quantization_targets is True:
+        representation = nn.ModuleList([r() for r in representation])
     else:
         # In the single view case, extract the params from the rep class and get
         # a hardcoded patch size parameter (since it was not included in the gin config)
@@ -136,21 +117,30 @@ def get_model(
         sr = representation.sr
         hop_len = representation.hop_len
 
+    module = module(
+        net=net,
+        representation=representation,
+        quantization_targets=quantization_targets,
+    )
+
     if config_file != "":
+        assert model_id is None, (
+            "When a config file is provided, mudel_id should not be configured."
+        )
+
         # Make the checkpoint path relative to the config file location
         # insted of taking the absolute path
-        ckpt_path = Path(gin_config["ckpt_path"])
-        ckpt_path = Path(config_file).parent / ckpt_path.name
+        if not ckpt_path:
+            ckpt_path = Path(gin_config["ckpt_path"])
+            ckpt_path = Path(config_file).parent / ckpt_path.name
 
-        module = module.load_from_checkpoint(
-            ckpt_path,
-            net=net,
-            representation=representation,
-            strict=False,
-            map_location=device,
-        )
-    else:
-        module = module(net=net, representation=representation)
+        # Load the checkpoint weights it exists
+        state_dict = torch.load(ckpt_path, map_location=device)
+        for key in ["net", "embedding_layer"]:
+            net_weigths = {
+                k[len(key) + 1 :]: v for k, v in state_dict.items() if k.startswith(key)
+            }
+            getattr(module, key).load_state_dict(net_weigths, strict=True)
 
     # Set the model to eval mode
     module.eval()
@@ -169,7 +159,8 @@ def get_model(
         sr = module.sr
         hop_len = module.hop_length
 
-    # compute timestamps
+    # compute embeddings per second
     eps = sr / (hop_len * patch_size[1])
+    module.eps = eps
 
-    return module, eps
+    return module

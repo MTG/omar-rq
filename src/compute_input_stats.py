@@ -2,6 +2,7 @@ import traceback
 import json
 from argparse import ArgumentParser
 from pathlib import Path
+from collections import defaultdict
 
 import gin.torch
 import torch
@@ -38,51 +39,57 @@ def compute_input_stats(
 
     # manually predict with module for the entire datamodule
     n_batches = 0
-    acc_mean = 0
-    acc_std = 0
-    acc_mean_dims = torch.Tensor([])
-    acc_std_dims = torch.Tensor([])
+    acc_mean = defaultdict(float)
+    acc_std = defaultdict(float)
+    acc_mean_dims = defaultdict(torch.Tensor)
+    acc_std_dims = defaultdict(torch.Tensor)
 
     for batch in tqdm(datamodule.train_dataloader()):
         x = batch[0].cuda().float()
-        rep_batch = module.representation(x)
 
-        mean = torch.mean(torch.mean(rep_batch, dim=(-2, -1)), dim=0).item()
-        std = torch.mean(torch.std(rep_batch, dim=(-2, -1)), dim=0).item()
+        for rep in module.representation:
+            rep_name = type(rep).__name__
+            rep_batch = rep(x)
 
-        acc_mean += mean
-        acc_std += std
+            mean = torch.mean(torch.mean(rep_batch, dim=(-2, -1)), dim=0).item()
+            std = torch.mean(torch.std(rep_batch, dim=(-2, -1)), dim=0).item()
 
-        mean_dims = torch.mean(torch.mean(rep_batch, dim=-1), dim=0)
-        std_dims = torch.mean(torch.std(rep_batch, dim=-1), dim=0)
+            acc_mean[rep_name] += mean
+            acc_std[rep_name] += std
 
-        if not len(acc_mean_dims):
-            acc_mean_dims = mean_dims.cpu()
-            acc_std_dims = std_dims.cpu()
-        else:
-            acc_mean_dims += mean_dims.cpu()
-            acc_std_dims += std_dims.cpu()
+            mean_dims = torch.mean(torch.mean(rep_batch, dim=-1), dim=0)
+            std_dims = torch.mean(torch.std(rep_batch, dim=-1), dim=0)
+
+            if not len(acc_mean_dims[rep_name]):
+                acc_mean_dims[rep_name] = mean_dims.cpu()
+                acc_std_dims[rep_name] = std_dims.cpu()
+            else:
+                acc_mean_dims[rep_name] += mean_dims.cpu()
+                acc_std_dims[rep_name] += std_dims.cpu()
 
         n_batches += 1
 
-    acc_mean /= n_batches
-    acc_std /= n_batches
-    acc_mean_dims /= n_batches
-    acc_std_dims /= n_batches
+    for rep_name in acc_mean.keys():
+        acc_mean[rep_name] /= n_batches
+        acc_std[rep_name] /= n_batches
+        acc_mean_dims[rep_name] /= n_batches
+        acc_std_dims[rep_name] /= n_batches
 
-    acc_mean_dims = acc_mean_dims.tolist()
-    acc_std_dims = acc_std_dims.tolist()
+        # acc_mean_dims[rep_name] = acc_mean_dims[rep_name].tolist()
+        # acc_std_dims[rep_name] = acc_std_dims[rep_name].tolist()
 
-    # put in dict and log as a json
-    stats = {
-        "mean": acc_mean,
-        "std": acc_std,
-        "mean_dims": acc_mean_dims,
-        "std_dims": acc_std_dims,
-    }
+        # put in dict and log as a json
+        stats = {
+            "mean": acc_mean[rep_name],
+            "std": acc_std[rep_name],
+            # "mean_dims": acc_mean_dims,
+            # "std_dims": acc_std_dims,
+        }
 
-    with open("input_stats.json", "w") as f:
-        json.dump(stats, f)
+        print(f"Input stats for {rep_name}: {stats}")
+
+        with open(f"input_stats_{rep_name}.json", "w") as f:
+            json.dump(stats, f)
 
 
 if __name__ == "__main__":

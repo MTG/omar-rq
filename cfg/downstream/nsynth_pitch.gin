@@ -1,10 +1,11 @@
 dataset_name = "nsynth"
-embeddings_dir = "/data0/palonso/ssl-mtg/embeddings/"
+embeddings_dir = "/gpfs/scratch/upf97/embeddings/"
 
 # Lighting Trainer parameters, overwrites the training config
 predict.device_dict = {
 	"accelerator": "gpu",
 	"devices": 1,
+  "num_nodes": 1,
 }
 
 # Embedding taking location from the neural network
@@ -15,39 +16,39 @@ predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
 
 # Audio Loader for embedding extraction
-AudioEmbeddingDataModule.data_dir = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/"
+AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/nsynth/"
 AudioEmbeddingDataModule.file_format = "wav"
-AudioEmbeddingDataModule.orig_freq = 16000
 AudioEmbeddingDataModule.num_workers = 20
 AudioEmbeddingDataModule.batch_size = 128
 AudioEmbeddingDataModule.overlap_ratio = 0.5
-AudioEmbeddingDataModule.num_frames = 480000
+AudioEmbeddingDataModule.n_seconds = 4
+AudioEmbeddingDataModule.last_chunk_ratio = 0.1
 
 
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
-NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
-NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/data0/palonso/ssl-mtg/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
-NSynthPitchEmbeddingLoadingDataModule.batch_size = 64
-NSynthPitchEmbeddingLoadingDataModule.num_workers = 0
+NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
+NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
+NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
+NSynthPitchEmbeddingLoadingDataModule.batch_size = 32
+NSynthPitchEmbeddingLoadingDataModule.num_workers = 10
 NSynthPitchEmbeddingLoadingDataModule.layer_aggregation = "none"
 NSynthPitchEmbeddingLoadingDataModule.granularity = "chunk"
 NSynthPitchEmbeddingLoadingDataModule.time_aggregation = "mean"
 
 train_probe.wandb_params = {
     "project": "nsynth",
-    "offline": False,
+    "offline": True,
     "entity": "mtg-upf",
-    "save_dir": "/data0/palonso/ssl-mtg/logs/",
+    "save_dir": "/gpfs/projects/upf97/logs/",
 }
 
 train_probe.train_params = {
     "accelerator": "gpu",
     "devices": 1,
     "log_every_n_steps": 50,
-    "max_steps": 50000,
+    "max_steps": 100000,
     "num_sanity_val_steps": 0,
     "check_val_every_n_epoch": 1,
 }
@@ -71,8 +72,9 @@ optimize_probe.seed = 1
 # Warning: these parameters are ignored when the the Bayesian optimization is enabled
 SequenceClassificationProbe.num_layers = 2
 SequenceClassificationProbe.hidden_size = 512
-SequenceClassificationProbe.dropout = 0.2
-SequenceClassificationProbe.lr = 0.0001
+SequenceClassificationProbe.dropout = 0.0
+SequenceClassificationProbe.lr = 0.001
+
 SequenceClassificationProbe.activation = "relu"
 SequenceClassificationProbe.bias = True
 SequenceClassificationProbe.num_labels = 128

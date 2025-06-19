@@ -1,0 +1,41 @@
+dataset_name = "gtzan_zsl"
+embeddings_dir = "/home/upf/upf825634/embeddings/"
+
+# Lighting Trainer parameters, overwrites the training config
+predict.device_dict = {
+	"accelerator": "gpu",
+	"devices": 1,
+}
+
+predict.overlap_ratio = 1
+
+predict.embeddings_dir = %embeddings_dir
+predict.dataset_name = %dataset_name
+
+# Audio Loader for embedding extraction
+AudioEmbeddingDataModule.data_dir = "/gpfs/home/upf/upf825634/datasets/gtzan/22kmono"
+AudioEmbeddingDataModule.file_format = "wav"
+AudioEmbeddingDataModule.orig_freq = 22050
+AudioEmbeddingDataModule.num_workers = 6
+AudioEmbeddingDataModule.batch_size = 64
+AudioEmbeddingDataModule.overlap_ratio = 0
+AudioEmbeddingDataModule.num_frames = 66150
+
+
+build_module_and_datamodule.dataset_name = %dataset_name
+build_module_and_datamodule.embeddings_dir = %embeddings_dir
+GTZANEmbeddingLoadingDataModule.filelist = "/gpfs/home/upf/upf825634/data/gtzan/metadata/gtzan_filelist.txt"
+GTZANEmbeddingLoadingDataModule.batch_size = 64
+GTZANEmbeddingLoadingDataModule.num_workers = 0
+GTZANEmbeddingLoadingDataModule.layer_aggregation = "none"
+GTZANEmbeddingLoadingDataModule.granularity = "chunk"
+GTZANEmbeddingLoadingDataModule.time_aggregation = "mean"
+
+train_probe.train_params = {
+    "accelerator": "gpu",
+    "devices": 1,
+    "log_every_n_steps": 50,
+    "max_steps": 50000,
+    "num_sanity_val_steps": 0,
+    "check_val_every_n_epoch": 1,
+}

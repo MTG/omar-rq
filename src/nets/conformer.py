@@ -465,4 +465,4 @@ class Conformer(nn.Module):
         if len(results) == 1:
             return results[0]
         else:
-            return x
+            return torch.stack(results, dim=0)

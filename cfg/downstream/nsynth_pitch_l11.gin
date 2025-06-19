@@ -1,4 +1,4 @@
-dataset_name = "magnatagatune"
+dataset_name = "nsynth"
 embeddings_dir = "/gpfs/scratch/upf97/embeddings/"
 
 # Lighting Trainer parameters, overwrites the training config
@@ -9,37 +9,36 @@ predict.device_dict = {
 }
 
 # Embedding taking location from the neural network
-predict.embedding_layer = [6]
+predict.embedding_layer = [11]
 predict.overlap_ratio = 0.5
 
 predict.embeddings_dir = %embeddings_dir
 predict.dataset_name = %dataset_name
 
 # Audio Loader for embedding extraction
-AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/magnatagatune_pablo/"
-AudioEmbeddingDataModule.file_format = "mp3"
+AudioEmbeddingDataModule.data_dir = "/gpfs/projects/upf97/downstream_datasets/nsynth/"
+AudioEmbeddingDataModule.file_format = "wav"
 AudioEmbeddingDataModule.num_workers = 20
-AudioEmbeddingDataModule.batch_size = 32
+AudioEmbeddingDataModule.batch_size = 128
 AudioEmbeddingDataModule.overlap_ratio = 0.5
-AudioEmbeddingDataModule.n_seconds = 30
+AudioEmbeddingDataModule.n_seconds = 4
 AudioEmbeddingDataModule.last_chunk_ratio = 0.1
 
 
 build_module_and_datamodule.dataset_name = %dataset_name
 build_module_and_datamodule.embeddings_dir = %embeddings_dir
 
-MTTEmbeddingLoadingDataModule.gt_path = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/binary.npy"
-MTTEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/train.npy"
-MTTEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/valid.npy"
-MTTEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/test.npy"
-MTTEmbeddingLoadingDataModule.batch_size = 64
-MTTEmbeddingLoadingDataModule.num_workers = 10
-MTTEmbeddingLoadingDataModule.layer_aggregation = "none"
-MTTEmbeddingLoadingDataModule.granularity = "chunk"
-MTTEmbeddingLoadingDataModule.time_aggregation = "mean"
+NSynthPitchEmbeddingLoadingDataModule.train_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_train.txt"
+NSynthPitchEmbeddingLoadingDataModule.val_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_valid.txt"
+NSynthPitchEmbeddingLoadingDataModule.test_filelist = "/gpfs/projects/upf97/downstream_datasets/nsynth/metadata/nsynth_filelist_test.txt"
+NSynthPitchEmbeddingLoadingDataModule.batch_size = 64
+NSynthPitchEmbeddingLoadingDataModule.num_workers = 10
+NSynthPitchEmbeddingLoadingDataModule.layer_aggregation = "none"
+NSynthPitchEmbeddingLoadingDataModule.granularity = "chunk"
+NSynthPitchEmbeddingLoadingDataModule.time_aggregation = "mean"
 
 train_probe.wandb_params = {
-    "project": "magnatagatune",
+    "project": "nsynth",
     "offline": True,
     "entity": "mtg-upf",
     "save_dir": "/gpfs/projects/upf97/logs/",
@@ -53,7 +52,7 @@ train_probe.train_params = {
     "num_sanity_val_steps": 0,
     "check_val_every_n_epoch": 1,
 }
-train_probe.monitor = "val-MAP-macro"
+train_probe.monitor = "val-acc"
 train_probe.monitor_mode = "max"
 
 optimize_probe.bound_conditions = {
@@ -78,8 +77,7 @@ SequenceClassificationProbe.lr = 0.0001
 
 SequenceClassificationProbe.activation = "relu"
 SequenceClassificationProbe.bias = True
-SequenceClassificationProbe.num_labels = 50
-SequenceClassificationProbe.labels = "/gpfs/projects/upf97/downstream_datasets/magnatagatune/metadata/mtat/tags.npy"
+SequenceClassificationProbe.num_labels = 128
 
 # CosineAnnealing scheduler
 CosineAnnealingCallback.warmup_steps = 2000
