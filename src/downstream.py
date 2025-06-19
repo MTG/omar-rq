@@ -53,7 +53,7 @@ def build_module_and_datamodule(
             in_features=in_features,
         )
 
-    if dataset_name == "nsynth":
+    elif dataset_name == "nsynth":
         # Build the datamodule
         datamodule = NSynthPitchEmbeddingLoadingDataModule(
             embeddings_dir,
