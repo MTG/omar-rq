@@ -40,17 +40,14 @@ timestamps = torch.arange(embeddings.shape[2]) model.eps
 `get_model` reference:
 
 ```
-Returns the model from the provided config file.
+Returns an OMAR-RQ Module from the provided  model_id or config_file.
 
 Args:
-    config_file (Path): Path to the config file of a trained model.
+    model_id (str): Hugging Face's Model ID or local path to the model
+    config_file (Path): Path to the model config of a trained model.
     device (str): Device to use for the model. Defaults to "cpu".
-    encodec_weights_path (str): Path to the EnCodec weights. When set, it will
-        override the value in the config file. Note that it can be a local path
-        or or a Hugging Face model ID. This parameter only affects to models
-        that use EnCodec as representation. Defaults to None.
-
-        https://huggingface.co/docs/transformers/en/model_doc/encodec
+    quantization_targets (bool): If True, it will create the quantization
+        targets for SSL pre-training of the model. Defaults to False.
 
 Output:
     module: The model from the provided config file.
