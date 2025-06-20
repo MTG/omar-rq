@@ -34,7 +34,7 @@ model = get_model(model_id=model_id, device="cpu")
 
 embeddings = model.extract_embeddings(x, layers=[6])
 
-timestamps = torch.arange(embeddings.shape[2]) model.eps
+timestamps = torch.arange(embeddings.shape[2]) / model.eps
 ```
 
 `get_model` reference:
