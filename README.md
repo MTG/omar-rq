@@ -1,4 +1,6 @@
-# OMAR-RQ: Open Music Audio Representation Model Trained with Multi-Feature Masked Token Prediction
+# OMAR-RQ
+
+**Open Music Audio Representation Model Trained with Multi-Feature Masked Token Prediction**
 
 This repository contains training, validation, and inference code for various SSL approaches and architectures.
 
