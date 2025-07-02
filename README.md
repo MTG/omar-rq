@@ -21,7 +21,7 @@ pip install -e .[dev]
 
 ## Inference
 
-Load a model based on its [[#Pre-trained models| Pre-trained model ID]]:
+Load a model based on its [Pre-trained model ID](#hugging-face-model-ids):
 
 ```python
 import torch
@@ -106,14 +106,14 @@ Output:
 
 ## Available models
 
-| Model                    | Input | Rate   | Tagging | Difficulty | Pitch   | Chord   | Beat   | Structure |
+| Model                    | Input  | Rate   | Tagging | Difficulty | Pitch   | Chord   | Beat   | Structure |
 |--------------------------|--------|--------|---------|------------|---------|---------|--------|-----------|
 |                          |        | Hz     | _mAP_   | _MSE_      | _acc._  | _acc._  | _F1_   | _acc._    |
-| **base**                 | mel    | 15.63 | .482    | **1.65**   | .892    | .657    | .783   | **.647**  |
-| **multicodebook**        | mel    | 15.63 | **.488**    | 1.66       | .897    | .675    | .775   | .639      |
+| **base**                 | mel    | 15.63  | .482    | **1.65**   | .892    | .657    | .783   | **.647**  |
+| **multicodebook**        | mel    | 15.63  | **.488** | 1.66      | .897    | .675    | .775   | .639      |
 | **multifeature**         | audio  | 18.75  | .467    | 1.76       | .938    | .734    | .833   | .623      |
 | **multifeature-25hz**    | audio  | 25     | .463    | 1.79       | .932    | .728    | .848   | .628      |
-| **multifeature-25hz-fsq**| audio  | 25     | .463    | 1.71       | **.940**| **.749**| **.855**   | .628      |
+| **multifeature-25hz-fsq**| audio  | 25     | .463    | 1.71       | **.940**| **.749**| **.855** | .628    |
 
 OMAR-RQ models are offered in different configurations, each with its own strengths and weaknesses.
 Models based on mel spectrogram (**base** and **multicodebook**) tend to perform better on semantic tasks such as auto-tagging, structure recognition, and difficulty estimation.
@@ -147,8 +147,8 @@ Check the default [config file](../cfg/rq_single_view/config.gin) to see the dif
 
 At least the following parameters should be modified:
 
-- `DiscotubeMultiViewAudioDataModule.data_dir` -> This should point to your base data folder.
-- `DiscotubeMultiViewAudioDataModule.filelist_train` -> This should point to a filelist of training audio paths relative to the `data_dir` (one audio file per line).
+- `DiscotubeMultiViewAudioDataModule.data_dir` -> Your base data folder.
+- `DiscotubeMultiViewAudioDataModule.filelist_train` -> Filelist of training audio paths relative to the `data_dir` (one file per line).
 - `DiscotubeMultiViewAudioDataModule.filelist_val` -> Same for the tracks on the validation split.
 
 4. Run the experiment
