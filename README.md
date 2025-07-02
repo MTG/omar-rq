@@ -21,7 +21,7 @@ pip install -e .[dev]
 
 ## Inference
 
-Load a model based on its [Pre-trained model ID](#hugging-face-model-ids):
+Load a model by specifying its [Hugging Face model ID](#hugging-face-model-ids):
 
 ```python
 import torch
@@ -29,8 +29,8 @@ from omar_rq import get_model
 
 # Embedding extraction example
 x = torch.randn(1, 16000 * 4).cpu()
-model_id = "mtg-upf/omar-rq-multifeature-25hz-fsq"
 
+model_id = "mtg-upf/omar-rq-multifeature-25hz-fsq"
 model = get_model(model_id=model_id, device="cpu")
 
 embeddings = model.extract_embeddings(x, layers=[6])
