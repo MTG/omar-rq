@@ -2,9 +2,7 @@ from typing import Union, List
 
 import torch
 import torch.nn as nn
-import gin.torch
-
-from .net import Net
+from torch.nn.attention import SDPBackend, sdpa_kernel
 
 
 class MHAPyTorchScaledDotProduct(nn.Module):
@@ -38,9 +36,8 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         queries, keys, values = qkv
 
         use_dropout = 0.0 if not self.training else self.dropout
-        with torch.backends.cuda.sdp_kernel(
-            enable_flash=True, enable_math=False, enable_mem_efficient=False
-        ):
+
+        with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
             context_vec = nn.functional.scaled_dot_product_attention(
                 queries,
                 keys,
