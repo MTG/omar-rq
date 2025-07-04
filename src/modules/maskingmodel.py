@@ -6,7 +6,6 @@ from typing import Set
 
 import gin
 import torch
-import wandb
 from torch import nn
 import pytorch_lightning as L
 
@@ -407,6 +406,8 @@ class MaskingModel(L.LightningModule):
                 )
 
         elif self.first_coverage and batch_idx == first_coverage_steps:
+            import wandb
+
             # Print the histogram you can check it in the wandb dashboard (log section)
             for key, value in self.tokens_accumulator.items():
                 self.logger.experiment.log({f"{key}_histogram": wandb.Histogram(value)})
