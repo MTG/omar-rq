@@ -462,11 +462,10 @@ class MaskingModel(L.LightningModule):
             layers = self.downstream_embedding_layer
 
         layers = set(layers)
-
         assert isinstance(layers, set), "Layer must be a set."
 
-        x = None
-        input_rep = None
+        # assert no nan values in audio
+        assert not torch.isnan(audio).any(), "Input audio contains NaN values."
 
         # Compute the representation
         x = self.input_rep(audio)  # (F, Tm)
