@@ -16,7 +16,7 @@ pip install .
 For development including pre-training your own models:
 
 ```bash
-pip install -e .[dev]
+pip install -e .[train]
 ```
 
 ## Inference
@@ -132,7 +132,7 @@ On the other hand, **multifeature-24hz-fsq** offers the best performance in tona
 1. Install development dependencies:
 
 ```bash
-pip install -e .[dev]
+pip install -e .[train]
 ```
 
 2. Prepare the experiment data

@@ -4,6 +4,7 @@ from typing import Set, Tuple
 import gin
 import torch
 import torch.nn as nn
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from .common_former import DeepNorm
 from .rope import RotaryEmbedding
 
@@ -74,9 +75,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
         use_dropout = 0.0 if not self.training else self.dropout
 
         if self.use_flash_attention:
-            with torch.backends.cuda.sdp_kernel(
-                enable_flash=True, enable_math=False, enable_mem_efficient=False
-            ):
+            with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
                 context_vec = nn.functional.scaled_dot_product_attention(
                     queries,
                     keys,

@@ -6,11 +6,9 @@ requires-python = ">= 3.10"
 
 dependencies = [
     "lightning==2.3",
-    "torch==2.3",
+    "torch==2.6",
+    "torchaudio==2.6",
     "gin-config~=0.5",
-    "torchaudio==2.3",
-    "torchvision==0.18",
-    "wandb",
     "einops",
     "transformers"
 ]
@@ -18,11 +16,14 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "ruff",
-    "matplotlib",
+    "pytest",
+]
+train = [
     "bayesian_optimization~=1.5.1",
+    "matplotlib",
     "scikit_learn~=1.5.2",
     "scipy~=1.14.1",
-    "sentence-transformers",
+    "wandb",
 ]
 
 [build-system]
