@@ -5,7 +5,9 @@ _''Open Music Audio Representation Model Trained with Multi-Feature Masked Token
 
 This repository contains training, validation, and inference code for various SSL approaches and architectures.
 
-<img src="img/omaro_the_original.png" alt="Lobster" width="50%">
+<div align="center">
+  <img src="img/omaro_the_original.png" alt="Lobster" width="40%">
+</div>
 
 ## Install
 
@@ -158,6 +160,19 @@ At least the following parameters should be modified:
 
 ```bash
 python src/train.py cfg/rq_single_view/config.gin
+```
+
+## Citation
+
+If you find this work useful, please cite the paper:
+
+```bibtex
+@article {alonso2025omarrq,
+  title={OMAR-RQ: Open Music Audio Representation Model Trained with Multi-Feature Masked Token Prediction},
+  author={Alonso-Jim\'enez, Pablo and Ramoneda, Pedro and Araz, R. Oguz and Poltronieri, Andrea and Bogdanov, Dmitry},
+  journal={arXiv preprint arXiv:2507.03482},
+  year={2025}
+}
 ```
 
 ## Licensing information
