@@ -43,6 +43,13 @@ class MHAPyTorchScaledDotProduct(nn.Module):
                 embed_dim=d_out, max_len=max_len
             )
 
+        self.sdp_backends = [
+            SDPBackend.FLASH_ATTENTION,
+            SDPBackend.EFFICIENT_ATTENTION,
+            SDPBackend.CUDNN_ATTENTION,
+            SDPBackend.MATH,
+        ]
+
     def forward(self, x):
         batch_size, num_tokens, embed_dim = x.shape
 
@@ -72,11 +79,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 
         use_dropout = 0.0 if not self.training else self.dropout
 
-        sdp_backend = SDPBackend.DEFAULT
-        if SDPBackend.is_supported(SDPBackend.FLASH_ATTENTION):
-            sdp_backend = SDPBackend.FLASH_ATTENTION
-
-        with sdpa_kernel(sdp_backend):
+        with sdpa_kernel(self.sdp_backends, set_priority_order=True):
             context_vec = nn.functional.scaled_dot_product_attention(
                 queries,
                 keys,
