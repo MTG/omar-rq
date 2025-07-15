@@ -79,7 +79,7 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 
         use_dropout = 0.0 if not self.training else self.dropout
 
-        with sdpa_kernel(self.sdp_backends, set_priority_order=True):
+        with sdpa_kernel(self.sdp_backends, set_priority=True):
             context_vec = nn.functional.scaled_dot_product_attention(
                 queries,
                 keys,
