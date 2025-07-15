@@ -37,7 +37,11 @@ class MHAPyTorchScaledDotProduct(nn.Module):
 
         use_dropout = 0.0 if not self.training else self.dropout
 
-        with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
+        sdp_backend = SDPBackend.DEFAULT
+        if SDPBackend.is_supported(SDPBackend.FLASH_ATTENTION):
+            sdp_backend = SDPBackend.FLASH_ATTENTION
+
+        with sdpa_kernel(sdp_backend):
             context_vec = nn.functional.scaled_dot_product_attention(
                 queries,
                 keys,
