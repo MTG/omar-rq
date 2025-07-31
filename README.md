@@ -33,7 +33,7 @@ import torch
 from omar_rq import get_model
 
 # Embedding extraction example
-x = torch.randn(1, 16000 * 4).cpu()
+x = torch.randn(1, 24000 * 4).cpu()
 
 model_id = "mtg-upf/omar-rq-multifeature-25hz-fsq"
 model = get_model(model_id=model_id, device="cpu")
@@ -75,7 +75,7 @@ Output:
 
 Example:
 
->>> x = torch.randn(1, 16000 * 4).cpu()
+>>> x = torch.randn(1, 24000 * 4).cpu()
 >>>
 >>> model = get_model(config_file, device="cpu")
 >>>
@@ -111,14 +111,17 @@ Output:
 
 ## Available models
 
-| Model                    | Input  | Rate   | Tagging | Difficulty | Pitch   | Chord   | Beat   | Structure |
-|--------------------------|--------|--------|---------|------------|---------|---------|--------|-----------|
-|                          |        | Hz     | _mAP_   | _MSE_      | _acc._  | _acc._  | _F1_   | _acc._    |
-| **base**                 | mel    | 15.63  | .482    | **1.65**   | .892    | .657    | .783   | **.647**  |
-| **multicodebook**        | mel    | 15.63  | **.488** | 1.66      | .897    | .675    | .775   | .639      |
-| **multifeature**         | audio  | 18.75  | .467    | 1.76       | .938    | .734    | .833   | .623      |
-| **multifeature-25hz**    | audio  | 25     | .463    | 1.79       | .932    | .728    | .848   | .628      |
-| **multifeature-25hz-fsq**| audio  | 25     | .463    | 1.71       | **.940**| **.749**| **.855** | .628    |
+| Model                      | Input | Rate  | SR    | Tagging  | Difficulty | Pitch   | Chord   | Beat    | Structure |
+|----------------------------|-------|-------|-------|----------|------------|---------|---------|---------|-----------|
+|                            |       | _Hz_  | _Hz_  | _mAP_    | _MSE_      | _acc._  | _acc._  | _F1_    | _acc._    |
+| **base**                   | mel   | 15.63 | 16000 | .482     | **1.65**   | .892    | .657    | .783    | **.647**  |
+| **multicodebook**          | mel   | 15.63 | 16000 | **.488** | 1.66       | .897    | .675    | .775    | .639      |
+| **multifeature**           | audio | 18.75 | 24000 | .467     | 1.76       | .938    | .734    | .833    | .623      |
+| **multifeature-25hz**      | audio | 25    | 24000 | .463     | 1.79       | .932    | .728    | .848    | .628      |
+| **multifeature-25hz-fsq**  | audio | 25    | 24000 | .463     | 1.71       | **.940**| **.749**| **.855**| .628      |
+
+> **Note:** Different models were trained with different sample rates.
+> It is responsibility of the user to ensure that the input audio is sampled at the correct rate.
 
 OMAR-RQ models are offered in different configurations, each with its own strengths and weaknesses.
 Models based on mel spectrogram (**base** and **multicodebook**) tend to perform better on semantic tasks such as auto-tagging, structure recognition, and difficulty estimation.
