@@ -172,11 +172,12 @@ python src/train.py cfg/rq_single_view/config.gin
 If you find this work useful, please cite the paper:
 
 ```bibtex
-@article {alonso2025omarrq,
-  title={OMAR-RQ: Open Music Audio Representation Model Trained with Multi-Feature Masked Token Prediction},
-  author={Alonso-Jim\'enez, Pablo and Ramoneda, Pedro and Araz, R. Oguz and Poltronieri, Andrea and Bogdanov, Dmitry},
-  journal={arXiv preprint arXiv:2507.03482},
-  year={2025}
+@inproceedings{alonso2025omar,
+  title = {{OMAR-RQ}: Open Music Audio Representation Model Trained with Multi-Feature Masked Token Prediction},
+  author = {Alonso-Jim{\'e}nez, Pablo and Ramoneda, Pedro and Araz, R. Oguz and Poltronieri, Andrea and Bogdanov, Dmitry},
+  booktitle = {ACM Multimedia Conference (ACMMM), Open Source Track},
+  year = {2025},
+  doi = {10.1145/3746027.3756871},
 }
 ```
 
