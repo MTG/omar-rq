@@ -10,6 +10,7 @@ MODEL_IDS = [
     "mtg-upf/omar-rq-multifeature",
     "mtg-upf/omar-rq-multifeature-25hz",
     "mtg-upf/omar-rq-multifeature-25hz-fsq",
+    "mtg-upf/omar-rq-base-freesound-small",
 ]
 
 
