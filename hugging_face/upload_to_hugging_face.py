@@ -23,6 +23,6 @@ for folder in folders:
     upload_file(
         path_or_fileobj="weights/LICENSE",
         path_in_repo="LICENSE",
-        repo_id=f"mtg-upf/{folder}",
+        repo_id=f"MODELS_LICENSE",
         repo_type="model",
     )
