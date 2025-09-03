@@ -56,6 +56,8 @@ Args:
     device (str): Device to use for the model. Defaults to "cpu".
     quantization_targets (bool): If True, it will create the quantization
         targets for SSL pre-training of the model. Defaults to False.
+    load_weights (bool): If True, it will load the weights from the
+        checkpoint. Defaults to True.
 
 Output:
     module: The model from the provided config file.

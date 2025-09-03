@@ -30,6 +30,7 @@ def get_model(
     config_file: Path | str | None = None,
     device: str = "cpu",
     quantization_targets: bool = False,
+    load_weights: bool = True,
 ) -> L.LightningModule:
     """Returns an OMAR-RQ Module from the provided  model_id or config_file.
 
@@ -39,6 +40,8 @@ def get_model(
         device (str): Device to use for the model. Defaults to "cpu".
         quantization_targets (bool): If True, it will create the quantization
             targets for SSL pre-training of the model. Defaults to False.
+        load_weights (bool): If True, it will load the weights from the
+            checkpoint. Defaults to True.
 
     Output:
         module: The model from the provided config file.
@@ -134,12 +137,16 @@ def get_model(
             ckpt_path = Path(config_file).parent / ckpt_path.name
 
         # Load the checkpoint weights it exists
-        state_dict = torch.load(ckpt_path, map_location=device)
-        for key in ["net", "embedding_layer"]:
-            net_weigths = {
-                k[len(key) + 1 :]: v for k, v in state_dict.items() if k.startswith(key)
-            }
-            getattr(module, key).load_state_dict(net_weigths, strict=True)
+        if load_weights:
+            state_dict = torch.load(ckpt_path, map_location=device)
+            for key in ["net", "embedding_layer"]:
+                net_weigths = {
+                    k[len(key) + 1 :]: v
+                    for k, v in state_dict.items()
+                    if k.startswith(key)
+                }
+                getattr(module, key).load_state_dict(net_weigths, strict=True)
+                print(f"OMAR-RQ: {len(net_weigths)} weights loaded for `{key}`")
 
     # Set the model to eval mode
     module.eval()
