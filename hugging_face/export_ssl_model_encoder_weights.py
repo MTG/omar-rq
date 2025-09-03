@@ -3,7 +3,7 @@ from shutil import copyfile
 
 import torch
 
-from ssl_mtg import get_model
+from omar_rq import get_model
 
 torch.manual_seed(2)
 
