@@ -1,31 +1,29 @@
 [project]
-version = "0.1"
+version = "0.2"
 name = "omar-rq"
 
 requires-python = ">= 3.10"
 
 dependencies = [
-    "lightning==2.3",
-    "torch==2.6",
-    "torchaudio==2.6",
-    "gin-config~=0.5",
-    "einops",
-    "transformers"
+  "lightning==2.3",
+  "torch==2.6",
+  "torchaudio==2.6",
+  "gin-config~=0.5",
+  "einops",
+  "transformers",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "ruff",
-    "pytest",
-]
+dev = ["ruff", "pytest"]
+
 train = [
-    "bayesian_optimization~=1.5.1",
-    "matplotlib",
-    "scikit_learn~=1.5.2",
-    "scipy~=1.14.1",
-    "wandb",
+  "bayesian_optimization~=1.5.1",
+  "matplotlib",
+  "scikit_learn~=1.5.2",
+  "scipy~=1.14.1",
+  "wandb",
 ]
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=65.5.0", "wheel"]
 build-backend = "setuptools.build_meta"

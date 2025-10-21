@@ -7,7 +7,7 @@ from lightning.pytorch.utilities import rank_zero_only
 
 import gin.torch
 
-from nets.transformer import Transformer
+from .nets.transformer import Transformer
 
 
 class GinConfigSaverCallback(Callback):

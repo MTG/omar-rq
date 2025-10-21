@@ -7,9 +7,9 @@ import pytorch_lightning as L
 from torch import nn
 from huggingface_hub import hf_hub_download
 
-import nets
-import modules
-from utils import build_module
+from . import nets
+from . import modules
+from .utils import build_module
 
 
 def get_patch_size(representation: nn.Module) -> tuple:

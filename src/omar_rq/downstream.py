@@ -20,16 +20,16 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from utils import gin_config_to_readable_dictionary
-from probe.modules import (
+from .utils import gin_config_to_readable_dictionary
+from .probe.modules import (
     SequenceMultiLabelClassificationProbe,
     SequenceMultiClassClassificationProbe,
 )
-from probe.data import (
+from .probe.data import (
     MTTEmbeddingLoadingDataModule,
     NSynthPitchEmbeddingLoadingDataModule,
 )
-from cosineannealingscheduler import CosineAnnealingCallback
+from .cosineannealingscheduler import CosineAnnealingCallback
 
 
 @gin.configurable
