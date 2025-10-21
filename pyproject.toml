@@ -1,6 +1,42 @@
 [project]
 version = "0.2.0"
 name = "omar-rq"
+description = "Wrapper library to use the OMAR-RQ models for audio music representation"
+readme = "README.md"
+license = { text = "AGPL-3.0 license" }
+authors = [
+  { name = "Pablo Alonso", email = "pablo.alonso@upf.edu" },
+  { name = "Pedro Ramoneda", email = "pedro.ramoneda@upf.edu" },
+  { name = "R. Oguz Araz", email = "recepoguz.araz@upf.edu" },
+]
+keywords = [
+  "deep learning",
+  "audio",
+  "transformers",
+  "mir",
+  "music",
+  "representation learning",
+  "self-supervised learning",
+]
+
+classifiers = [
+"Intended Audience :: Developers",
+"Intended Audience :: Science/Research",
+
+"License License :: OSI Approved :: AGPL-3.0 license",
+
+"Topic :: Scientific/Engineering :: Artificial Intelligence",
+"Topic :: Software Development :: Libraries",
+"Topic :: Multimedia :: Sound/Audio :: Analysis",
+
+"Programming Language :: Python :: 3",
+"Programming Language :: Python :: 3.10",
+"Programming Language :: Python :: 3.11",
+"Programming Language :: Python :: 3.12",
+"Programming Language :: Python :: 3.13",
+]
+
+
 
 requires-python = ">= 3.10"
 
@@ -23,6 +59,10 @@ train = [
   "scipy~=1.14.1",
   "wandb",
 ]
+
+[project.urls]
+Issues = "https://https://github.com/MTG/omar-rq/issues/"
+Homepage = "https://github.com/username/omar-rq/"
 
 [build-system]
 requires = ["setuptools>=65.5.0", "wheel"]
