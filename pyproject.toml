@@ -5,7 +5,7 @@ name = "omar-rq"
 requires-python = ">= 3.10"
 
 dependencies = [
-  "lightning==>=2.3,<3.0",
+  "lightning>=2.3,<3.0",
   "torch>=2.6,<3.0",
   "torchaudio>=2.6,<3.0",
   "gin-config>=0.5,<1.0",
