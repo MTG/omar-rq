@@ -9,8 +9,8 @@ import torch
 from torch import nn
 import pytorch_lightning as L
 
-from modules.codebooks import RandomProjectionQuantizer
-from modules.finite_scalar_quantizer import FiniteScalarQuantizer
+from .codebooks import RandomProjectionQuantizer
+from .finite_scalar_quantizer import FiniteScalarQuantizer
 
 
 @gin.configurable

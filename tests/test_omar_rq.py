@@ -1,7 +1,12 @@
+import shutil
+from pathlib import Path
+
 import pytest
 import torch
 import numpy as np
+
 from omar_rq import get_model
+
 
 # List of all available model_ids from README.md
 MODEL_IDS = [
@@ -12,6 +17,10 @@ MODEL_IDS = [
     "mtg-upf/omar-rq-multifeature-25hz-fsq",
     "mtg-upf/omar-rq-base-freesound-small",
 ]
+
+
+# Where huggingface/omar_rq caches models
+CACHE_DIR = Path.home() / ".cache" / "huggingface" / "hub"
 
 
 @pytest.fixture(params=MODEL_IDS)
@@ -27,6 +36,8 @@ def base_model(request):
 def test_load_model(model):
     assert hasattr(model, "extract_embeddings")
     assert hasattr(model, "eps")
+    if CACHE_DIR.exists():
+        shutil.rmtree(CACHE_DIR, ignore_errors=True)
 
 
 def test_inference_with_dummy_data(base_model):

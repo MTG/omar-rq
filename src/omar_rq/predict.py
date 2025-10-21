@@ -17,13 +17,13 @@ from typing import List
 import gin.torch
 import pytorch_lightning as L
 
-from data import DATASETS
-from data.data_utils import AudioDataset
-from modules import MODULES
-from nets import NETS
-from utils import build_module
-from prediction.callbacks import EmbeddingWriter
-from prediction.dataset import AudioEmbeddingDataModule
+from .data import DATASETS
+from .data.data_utils import AudioDataset
+from .modules import MODULES
+from .nets import NETS
+from .utils import build_module
+from .prediction.callbacks import EmbeddingWriter
+from .prediction.dataset import AudioEmbeddingDataModule
 
 # Register all modules, datasets and networs with gin
 for module_name, module in MODULES.items():

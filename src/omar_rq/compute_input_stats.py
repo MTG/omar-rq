@@ -9,10 +9,10 @@ import torch
 import pytorch_lightning as L
 from tqdm import tqdm
 
-from data import DATASETS
-from modules import MODULES
-from nets import NETS
-from utils import build_module, build_dev_datamodule
+from .data import DATASETS
+from .modules import MODULES
+from .nets import NETS
+from .utils import build_module, build_dev_datamodule
 
 
 for net_name, net in NETS.items():
