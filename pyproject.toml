@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff", "pytest"]
+dev = ["ruff~=0.14", "pytest"]
 
 train = [
   "bayesian_optimization~=1.5.1",
