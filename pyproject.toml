@@ -5,12 +5,12 @@ name = "omar-rq"
 requires-python = ">= 3.10"
 
 dependencies = [
-  "lightning==2.3",
-  "torch==2.6",
-  "torchaudio==2.6",
-  "gin-config~=0.5",
-  "einops",
-  "transformers",
+  "lightning==>=2.3,<3.0",
+  "torch>=2.6,<3.0",
+  "torchaudio>=2.6,<3.0",
+  "gin-config>=0.5,<1.0",
+  "einops>=0.8,<1.0",
+  "transformers>=4.50,<5.0",
 ]
 
 [project.optional-dependencies]
