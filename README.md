@@ -7,6 +7,8 @@ _Pablo Alonso-Jiménez, Pedro Ramoneda, R. Oguz Araz, Andrea Poltronieri, Dmitry
 
 [![arXiv](https://img.shields.io/badge/arXiv-2507.03482-b31b1b.svg)](https://arxiv.org/abs/2507.03482)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+[![PyPI version](https://img.shields.io/pypi/v/omar-rq.svg)](https://pypi.org/project/omar-rq/)
+[![Tests](https://github.com/MTG/omar-rq/actions/workflows/python-tests.yml/badge.svg)](https://github.com/MTG/omar-rq/actions/workflows/python-tests.yml)
 
   <img src="img/omaro_the_original.png" alt="Lobster" width="40%">
 </div>
