@@ -1,5 +1,5 @@
 [project]
-version = "0.2.0"
+version = "0.2.1"
 name = "omar-rq"
 description = "Wrapper library to use the OMAR-RQ models for audio music representation"
 readme = "README.md"
