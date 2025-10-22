@@ -13,6 +13,14 @@ _Pablo Alonso-Jiménez, Pedro Ramoneda, R. Oguz Araz, Andrea Poltronieri, Dmitry
 
 ## Install
 
+### From PyPI
+
+```bash
+pip install omar-rq
+```
+
+### From source
+
 For embedding extraction or fine-tuning:
 
 ```bash
