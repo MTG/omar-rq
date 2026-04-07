@@ -133,6 +133,8 @@ Output:
 | **multifeature**           | audio | 18.75 | 24000 | .467     | 1.76       | .938    | .734    | .833    | .623      |
 | **multifeature-25hz**      | audio | 25    | 24000 | .463     | 1.79       | .932    | .728    | .848    | .628      |
 | **multifeature-25hz-fsq**  | audio | 25    | 24000 | .463     | 1.71       | **.940**| **.749**| **.855**| .628      |
+| **base-freesound-small**   | mel   | 15.63 | 16000 | -        | -          | -       | -       | -       | -         |
+| **base-freesound-large**   | mel   | 15.63 | 16000 | -        | -          | -       | -       | -       | -         |
 
 > **Note:** Different models were trained with different sample rates.
 > It is responsibility of the user to ensure that the input audio is sampled at the correct rate.
@@ -140,6 +142,7 @@ Output:
 OMAR-RQ models are offered in different configurations, each with its own strengths and weaknesses.
 Models based on mel spectrogram (**base** and **multicodebook**) tend to perform better on semantic tasks such as auto-tagging, structure recognition, and difficulty estimation.
 On the other hand, **multifeature-24hz-fsq** offers the best performance in tonal and temporal tasks such as pitch and chord estimation, and beat tracking.
+The **base-freesound-small** and **base-freesound-large** models were trained with [Freesound](https://freesound.org/) data.
 
 ### Hugging Face Model IDs
 
@@ -148,6 +151,8 @@ On the other hand, **multifeature-24hz-fsq** offers the best performance in tona
 - [mtg-upf/omar-rq-multifeature](https://huggingface.co/mtg-upf/omar-rq-multifeature)
 - [mtg-upf/omar-rq-multifeature-25hz](https://huggingface.co/mtg-upf/omar-rq-multifeature-25hz)
 - [mtg-upf/omar-rq-multifeature-25hz-fsq](https://huggingface.co/mtg-upf/omar-rq-multifeature-25hz-fsq)
+- [mtg-upf/omar-rq-base-freesound-small](https://huggingface.co/mtg-upf/omar-rq-base-freesound-small)
+- [mtg-upf/omar-rq-base-freesound-large](https://huggingface.co/mtg-upf/omar-rq-base-freesound-large)
 
 ## Pre-training OMAR-RQ models
 
